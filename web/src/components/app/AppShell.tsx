@@ -6,6 +6,7 @@ import { GroupSidebar } from "../layout/GroupSidebar";
 import { ModalFrame } from "../modals/ModalFrame";
 import { ActorTab } from "../../pages/ActorTab";
 import { ChatTab } from "../../pages/chat";
+import { ScriptManagerPage } from "../../pages/scripts";
 import type { Actor, GroupContext, GroupDoc, GroupMeta, GroupRuntimeStatus, TextScale } from "../../types";
 import { SIDEBAR_COLLAPSED_WIDTH } from "../../stores/useUIStore";
 
@@ -206,12 +207,15 @@ export function AppShell({
         orderedGroups={orderedGroups}
         archivedGroupIds={archivedGroupIds}
         selectedGroupId={selectedGroupId}
+        activeTab={activeTab}
         isOpen={sidebarOpen}
         isCollapsed={sidebarCollapsed}
         sidebarWidth={sidebarWidth}
         isDark={isDark}
         readOnly={webReadOnly}
         onSelectGroup={onSelectGroup}
+        onSelectChat={() => onTabChange("chat")}
+        onSelectScripts={() => onTabChange("scripts")}
         onWarmGroup={onWarmGroup}
         onCreateGroup={onCreateGroup}
         onClose={onCloseSidebar}
@@ -231,6 +235,9 @@ export function AppShell({
           isDark={isDark}
           theme={theme}
           textScale={textScale}
+          titleOverride={activeTab === "scripts" ? "Script Manager" : undefined}
+          hideGroupControls={activeTab === "scripts"}
+          allowSettingsWithoutGroup={activeTab === "scripts"}
           onThemeChange={onThemeChange}
           onTextScaleChange={onTextScaleChange}
           webReadOnly={webReadOnly}
@@ -262,40 +269,44 @@ export function AppShell({
         >
           <div className="absolute inset-0 flex min-h-0 flex-col">
             <ErrorBoundary>
-              <ChatTab
-                isDark={isDark}
-                isSmallScreen={isSmallScreen}
-                readOnly={webReadOnly}
-                selectedGroupId={selectedGroupId}
-                selectedGroupRunning={selectedGroupRunning}
-                selectedGroupActorsHydrating={selectedGroupActorsHydrating}
-                groupLabelById={groupLabelById}
-                actors={actors}
-                runtimeActors={runtimeActors}
-                groups={groups}
-                activeRuntimeActorId={activeTab !== "chat" ? activeTab : undefined}
-                recipientActors={recipientActors}
-                recipientActorsBusy={recipientActorsBusy}
-                destGroupScopeLabel={destGroupScopeLabel}
-                scrollRef={eventContainerRef}
-                composerRef={composerRef}
-                fileInputRef={fileInputRef}
-                chatAtBottomRef={chatAtBottomRef}
-                appendComposerFiles={appendComposerFiles}
-                onStartGroup={onStartGroup}
-                onOpenRuntimeActor={onTabChange}
-                showMentionMenu={showMentionMenu}
-                setShowMentionMenu={setShowMentionMenu}
-                mentionSelectedIndex={mentionSelectedIndex}
-                setMentionSelectedIndex={setMentionSelectedIndex}
-                setMentionFilter={setMentionFilter}
-              />
+              {activeTab === "scripts" ? (
+                <ScriptManagerPage isDark={isDark} readOnly={webReadOnly} />
+              ) : (
+                <ChatTab
+                  isDark={isDark}
+                  isSmallScreen={isSmallScreen}
+                  readOnly={webReadOnly}
+                  selectedGroupId={selectedGroupId}
+                  selectedGroupRunning={selectedGroupRunning}
+                  selectedGroupActorsHydrating={selectedGroupActorsHydrating}
+                  groupLabelById={groupLabelById}
+                  actors={actors}
+                  runtimeActors={runtimeActors}
+                  groups={groups}
+                  activeRuntimeActorId={activeTab !== "chat" && activeTab !== "scripts" ? activeTab : undefined}
+                  recipientActors={recipientActors}
+                  recipientActorsBusy={recipientActorsBusy}
+                  destGroupScopeLabel={destGroupScopeLabel}
+                  scrollRef={eventContainerRef}
+                  composerRef={composerRef}
+                  fileInputRef={fileInputRef}
+                  chatAtBottomRef={chatAtBottomRef}
+                  appendComposerFiles={appendComposerFiles}
+                  onStartGroup={onStartGroup}
+                  onOpenRuntimeActor={onTabChange}
+                  showMentionMenu={showMentionMenu}
+                  setShowMentionMenu={setShowMentionMenu}
+                  mentionSelectedIndex={mentionSelectedIndex}
+                  setMentionSelectedIndex={setMentionSelectedIndex}
+                  setMentionFilter={setMentionFilter}
+                />
+              )}
             </ErrorBoundary>
           </div>
 
           {renderedActorIds.map((actorId) => {
             const actor = runtimeActors.find((item) => item.id === actorId) || null;
-            const isVisible = activeTab === actorId && activeTab !== "chat";
+            const isVisible = activeTab === actorId && activeTab !== "chat" && activeTab !== "scripts";
             const agentState =
               (groupContext?.agent_states || []).find((item) => item.id === (actor?.id || "")) || null;
 

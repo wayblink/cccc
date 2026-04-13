@@ -7,17 +7,21 @@ import { GroupSidebarItem } from "./GroupSidebarItem";
 import { GroupSidebarSortableList } from "./GroupSidebarSortableList";
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "../../stores/useUIStore";
 import { useBrandingStore } from "../../stores";
+import { getScriptManagerNavMeta } from "./scriptManagerNav";
 
 export interface GroupSidebarProps {
   orderedGroups: GroupMeta[];
   archivedGroupIds: string[];
   selectedGroupId: string;
+  activeTab?: string;
   isOpen: boolean;
   isCollapsed: boolean;
   sidebarWidth: number;
   isDark: boolean;
   readOnly?: boolean;
   onSelectGroup: (groupId: string) => void;
+  onSelectChat?: () => void;
+  onSelectScripts?: () => void;
   onWarmGroup?: (groupId: string) => void;
   onCreateGroup?: () => void;
   onClose: () => void;
@@ -32,12 +36,15 @@ export function GroupSidebar({
   orderedGroups,
   archivedGroupIds,
   selectedGroupId,
+  activeTab = "chat",
   isOpen,
   isCollapsed,
   sidebarWidth,
   isDark,
   readOnly,
   onSelectGroup,
+  onSelectChat,
+  onSelectScripts,
   onWarmGroup,
   onCreateGroup,
   onClose,
@@ -49,9 +56,11 @@ export function GroupSidebar({
 }: GroupSidebarProps) {
   const { t } = useTranslation('layout');
   const branding = useBrandingStore((s) => s.branding);
+  const scriptManagerNav = getScriptManagerNavMeta();
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const archivedSet = useMemo(() => new Set(archivedGroupIds), [archivedGroupIds]);
+  const visibleSelectedGroupId = activeTab === "scripts" ? "" : selectedGroupId;
   const workingGroups = useMemo(
     () => orderedGroups.filter((g) => !archivedSet.has(String(g.group_id || "").trim())),
     [archivedSet, orderedGroups]
@@ -117,6 +126,13 @@ export function GroupSidebar({
     document.body.style.setProperty("user-select", "none");
   }, [isCollapsed, sidebarWidth]);
 
+  const handleSelectGroup = useCallback((groupId: string) => {
+    onSelectGroup(groupId);
+    if (activeTab === "scripts") {
+      onSelectChat?.();
+    }
+  }, [activeTab, onSelectChat, onSelectGroup]);
+
   const renderGroupList = useCallback(
     (groups: GroupMeta[], section: "working" | "archived") => {
       const isArchivedSection = section === "archived";
@@ -132,21 +148,21 @@ export function GroupSidebar({
 
       if (!isCollapsed && !readOnly) {
         return (
-          <GroupSidebarSortableList
-            groups={groups}
-            section={section}
-            selectedGroupId={selectedGroupId}
-            isDark={isDark}
-            isCollapsed={false}
-            readOnly={readOnly}
-            menuActionLabel={menuActionLabel}
-            menuAriaLabel={t("groupActions")}
-            onMenuAction={handleMenuAction}
-            onReorderSection={onReorderSection}
-            onSelectGroup={onSelectGroup}
-            onWarmGroup={onWarmGroup}
-            onClose={onClose}
-          />
+            <GroupSidebarSortableList
+              groups={groups}
+              section={section}
+              selectedGroupId={visibleSelectedGroupId}
+              isDark={isDark}
+              isCollapsed={false}
+              readOnly={readOnly}
+              menuActionLabel={menuActionLabel}
+              menuAriaLabel={t("groupActions")}
+              onMenuAction={handleMenuAction}
+              onReorderSection={onReorderSection}
+              onSelectGroup={handleSelectGroup}
+              onWarmGroup={onWarmGroup}
+              onClose={onClose}
+            />
         );
       }
 
@@ -158,24 +174,24 @@ export function GroupSidebar({
               <GroupSidebarItem
                 key={gid}
                 group={g}
-                isActive={gid === selectedGroupId}
+                isActive={gid === visibleSelectedGroupId}
                 isCollapsed={isCollapsed}
                 isArchived={isArchivedSection}
                 menuActionLabel={isCollapsed ? undefined : menuActionLabel}
                 menuAriaLabel={isCollapsed ? undefined : `${t("groupActions")} · ${g.title || gid}`}
                 onMenuAction={isCollapsed ? undefined : () => handleMenuAction(gid)}
                 onSelect={() => {
-                  onSelectGroup(gid);
+                  handleSelectGroup(gid);
                   if (window.matchMedia("(max-width: 767px)").matches) onClose();
                 }}
-                onWarm={gid === selectedGroupId ? undefined : () => onWarmGroup?.(gid)}
+                onWarm={gid === visibleSelectedGroupId ? undefined : () => onWarmGroup?.(gid)}
               />
             );
           })}
         </div>
       );
     },
-    [isCollapsed, isDark, onArchiveGroup, onClose, onReorderSection, onRestoreGroup, onSelectGroup, onWarmGroup, readOnly, selectedGroupId, t]
+    [handleSelectGroup, isCollapsed, isDark, onArchiveGroup, onClose, onReorderSection, onRestoreGroup, onWarmGroup, readOnly, t, visibleSelectedGroupId]
   );
 
   return (
@@ -364,6 +380,61 @@ export function GroupSidebar({
             </div>
           )}
         </div>
+
+        {onSelectScripts && (
+          <div className={classNames("border-t border-[var(--glass-border-subtle)]", isCollapsed ? "p-2" : "p-3 pt-3")}>
+            {!isCollapsed && (
+              <div className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--color-text-tertiary)]">
+                Tools
+              </div>
+            )}
+            <button
+              type="button"
+              className={classNames(
+                isCollapsed
+                  ? "glass-group-item flex h-11 w-11 items-center justify-center rounded-xl"
+                  : "glass-group-item flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left",
+                activeTab === "scripts" && "glass-group-item-active glow-pulse"
+              )}
+              onClick={() => {
+                onSelectScripts();
+                if (window.matchMedia("(max-width: 767px)").matches) onClose();
+              }}
+              title={scriptManagerNav.title}
+              aria-label={scriptManagerNav.title}
+            >
+              <span
+                className={classNames(
+                  "flex h-9 w-9 items-center justify-center rounded-xl",
+                  activeTab === "scripts"
+                    ? "text-cyan-700 dark:text-cyan-300"
+                    : "text-[var(--color-text-secondary)]"
+                )}
+              >
+                <scriptManagerNav.Icon size={18} />
+              </span>
+              {!isCollapsed && (
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={classNames(
+                      "block truncate text-sm font-medium",
+                      activeTab === "scripts"
+                        ? "text-cyan-700 dark:text-cyan-300"
+                        : "text-[var(--color-text-primary)]"
+                    )}
+                  >
+                    {scriptManagerNav.title}
+                  </span>
+                  {scriptManagerNav.subtitle ? (
+                    <span className="mt-0.5 block truncate text-xs text-[var(--color-text-secondary)]">
+                      {scriptManagerNav.subtitle}
+                    </span>
+                  ) : null}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
 
         {!isCollapsed && (
           <div

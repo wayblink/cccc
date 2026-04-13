@@ -450,6 +450,28 @@ export function TerminalIcon({ className, size = 18 }: IconProps) {
   );
 }
 
+export function ScriptIcon({ className, size = 18 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M8 3h6l5 5v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 11h6" />
+      <path d="M9 15h6" />
+      <path d="m10 19 2-2-2-2" />
+    </svg>
+  );
+}
+
 export function BookmarkIcon({ className, size = 18 }: IconProps) {
   return (
     <svg

@@ -33,6 +33,51 @@ export type GroupDoc = {
   runtime_status?: GroupRuntimeStatus;
 };
 
+export type ScriptKind = "service" | "task";
+
+export type ScriptResult = "success" | "failed" | "stopped" | string;
+
+export type ScriptDefinition = {
+  id: string;
+  name: string;
+  kind: ScriptKind;
+  command: string;
+  cwd: string;
+  env: Record<string, string>;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ScriptRuntimeStatus = {
+  script_id?: string;
+  status: "idle" | "running" | string;
+  pid?: number | null;
+  started_at?: string | null;
+  updated_at?: string | null;
+  exit_code?: number | null;
+  result?: ScriptResult | null;
+};
+
+export type ScriptOutputSnapshot = {
+  script_id?: string;
+  text: string;
+  updated_at?: string | null;
+  exit_code?: number | null;
+  result?: ScriptResult | null;
+};
+
+export type ScriptDetail = {
+  script: ScriptDefinition;
+  runtime: ScriptRuntimeStatus;
+  last_output: ScriptOutputSnapshot | null;
+};
+
+export type ScriptAttachResult = {
+  script_id?: string;
+  runtime: ScriptRuntimeStatus;
+  output: ScriptOutputSnapshot | null;
+};
+
 // Server-backed attachment metadata carried by canonical ledger events.
 export type EventAttachment = {
   kind?: string;

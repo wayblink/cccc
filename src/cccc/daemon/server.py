@@ -151,6 +151,9 @@ _REQUEST_READ_QUEUE_OPS = {
     "actor_list",
     "observability_get",
     "ping",
+    "script_attach",
+    "script_get",
+    "script_list",
 }
 
 

@@ -22,6 +22,9 @@ export interface AppHeaderProps {
   isDark: boolean;
   theme: Theme;
   textScale: TextScale;
+  titleOverride?: string;
+  hideGroupControls?: boolean;
+  allowSettingsWithoutGroup?: boolean;
   onThemeChange: (theme: Theme) => void;
   onTextScaleChange: (scale: TextScale) => void;
   webReadOnly?: boolean;
@@ -47,6 +50,9 @@ export function AppHeader({
   isDark,
   theme,
   textScale,
+  titleOverride,
+  hideGroupControls = false,
+  allowSettingsWithoutGroup = false,
   onThemeChange,
   onTextScaleChange,
   webReadOnly,
@@ -116,6 +122,7 @@ export function AppHeader({
     if (stopDisabled || selectedStatusKey === "stop") return;
     onStopGroup();
   };
+  const title = titleOverride || groupDoc?.title || (selectedGroupId ? selectedGroupId : t('selectGroup'));
   return (
     <header
       className="z-20 flex h-14 flex-shrink-0 items-center justify-between gap-3 px-4 pt-1 glass-header md:px-5"
@@ -137,9 +144,9 @@ export function AppHeader({
         <div className="min-w-0 flex flex-col">
           <div className="flex items-center gap-2">
             <h1 className="truncate text-base font-semibold leading-tight text-[var(--color-text-primary)] md:text-[1.125rem]">
-              {groupDoc?.title || (selectedGroupId ? selectedGroupId : t('selectGroup'))}
+              {title}
             </h1>
-            {selectedGroupId && sseStatus !== "connected" && (
+            {!hideGroupControls && selectedGroupId && sseStatus !== "connected" && (
               <span
                 className={classNames(
                   "flex-shrink-0 w-2 h-2 rounded-full",
@@ -148,7 +155,7 @@ export function AppHeader({
                 title={sseStatus === "connecting" ? t('reconnecting') : t('disconnected')}
               />
             )}
-            {selectedStatus && (
+            {!hideGroupControls && selectedStatus && (
               <span
                 className={classNames(
                   "w-2.5 h-2.5 rounded-full",
@@ -160,7 +167,7 @@ export function AppHeader({
           </div>
         </div>
 
-        {selectedGroupId && !webReadOnly && onOpenGroupEdit && (
+        {!hideGroupControls && selectedGroupId && !webReadOnly && onOpenGroupEdit && (
           <button
             className={classNames(
               "hidden md:inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-all glass-btn",
@@ -181,74 +188,78 @@ export function AppHeader({
           <>
             {/* Desktop Actions */}
             <div className="mr-1 hidden items-center gap-1.5 md:flex">
-              <div className={headerRailClass}>
-                <button
-                  onClick={onOpenSearch}
-                  disabled={!selectedGroupId}
-                  className={headerRailButtonClass}
-                  title={t('searchMessages')}
-                >
-                  <span className="sr-only">{t('searchMessages')}</span>
-                  <SearchIcon size={17} />
-                </button>
+              {!hideGroupControls && (
+                <>
+                  <div className={headerRailClass}>
+                    <button
+                      onClick={onOpenSearch}
+                      disabled={!selectedGroupId}
+                      className={headerRailButtonClass}
+                      title={t('searchMessages')}
+                    >
+                      <span className="sr-only">{t('searchMessages')}</span>
+                      <SearchIcon size={17} />
+                    </button>
 
-                <button
-                  onClick={onOpenContext}
-                  disabled={!selectedGroupId}
-                  className={headerRailButtonClass}
-                  title={t('context')}
-                >
-                  <span className="sr-only">{t('context')}</span>
-                  <ClipboardIcon size={17} />
-                </button>
-              </div>
+                    <button
+                      onClick={onOpenContext}
+                      disabled={!selectedGroupId}
+                      className={headerRailButtonClass}
+                      title={t('context')}
+                    >
+                      <span className="sr-only">{t('context')}</span>
+                      <ClipboardIcon size={17} />
+                    </button>
+                  </div>
 
-              <div className={headerRailClass}>
-                <button
-                  onClick={handleLaunchClick}
-                  disabled={launchDisabled}
-                  className={classNames(
-                    "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
-                    launchControl.className,
-                    launchHardUnavailable && "opacity-45"
-                  )}
-                  title={launchMode === "activate" ? t('resumeDelivery') : t('launchAllAgents')}
-                  aria-pressed={launchControl.active}
-                >
-                  <span className="sr-only">{launchMode === "activate" ? t('resumeDelivery') : t('launchAllAgents')}</span>
-                  <RocketIcon size={17} />
-                </button>
+                  <div className={headerRailClass}>
+                    <button
+                      onClick={handleLaunchClick}
+                      disabled={launchDisabled}
+                      className={classNames(
+                        "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
+                        launchControl.className,
+                        launchHardUnavailable && "opacity-45"
+                      )}
+                      title={launchMode === "activate" ? t('resumeDelivery') : t('launchAllAgents')}
+                      aria-pressed={launchControl.active}
+                    >
+                      <span className="sr-only">{launchMode === "activate" ? t('resumeDelivery') : t('launchAllAgents')}</span>
+                      <RocketIcon size={17} />
+                    </button>
 
-                <button
-                  onClick={handlePauseClick}
-                  disabled={pauseDisabled}
-                  className={classNames(
-                    "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
-                    pauseControl.className,
-                    pauseHardUnavailable && "opacity-45"
-                  )}
-                  title={t('pauseDelivery')}
-                  aria-pressed={pauseControl.active}
-                >
-                  <span className="sr-only">{t('pauseDelivery')}</span>
-                  <PauseIcon size={17} />
-                </button>
+                    <button
+                      onClick={handlePauseClick}
+                      disabled={pauseDisabled}
+                      className={classNames(
+                        "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
+                        pauseControl.className,
+                        pauseHardUnavailable && "opacity-45"
+                      )}
+                      title={t('pauseDelivery')}
+                      aria-pressed={pauseControl.active}
+                    >
+                      <span className="sr-only">{t('pauseDelivery')}</span>
+                      <PauseIcon size={17} />
+                    </button>
 
-                <button
-                  onClick={handleStopClick}
-                  disabled={stopDisabled}
-                  className={classNames(
-                    "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
-                    stopControl.className,
-                    stopHardUnavailable && "opacity-45"
-                  )}
-                  title={t('stopAllAgents')}
-                  aria-pressed={stopControl.active}
-                >
-                  <span className="sr-only">{t('stopAllAgents')}</span>
-                  <StopIcon size={17} />
-                </button>
-              </div>
+                    <button
+                      onClick={handleStopClick}
+                      disabled={stopDisabled}
+                      className={classNames(
+                        "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
+                        stopControl.className,
+                        stopHardUnavailable && "opacity-45"
+                      )}
+                      title={t('stopAllAgents')}
+                      aria-pressed={stopControl.active}
+                    >
+                      <span className="sr-only">{t('stopAllAgents')}</span>
+                      <StopIcon size={17} />
+                    </button>
+                  </div>
+                </>
+              )}
 
               <div className={headerRailClass}>
                 <ThemeToggleCompact theme={theme} onThemeChange={onThemeChange} isDark={isDark} variant="rail" />
@@ -256,7 +267,7 @@ export function AppHeader({
                 <LanguageSwitcher isDark={isDark} variant="rail" />
                 <button
                   onClick={onOpenSettings}
-                  disabled={!selectedGroupId}
+                  disabled={!selectedGroupId && !allowSettingsWithoutGroup}
                   className={headerRailButtonClass}
                   title={t('settings')}
                 >

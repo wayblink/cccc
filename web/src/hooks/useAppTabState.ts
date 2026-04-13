@@ -47,11 +47,11 @@ export function useAppTabState({
   const actorsRef = useRef<Actor[]>([]);
   const [mountedActorIds, setMountedActorIds] = useState<string[]>([]);
 
-  const allTabs = useMemo(() => ["chat"], []);
+  const allTabs = useMemo(() => ["chat", "scripts"], []);
 
   const handleTabChange = React.useCallback(
     (newTab: string) => {
-      if (newTab !== "chat") {
+      if (newTab !== "chat" && newTab !== "scripts") {
         setMountedActorIds((prev) => (prev.includes(newTab) ? prev : [...prev, newTab]));
       }
       setActiveTab(newTab);
@@ -86,7 +86,7 @@ export function useAppTabState({
   const renderedActorIds = useMemo(() => {
     const live = new Set(runtimeActors.map((actor) => String(actor.id || "")).filter((id) => id));
     const mountedLiveIds = mountedActorIds.filter((id) => live.has(id));
-    if (activeTab !== "chat" && live.has(activeTab) && !mountedLiveIds.includes(activeTab)) {
+    if (activeTab !== "chat" && activeTab !== "scripts" && live.has(activeTab) && !mountedLiveIds.includes(activeTab)) {
       return [...mountedLiveIds, activeTab];
     }
     return mountedLiveIds;

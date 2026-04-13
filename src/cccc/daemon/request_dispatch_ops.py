@@ -37,6 +37,7 @@ from .ops.capability_ops import try_handle_capability_op
 from .im.im_ops import try_handle_im_op
 from .actors.runner_ops import try_handle_headless_op
 from .memory.memory_ops import try_handle_memory_op
+from .scripts.script_ops import try_handle_script_op
 
 
 @dataclass(frozen=True)
@@ -394,6 +395,10 @@ def dispatch_request(
     memory_resp = try_handle_memory_op(op, args)
     if memory_resp is not None:
         return memory_resp, False
+
+    script_resp = try_handle_script_op(op, args)
+    if script_resp is not None:
+        return script_resp, False
 
     im_resp = try_handle_im_op(op, args)
     if im_resp is not None:

@@ -185,7 +185,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (activeTab === "chat") return;
+    if (activeTab === "chat" || activeTab === "scripts") return;
     if (visibleRuntimeActors.some((actor) => String(actor.id || "") === activeTab)) return;
     setActiveTab("chat");
   }, [activeTab, setActiveTab, visibleRuntimeActors]);

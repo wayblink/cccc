@@ -8,3 +8,4 @@ export * from "./im";
 export * from "./webAccess";
 export * from "./groupSpace";
 export * from "./diagnostics";
+export * from "./scripts";
