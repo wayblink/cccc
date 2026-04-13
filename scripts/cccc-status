@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CACHE_DIR="${HOME}/Library/Caches/cccc"
+LOG_DIR="${HOME}/Library/Logs/cccc"
+PID_FILE="${CACHE_DIR}/main.pid"
+STDOUT_LOG="${LOG_DIR}/raw.stdout.log"
+STDERR_LOG="${LOG_DIR}/raw.stderr.log"
+PORT="${CCCC_WEB_PORT:-8848}"
+HEALTH_URL="http://127.0.0.1:${PORT}/api/v1/health"
+UI_URL="http://127.0.0.1:${PORT}/ui/"
+
+is_alive() {
+  kill -0 "$1" 2>/dev/null
+}
+
+print_file_info() {
+  local label="$1"
+  local path="$2"
+
+  if [[ -e "${path}" ]]; then
+    echo "${label}: ${path}"
+  else
+    echo "${label}: ${path} (missing)"
+  fi
+}
+
+echo "repo: ${REPO_DIR}"
+
+CCCC_PID=""
+if [[ -f "${PID_FILE}" ]]; then
+  CCCC_PID="$(cat "${PID_FILE}")"
+fi
+
+if [[ -n "${CCCC_PID}" ]] && is_alive "${CCCC_PID}"; then
+  echo "pid: ${CCCC_PID} (running)"
+else
+  if [[ -n "${CCCC_PID}" ]]; then
+    echo "pid: ${CCCC_PID} (stale pid file)"
+  else
+    echo "pid: not recorded"
+  fi
+fi
+
+LISTENER_PID="$(lsof -tiTCP:${PORT} -sTCP:LISTEN 2>/dev/null || true)"
+if [[ -n "${LISTENER_PID}" ]]; then
+  echo "port ${PORT}: listening (pid ${LISTENER_PID})"
+else
+  echo "port ${PORT}: not listening"
+fi
+
+if HEALTH_BODY="$(curl -fsS "${HEALTH_URL}" 2>/dev/null)"; then
+  echo "health: ok"
+  echo "health body: ${HEALTH_BODY}"
+  echo "ui: ${UI_URL}"
+else
+  echo "health: unavailable"
+fi
+
+print_file_info "pid file" "${PID_FILE}"
+print_file_info "stdout log" "${STDOUT_LOG}"
+print_file_info "stderr log" "${STDERR_LOG}"

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CACHE_DIR="${HOME}/Library/Caches/cccc"
+LOG_DIR="${HOME}/Library/Logs/cccc"
+PID_FILE="${CACHE_DIR}/main.pid"
+STDOUT_LOG="${LOG_DIR}/raw.stdout.log"
+STDERR_LOG="${LOG_DIR}/raw.stderr.log"
+PORT="${CCCC_WEB_PORT:-8848}"
+CCCC_BIN="${REPO_DIR}/.venv/bin/cccc"
+
+mkdir -p "${CACHE_DIR}" "${LOG_DIR}"
+
+if [[ ! -x "${CCCC_BIN}" ]]; then
+  echo "Cannot find executable: ${CCCC_BIN}"
+  exit 1
+fi
+
+if [[ -f "${PID_FILE}" ]]; then
+  EXISTING_PID="$(cat "${PID_FILE}")"
+  if [[ -n "${EXISTING_PID}" ]] && kill -0 "${EXISTING_PID}" 2>/dev/null; then
+    echo "CCCC is already running (pid ${EXISTING_PID})."
+    exit 0
+  fi
+  rm -f "${PID_FILE}"
+fi
+
+PORT_PID="$(lsof -tiTCP:${PORT} -sTCP:LISTEN 2>/dev/null || true)"
+if [[ -n "${PORT_PID}" ]]; then
+  echo "Port ${PORT} is already in use by PID ${PORT_PID}."
+  echo "Stop that process first, or set CCCC_WEB_PORT to another port."
+  exit 1
+fi
+
+cd "${REPO_DIR}"
+nohup "${CCCC_BIN}" >>"${STDOUT_LOG}" 2>>"${STDERR_LOG}" &
+CCCC_PID=$!
+echo "${CCCC_PID}" > "${PID_FILE}"
+
+for _ in {1..20}; do
+  if ! kill -0 "${CCCC_PID}" 2>/dev/null; then
+    echo "CCCC exited during startup."
+    rm -f "${PID_FILE}"
+    tail -n 40 "${STDERR_LOG}" 2>/dev/null || true
+    exit 1
+  fi
+  if curl -fsS "http://127.0.0.1:${PORT}/api/v1/health" >/dev/null 2>&1; then
+    echo "CCCC started (pid ${CCCC_PID})."
+    echo "UI: http://127.0.0.1:${PORT}/ui/"
+    exit 0
+  fi
+  sleep 0.5
+done
+
+echo "CCCC started but health check did not become ready in time."
+echo "pid: ${CCCC_PID}"
+echo "stderr log: ${STDERR_LOG}"
+exit 1
