@@ -326,7 +326,7 @@ function HeadlessPreviewSurface({
           </div>
           <span
             className={classNames(
-              "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+              "shrink-0 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]",
               isDark ? "border-cyan-300/20 bg-cyan-300/10 text-cyan-100" : "border-cyan-500/18 bg-cyan-500/10 text-cyan-700"
             )}
           >
@@ -334,27 +334,27 @@ function HeadlessPreviewSurface({
           </span>
           <span
             className={classNames(
-              "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+              "shrink-0 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]",
               isDark ? "border-white/10 bg-white/5 text-slate-300" : "border-black/8 bg-black/5 text-gray-600"
             )}
           >
             {item.runtime}
           </span>
-          <span className={classNames("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium", statusPillClassName)}>
+          <span className={classNames("shrink-0 rounded-full px-2.5 py-1 text-[0.6875rem] font-medium", statusPillClassName)}>
             {statusLabel}
           </span>
         </div>
 
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           {updatedLabel ? (
-            <div className={classNames("text-[11px]", isDark ? "text-slate-500" : "text-gray-500")}>
+            <div className={classNames("text-xs", isDark ? "text-slate-500" : "text-gray-500")}>
               {updatedLabel}
             </div>
           ) : null}
           {item.unreadCount > 0 ? (
             <span
               className={classNames(
-                "inline-flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold",
+                "inline-flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-xs font-bold",
                 isDark ? "bg-white/10 text-slate-100" : "bg-black/8 text-gray-800"
               )}
             >
@@ -422,7 +422,7 @@ function PtyPreviewSurface({
           </div>
           <span
             className={classNames(
-              "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+              "shrink-0 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]",
               isDark ? "border-white/10 bg-white/6 text-slate-200" : "border-black/8 bg-black/5 text-gray-700"
             )}
           >
@@ -430,25 +430,25 @@ function PtyPreviewSurface({
           </span>
           <span
             className={classNames(
-              "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+              "shrink-0 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]",
               isDark ? "border-white/10 bg-white/5 text-slate-300" : "border-black/8 bg-black/5 text-gray-600"
             )}
           >
             {item.runtime}
           </span>
-          <span className={classNames("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium", statusPillClassName)}>
+          <span className={classNames("shrink-0 rounded-full px-2.5 py-1 text-[0.6875rem] font-medium", statusPillClassName)}>
             {statusLabel}
           </span>
         </div>
 
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           {updatedLabel ? (
-            <div className={classNames("text-[11px]", isDark ? "text-slate-500" : "text-gray-500")}>
+            <div className={classNames("text-xs", isDark ? "text-slate-500" : "text-gray-500")}>
               {updatedLabel}
             </div>
           ) : null}
           {item.unreadCount > 0 ? (
-            <span className={classNames("inline-flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold", isDark ? "bg-white/10 text-slate-100" : "bg-black/8 text-gray-800")}>
+            <span className={classNames("inline-flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-xs font-bold", isDark ? "bg-white/10 text-slate-100" : "bg-black/8 text-gray-800")}>
               {item.unreadCount}
             </span>
           ) : null}
@@ -615,14 +615,14 @@ function RuntimeDockActorButton({
         />
 
         {item.unreadCount > 0 ? (
-          <span className={classNames("absolute -right-1 -top-1 z-20 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold shadow-sm", ringPresentation.unreadBadgeClassName)}>
+          <span className={classNames("absolute -right-1 -top-1 z-20 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[0.6875rem] font-bold shadow-sm", ringPresentation.unreadBadgeClassName)}>
             {item.unreadCount}
           </span>
         ) : null}
 
         {hasLiveIndicator ? (
           <span className={classNames(
-            "absolute -bottom-1 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] shadow-sm",
+            "absolute -bottom-1 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] shadow-sm",
             isDark ? "border-cyan-300/20 bg-slate-950/92 text-cyan-100" : "border-cyan-500/18 bg-white text-cyan-700"
           )}>
             <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse motion-reduce:animate-none" />

@@ -536,7 +536,7 @@ export function ChatTab({
                                   key={key}
                                   type="button"
                                   className={classNames(
-                                    "min-w-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all whitespace-nowrap",
+                                    "min-w-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
                                     active
                                       ? "bg-blue-600 text-white shadow-sm"
                                       : isDark

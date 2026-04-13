@@ -54,16 +54,16 @@ export function MessageMetadataHeader({
           isDark={isDark}
           accentRingClassName={avatarRingClassName}
           sizeClassName="h-6 w-6"
-          textClassName="text-[10px]"
+          textClassName="text-[0.6875rem]"
         />
         <span className={classNames("shrink-0 text-xs font-medium", senderTextClass)}>
           {senderDisplayName}
         </span>
-        <span className="shrink-0 text-[10px] text-[var(--color-text-tertiary)]">
+        <span className="shrink-0 text-[0.6875rem] text-[var(--color-text-tertiary)]">
           <span title={fullMessageTimestamp}>{messageTimestamp}</span>
         </span>
         <span
-          className={classNames("min-w-0 truncate text-[10px]", "text-[var(--color-text-tertiary)]")}
+          className={classNames("min-w-0 truncate text-[0.6875rem]", "text-[var(--color-text-tertiary)]")}
           title={`to ${toLabel}`}
         >
           to {toLabel}
@@ -76,7 +76,7 @@ export function MessageMetadataHeader({
     <div className="hidden min-w-0 items-center gap-2 px-1 sm:flex">
       <span
         className={classNames(
-          "shrink-0 text-[11px] font-medium",
+          "shrink-0 text-xs font-medium",
           isUserMessage
             ? isDark
               ? "text-[var(--color-text-secondary)]"
@@ -90,11 +90,11 @@ export function MessageMetadataHeader({
       >
         {senderDisplayName}
       </span>
-      <span className="shrink-0 text-[10px] text-[var(--color-text-tertiary)]">
+      <span className="shrink-0 text-[0.6875rem] text-[var(--color-text-tertiary)]">
         <span title={fullMessageTimestamp}>{messageTimestamp}</span>
       </span>
       <span
-        className={classNames("min-w-0 truncate text-[10px]", "text-[var(--color-text-tertiary)]")}
+        className={classNames("min-w-0 truncate text-[0.6875rem]", "text-[var(--color-text-tertiary)]")}
         title={`to ${toLabel}`}
       >
         to {toLabel}
@@ -153,7 +153,7 @@ export function MessageFooter({
           <span className="max-w-[10ch] truncate">{displayNameMap.get(id) || id}</span>
           <span
             className={classNames(
-              "text-[10px] font-semibold tracking-tight",
+              "text-[0.6875rem] font-semibold tracking-tight",
               cleared
                 ? isDark ? "text-emerald-400" : "text-emerald-600"
                 : isDark ? "text-slate-500" : "text-gray-500",
@@ -165,7 +165,7 @@ export function MessageFooter({
         </span>
       ))}
       {readPreviewOverflow > 0 ? (
-        <span className={classNames("text-[10px]", "text-[var(--color-text-tertiary)]")}>
+        <span className={classNames("text-[0.6875rem]", "text-[var(--color-text-tertiary)]")}>
           +{readPreviewOverflow}
         </span>
       ) : null}
@@ -175,7 +175,7 @@ export function MessageFooter({
   return (
     <div
       className={classNames(
-        "mt-1 flex items-center gap-3 px-1 text-[10px] transition-opacity",
+        "mt-1 flex items-center gap-3 px-1 text-[0.6875rem] transition-opacity",
         (obligationSummary || ackSummary || visibleReadStatusEntries.length > 0 || replyRequired) ? "justify-between" : "justify-end",
         "opacity-85 group-hover:opacity-100",
         "text-[var(--color-text-tertiary)]",
@@ -186,7 +186,7 @@ export function MessageFooter({
           <div className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1">
             <span
               className={classNames(
-                "text-[10px] font-semibold tracking-tight",
+                "text-[0.6875rem] font-semibold tracking-tight",
                 obligationSummary.done >= obligationSummary.total
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "text-amber-600 dark:text-amber-400",
@@ -207,7 +207,7 @@ export function MessageFooter({
           >
             <span
               className={classNames(
-                "text-[10px] font-semibold tracking-tight",
+                "text-[0.6875rem] font-semibold tracking-tight",
                 obligationSummary.done >= obligationSummary.total
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "text-amber-600 dark:text-amber-400",
@@ -222,7 +222,7 @@ export function MessageFooter({
           <div className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1">
             <span
               className={classNames(
-                "text-[10px] font-semibold tracking-tight",
+                "text-[0.6875rem] font-semibold tracking-tight",
                 ackSummary.done >= ackSummary.total
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "text-amber-600 dark:text-amber-400",
@@ -243,7 +243,7 @@ export function MessageFooter({
           >
             <span
               className={classNames(
-                "text-[10px] font-semibold tracking-tight",
+                "text-[0.6875rem] font-semibold tracking-tight",
                 ackSummary.done >= ackSummary.total
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "text-amber-600 dark:text-amber-400",
@@ -274,7 +274,7 @@ export function MessageFooter({
       ) : null}
 
       {!obligationSummary && !ackSummary && replyRequired ? (
-        <span className={classNames("text-[10px] font-semibold tracking-tight", "text-violet-700 dark:text-violet-300")}>
+        <span className={classNames("text-[0.6875rem] font-semibold tracking-tight", "text-violet-700 dark:text-violet-300")}>
           {t("needReply")}
         </span>
       ) : null}
@@ -285,7 +285,7 @@ export function MessageFooter({
             <button
               type="button"
               className={classNames(
-                "touch-target-sm rounded-lg px-2 py-1 text-[11px] font-medium transition-colors",
+                "touch-target-sm rounded-lg px-2 py-1 text-xs font-medium transition-colors",
                 "text-[var(--color-text-secondary)] hover:bg-black/8 hover:text-[var(--color-text-primary)] dark:hover:bg-white/12",
               )}
               onClick={() => void onCopyMessageText()}
@@ -298,7 +298,7 @@ export function MessageFooter({
             <button
               type="button"
               className={classNames(
-                "touch-target-sm rounded-lg px-2 py-1 text-[11px] font-medium transition-colors",
+                "touch-target-sm rounded-lg px-2 py-1 text-xs font-medium transition-colors",
                 "text-[var(--color-text-secondary)] hover:bg-black/8 hover:text-[var(--color-text-primary)] dark:hover:bg-white/12",
               )}
               onClick={() => onCopyLink(eventId)}
@@ -311,7 +311,7 @@ export function MessageFooter({
             <button
               type="button"
               className={classNames(
-                "touch-target-sm rounded-lg px-2 py-1 text-[11px] font-medium transition-colors",
+                "touch-target-sm rounded-lg px-2 py-1 text-xs font-medium transition-colors",
                 "text-[var(--color-text-secondary)] hover:bg-black/8 hover:text-[var(--color-text-primary)] dark:hover:bg-white/12",
               )}
               onClick={() => onRelay(event)}
@@ -324,7 +324,7 @@ export function MessageFooter({
             <button
               type="button"
               className={classNames(
-                "touch-target-sm rounded-lg px-2 py-1 text-[11px] font-medium transition-colors",
+                "touch-target-sm rounded-lg px-2 py-1 text-xs font-medium transition-colors",
                 "text-[var(--color-text-secondary)] hover:bg-black/8 hover:text-[var(--color-text-primary)] dark:hover:bg-white/12",
               )}
               onClick={onReply}

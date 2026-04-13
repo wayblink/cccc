@@ -262,7 +262,7 @@ function MessageBubbleBody({
                             type="button"
                             onClick={() => onOpenPresentationRef?.(ref, event)}
                             className={classNames(
-                                "inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                                "inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
                                 isUserMessage
                                     ? "border-white/15 bg-white/10 text-white hover:bg-white/15"
                                     : "border-[var(--glass-border-subtle)] bg-[var(--glass-tab-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
@@ -437,23 +437,23 @@ function AgentStateTooltip({
                 <div className="mt-2 space-y-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                         {stateTask ? (
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-[var(--glass-tab-bg)] text-[var(--color-text-secondary)]">
+                            <span className="text-xs px-2 py-0.5 rounded bg-[var(--glass-tab-bg)] text-[var(--color-text-secondary)]">
                                 {t("taskShort", { id: stateTask })}
                             </span>
                         ) : null}
                         {blockerCount > 0 ? (
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-300">
+                            <span className="text-xs px-2 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-300">
                                 {t("blockersShort", { count: blockerCount })}
                             </span>
                         ) : null}
                     </div>
                     {stateNext ? (
-                        <div className="text-[11px] text-[var(--color-text-tertiary)]">
+                        <div className="text-xs text-[var(--color-text-tertiary)]">
                             {t("nextShort", { value: stateNext })}
                         </div>
                     ) : null}
                     {stateChanged ? (
-                        <div className={classNames("text-[11px]", "text-[var(--color-text-tertiary)]")}>
+                        <div className={classNames("text-xs", "text-[var(--color-text-tertiary)]")}>
                             {t("changedShort", { value: stateChanged })}
                         </div>
                     ) : null}
@@ -860,7 +860,7 @@ export const MessageBubble = memo(function MessageBubble({
                     {isAttention && (
                         <span
                             className={classNames(
-                                "absolute -top-2 z-10 text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-sm",
+                                "absolute -top-2 z-10 text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full border shadow-sm",
                                 isUserMessage ? "left-3" : "right-3",
                                 "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border-amber-300 dark:border-amber-700"
                             )}
@@ -870,7 +870,7 @@ export const MessageBubble = memo(function MessageBubble({
                     )}
                 <div
                     className={classNames(
-                        "inline-flex max-w-full flex-col px-4 py-2.5 text-sm leading-relaxed transition-[opacity,transform,box-shadow,background-color] duration-200 ease-out",
+                        "inline-flex max-w-full flex-col px-4 py-2.5 text-base leading-relaxed transition-[opacity,transform,box-shadow,background-color] duration-200 ease-out",
                         isQueuedOnlyPlaceholder ? "min-h-0 px-3 py-2" : "",
                         isStreaming ? "opacity-95 translate-y-0" : "opacity-100 translate-y-0",
                         bubbleMotionClass,

@@ -89,7 +89,7 @@ const StreamingActivityList = memo(function StreamingActivityList({
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-[var(--glass-border-subtle)]/80 bg-[var(--glass-tab-bg)]/70 px-2.5 py-2 cccc-streaming-status-panel">
       {displayActivities.map((activity, index) => (
-        <div key={activity.id} className="relative min-w-0 pl-4 text-[11px] leading-4 text-[var(--color-text-secondary)]">
+        <div key={activity.id} className="relative min-w-0 pl-4 text-xs leading-4 text-[var(--color-text-secondary)]">
           <div className="flex min-w-0 items-baseline gap-2">
             <span
               className={classNames(
@@ -100,18 +100,18 @@ const StreamingActivityList = memo(function StreamingActivityList({
             {index < displayActivities.length - 1 ? (
               <span className="absolute left-[3px] top-[0.85rem] bottom-[-10px] w-px bg-[var(--glass-border-subtle)]/90" />
             ) : null}
-            <span className="min-w-[2.75rem] font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
+            <span className="min-w-[2.75rem] font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
               {formatStreamingActivityKind(activity.kind)}
             </span>
             <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
               {getStructuredStreamingActivityLabel(activity)}
               {activity.summary && getStructuredStreamingActivityLabel(activity) !== String(activity.summary).trim() ? (
-                <span className="block text-[10px] text-[var(--color-text-tertiary)]">
+                <span className="block text-[0.6875rem] text-[var(--color-text-tertiary)]">
                   {activity.summary}
                 </span>
               ) : null}
               {activity.detail ? (
-                <span className="block text-[10px] text-[var(--color-text-tertiary)]">
+                <span className="block text-[0.6875rem] text-[var(--color-text-tertiary)]">
                   {activity.detail}
                 </span>
               ) : null}

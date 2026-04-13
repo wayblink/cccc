@@ -183,7 +183,7 @@ export function ChatComposer({
   }, [showModeMenu]);
 
   const chipBaseClass =
-    "flex-shrink-0 whitespace-nowrap text-[10px] sm:text-[11px] px-2.5 sm:px-3 rounded-full border transition-all flex items-center justify-center font-medium";
+    "flex-shrink-0 whitespace-nowrap text-[0.6875rem] sm:text-xs px-2.5 sm:px-3 rounded-full border transition-all flex items-center justify-center font-medium";
   const composerToolButtonClass =
     "glass-btn flex flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-[var(--glass-border-subtle)] text-[var(--color-text-secondary)] transition-[background-color,border-color,color,transform,box-shadow] duration-200 disabled:cursor-not-allowed disabled:text-[var(--color-text-tertiary)] disabled:opacity-70";
   const composerInlineToolButtonClass =
@@ -491,7 +491,7 @@ export function ChatComposer({
             fadeWidth={20}
           >
             <div className="flex min-w-max items-center gap-1.5 sm:gap-2">
-              <div className={classNames("text-[10px] font-medium uppercase tracking-wide flex-shrink-0", isDark ? "text-[var(--color-text-tertiary)]" : "text-gray-500")}>{t('to', 'To')}</div>
+              <div className={classNames("text-[0.6875rem] font-medium uppercase tracking-wide flex-shrink-0", isDark ? "text-[var(--color-text-tertiary)]" : "text-gray-500")}>{t('to', 'To')}</div>
 
               {/* Group Selector - Styled to match buttons */}
               <div className="relative flex-shrink-0">
@@ -626,7 +626,7 @@ export function ChatComposer({
         {modeNotice ? (
           <div
             className={classNames(
-              "mb-3 rounded-lg border px-3 py-1.5 text-[11px] leading-5",
+              "mb-3 rounded-lg border px-3 py-1.5 text-xs leading-5",
               messageMode === "task"
                 ? isDark
                   ? "border-violet-500/30 bg-violet-500/10 text-violet-200"
@@ -732,7 +732,7 @@ export function ChatComposer({
                 ) : messageMode === "attention" ? (
                   <AlertIcon size={12} className="opacity-95" />
                 ) : (
-                  <span className="text-[11px] sm:text-xs font-black italic leading-none">N</span>
+                  <span className="text-xs sm:text-xs font-black italic leading-none">N</span>
                 )}
               </button>
 
@@ -788,14 +788,14 @@ export function ChatComposer({
                           ) : opt.key === "attention" ? (
                             <AlertIcon size={13} />
                           ) : (
-                            <span className="text-[11px] font-black italic leading-none">N</span>
+                            <span className="text-xs font-black italic leading-none">N</span>
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className={classNames("block text-sm font-semibold", isDark ? "text-slate-100" : "text-gray-900")}>
                             {opt.label}
                           </span>
-                          <span className={classNames("block text-[11px]", isDark ? "text-[var(--color-text-tertiary)]" : "text-gray-500")}>
+                          <span className={classNames("block text-xs", isDark ? "text-[var(--color-text-tertiary)]" : "text-gray-500")}>
                             {opt.description}
                           </span>
                         </span>
