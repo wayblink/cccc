@@ -149,6 +149,7 @@ function MessageBubbleBody({
     dstTo,
     relayChipClass,
     quoteText,
+    replyToEventId,
     presentationRefs,
     isStreaming,
     streamingActivities,
@@ -164,6 +165,7 @@ function MessageBubbleBody({
     stableMessageAttachmentKey,
     onOpenSource,
     onOpenPresentationRef,
+    onOpenReplyTarget,
 }: {
     event: LedgerEvent;
     isUserMessage: boolean;
@@ -178,6 +180,7 @@ function MessageBubbleBody({
     dstTo: string[];
     relayChipClass: string;
     quoteText?: string;
+    replyToEventId?: string;
     presentationRefs: PresentationMessageRef[];
     isStreaming: boolean;
     streamingActivities: StreamingActivity[];
@@ -200,8 +203,14 @@ function MessageBubbleBody({
     stableMessageAttachmentKey: string;
     onOpenSource?: (srcGroupId: string, srcEventId: string) => void;
     onOpenPresentationRef?: (ref: PresentationMessageRef, event: LedgerEvent) => void;
+    onOpenReplyTarget?: (replyToEventId: string) => void;
 }) {
     const { t } = useTranslation("chat");
+    const canJumpToReplyTarget = !!(replyToEventId && onOpenReplyTarget);
+    const quoteClassName = classNames(
+        "mb-2 text-xs border-l-2 pl-2 italic truncate opacity-80",
+        isUserMessage ? "border-blue-400" : "border-[var(--glass-border-subtle)]"
+    );
 
     return (
         <>
@@ -246,11 +255,27 @@ function MessageBubbleBody({
             })() : null}
 
             {quoteText ? (
-                <div
-                    className={`mb-2 text-xs border-l-2 pl-2 italic truncate opacity-80 ${isUserMessage ? "border-blue-400" : "border-[var(--glass-border-subtle)]"}`}
-                >
-                    "{quoteText}"
-                </div>
+                canJumpToReplyTarget ? (
+                    <button
+                        type="button"
+                        className={classNames(
+                            quoteClassName,
+                            "block w-full cursor-pointer appearance-none rounded-sm bg-transparent text-left text-inherit transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45"
+                        )}
+                        onClick={(mouseEvent) => {
+                            mouseEvent.stopPropagation();
+                            onOpenReplyTarget?.(String(replyToEventId || ""));
+                        }}
+                        title={t("jumpToRepliedMessage")}
+                        aria-label={t("jumpToRepliedMessage")}
+                    >
+                        "{quoteText}"
+                    </button>
+                ) : (
+                    <div className={quoteClassName}>
+                        "{quoteText}"
+                    </div>
+                )
             ) : null}
 
             {presentationRefs.length > 0 ? (
@@ -525,6 +550,7 @@ export interface MessageBubbleProps {
     onRelay?: (ev: LedgerEvent) => void;
     onOpenSource?: (srcGroupId: string, srcEventId: string) => void;
     onOpenPresentationRef?: (ref: PresentationMessageRef, event: LedgerEvent) => void;
+    onOpenReplyTarget?: (replyToEventId: string) => void;
 }
 
 export const MessageBubble = memo(function MessageBubble({
@@ -546,6 +572,7 @@ export const MessageBubble = memo(function MessageBubble({
     onRelay,
     onOpenSource,
     onOpenPresentationRef,
+    onOpenReplyTarget,
 }: MessageBubbleProps) {
     const isUserMessage = ev.by === "user";
     const isOptimistic = !!(ev.data as Record<string, unknown> | undefined)?._optimistic;
@@ -599,6 +626,7 @@ export const MessageBubble = memo(function MessageBubble({
     // Treat data as ChatMessageData.
     const msgData = ev.data as ChatMessageData | undefined;
     const quoteText = msgData?.quote_text;
+    const replyToEventId = typeof msgData?.reply_to === "string" ? String(msgData.reply_to || "").trim() : "";
     const senderSnapshotTitle = typeof msgData?.sender_title === "string" ? String(msgData.sender_title || "").trim() : "";
     const senderSnapshotRuntime = typeof msgData?.sender_runtime === "string" ? String(msgData.sender_runtime || "").trim() : "";
     const senderSnapshotAvatarPath = typeof msgData?.sender_avatar_path === "string" ? String(msgData.sender_avatar_path || "").trim() : "";
@@ -941,6 +969,7 @@ export const MessageBubble = memo(function MessageBubble({
                         dstTo={dstTo}
                         relayChipClass={relayChipClass}
                         quoteText={quoteText}
+                        replyToEventId={replyToEventId}
                         presentationRefs={presentationRefs}
                         isStreaming={shouldRenderStreamingBody}
                         streamingActivities={streamingActivities}
@@ -956,6 +985,7 @@ export const MessageBubble = memo(function MessageBubble({
                         stableMessageAttachmentKey={stableMessageAttachmentKey}
                         onOpenSource={onOpenSource}
                         onOpenPresentationRef={onOpenPresentationRef}
+                        onOpenReplyTarget={onOpenReplyTarget}
                     />
                 </div>
                 </div>
@@ -997,6 +1027,7 @@ export const MessageBubble = memo(function MessageBubble({
         prevProps.collapseHeader === nextProps.collapseHeader &&
         prevProps.onRelay === nextProps.onRelay &&
         prevProps.onOpenSource === nextProps.onOpenSource &&
-        prevProps.onOpenPresentationRef === nextProps.onOpenPresentationRef
+        prevProps.onOpenPresentationRef === nextProps.onOpenPresentationRef &&
+        prevProps.onOpenReplyTarget === nextProps.onOpenReplyTarget
     );
 });
