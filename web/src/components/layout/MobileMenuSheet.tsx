@@ -1,9 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import { Actor, GroupDoc, TextScale, Theme } from "../../types";
+import {
+  Actor,
+  ChatNotificationSoundId,
+  ChatNotificationSoundPreference,
+  GroupDoc,
+  TextScale,
+  Theme,
+} from "../../types";
 import { getGroupStatusFromSource } from "../../utils/groupStatus";
 import { getGroupControlVisual, getLaunchControlMode, resolveGroupControls } from "../../utils/groupControls";
 import { classNames } from "../../utils/classNames";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { ChatNotificationSoundSwitcher } from "../ChatNotificationSoundSwitcher";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { TextScaleSwitcher } from "../TextScaleSwitcher";
 import {
@@ -25,6 +33,7 @@ export interface MobileMenuSheetProps {
   isDark: boolean;
   theme: Theme;
   textScale: TextScale;
+  chatNotificationSound: ChatNotificationSoundPreference;
   selectedGroupId: string;
   groupDoc: GroupDoc | null;
   selectedGroupRunning: boolean;
@@ -33,6 +42,8 @@ export interface MobileMenuSheetProps {
   onClose: () => void;
   onThemeChange: (theme: Theme) => void;
   onTextScaleChange: (scale: TextScale) => void;
+  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
+  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   onOpenSearch: () => void;
   onOpenContext: () => void;
   onOpenSettings: () => void;
@@ -47,6 +58,7 @@ export function MobileMenuSheet({
   isDark,
   theme,
   textScale,
+  chatNotificationSound,
   selectedGroupId,
   groupDoc,
   selectedGroupRunning,
@@ -55,6 +67,8 @@ export function MobileMenuSheet({
   onClose,
   onThemeChange,
   onTextScaleChange,
+  onChatNotificationSoundChange,
+  onPreviewChatNotificationSound,
   onOpenSearch,
   onOpenContext,
   onOpenSettings,
@@ -255,6 +269,12 @@ export function MobileMenuSheet({
             <TextScaleSwitcher
               textScale={textScale}
               onTextScaleChange={onTextScaleChange}
+              variant="row"
+            />
+            <ChatNotificationSoundSwitcher
+              preference={chatNotificationSound}
+              onPreferenceChange={onChatNotificationSoundChange}
+              onPreviewSound={onPreviewChatNotificationSound}
               variant="row"
             />
             <LanguageSwitcher

@@ -3,6 +3,25 @@
 // Theme types
 export type Theme = "light" | "dark" | "system";
 export type TextScale = 90 | 100 | 125;
+export type ChatNotificationSoundId =
+  | "abstract-sound1"
+  | "abstract-sound2"
+  | "abstract-sound3"
+  | "abstract-sound4"
+  | "cow-mooing"
+  | "fahhhhh"
+  | "phone-vibration"
+  | "rooster";
+
+export type ChatNotificationSoundPreference = {
+  enabled: boolean;
+  soundId: ChatNotificationSoundId;
+};
+
+export type ChatNotificationSoundOption = {
+  id: ChatNotificationSoundId;
+  labelKey: string;
+};
 
 export type GroupRuntimeStatus = {
   lifecycle_state: "active" | "idle" | "paused" | "stopped" | string;

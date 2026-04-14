@@ -11,7 +11,14 @@ import { mergeStreamingActivity } from "../stores/chatStreamingSessions";
 import { beginContextRequest, isLatestContextRequest } from "../stores/groupStoreCore";
 import * as api from "../services/api";
 import type { FetchContextOptions } from "../services/api";
-import type { Actor, ChatMessageData, HeadlessStreamEvent, GroupContext, StreamingActivity } from "../types";
+import type {
+  Actor,
+  ChatMessageData,
+  ChatNotificationSoundPreference,
+  HeadlessStreamEvent,
+  GroupContext,
+  StreamingActivity,
+} from "../types";
 import { runReconnectCatchup, scheduleContextSummaryCatchup } from "./sseCatchup";
 import {
   isContextSyncEvent,
@@ -29,6 +36,7 @@ import {
   isPresentationPublishEvent,
   isPresentationClearEvent,
   hasRenderableChatMessageContent,
+  shouldPlayChatNotificationSound,
   // Re-export for consumers
   getRecipientActorIdsForEvent,
   getAckRecipientIdsForEvent,
@@ -37,6 +45,7 @@ import { getPresentationMessageRefs, getPresentationRefStatus } from "../utils/p
 import { mergeLedgerEvents } from "../utils/mergeLedgerEvents";
 import { replayHeadlessSnapshotEvents } from "../utils/headlessSnapshotReplay";
 import { isHeadlessActorRunner } from "../utils/headlessRuntimeSupport";
+import { playChatNotificationSoundById } from "../utils/chatNotificationAudio";
 
 // Re-export for backward compatibility
 export { getRecipientActorIdsForEvent, getAckRecipientIdsForEvent };
@@ -98,13 +107,14 @@ interface UseSSEOptions {
   activeTabRef: React.MutableRefObject<string>;
   chatAtBottomRef: React.MutableRefObject<boolean>;
   actorsRef: React.MutableRefObject<Actor[]>;
+  chatNotificationSound: ChatNotificationSoundPreference;
 }
 
 function headlessActorKey(groupId: string, actorId: string): string {
   return `${String(groupId || "").trim()}:${String(actorId || "").trim()}`;
 }
 
-export function useSSE({ activeTabRef, chatAtBottomRef, actorsRef }: UseSSEOptions) {
+export function useSSE({ activeTabRef, chatAtBottomRef, actorsRef, chatNotificationSound }: UseSSEOptions) {
   // Use individual selectors to avoid subscribing to the entire store.
   // Without selectors, every state change (e.g. appendEvent) would trigger
   // a re-render cascade through App.tsx → all children.
@@ -143,6 +153,7 @@ export function useSSE({ activeTabRef, chatAtBottomRef, actorsRef }: UseSSEOptio
   const headlessReconnectDelayRef = useRef<number>(1000);
   const headlessReconnectTimerRef = useRef<number | null>(null);
   const hasConnectedOnceRef = useRef<boolean>(false);
+  const chatNotificationSoundRef = useRef(chatNotificationSound);
   const headlessThreadIdByActorRef = useRef(new Map<string, string>());
   const pendingHeadlessMessageFlushRef = useRef<number | null>(null);
   const pendingHeadlessActivityFlushRef = useRef<number | null>(null);
@@ -169,6 +180,10 @@ export function useSSE({ activeTabRef, chatAtBottomRef, actorsRef }: UseSSEOptio
   useEffect(() => {
     selectedGroupIdRef.current = selectedGroupId;
   }, [selectedGroupId]);
+
+  useEffect(() => {
+    chatNotificationSoundRef.current = chatNotificationSound;
+  }, [chatNotificationSound]);
 
   function getNotifyTargetActorId(ev: unknown): string {
     if (ev === null || typeof ev !== "object") return "";
@@ -814,6 +829,16 @@ export function useSSE({ activeTabRef, chatAtBottomRef, actorsRef }: UseSSEOptio
         initializeObligationStatus(nextEvent, actorsRef.current);
 
         appendEvent(nextEvent, groupId);
+        if (
+          chatNotificationSoundRef.current.enabled &&
+          shouldPlayChatNotificationSound({
+            selectedGroupId: selectedGroupIdRef.current,
+            event: nextEvent,
+          })
+        ) {
+          void playChatNotificationSoundById(chatNotificationSoundRef.current.soundId);
+        }
+
         if (isChatMessageEvent(nextEvent)) {
           const msgData = nextEvent.data && typeof nextEvent.data === "object"
             ? (nextEvent.data as { stream_id?: unknown })

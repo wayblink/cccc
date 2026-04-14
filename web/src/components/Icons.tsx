@@ -242,6 +242,26 @@ export function SearchIcon({ className, size = 18 }: IconProps) {
   );
 }
 
+export function BellIcon({ className, size = 18 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M6.75 10.25a5.25 5.25 0 1 1 10.5 0v3.1c0 .84.28 1.67.8 2.33l.75.97c.42.54.03 1.35-.66 1.35H5.86c-.69 0-1.08-.81-.66-1.35l.75-.97c.52-.66.8-1.49.8-2.33z" fill="currentColor" opacity="0.1" />
+      <path d="M6.75 10.25a5.25 5.25 0 1 1 10.5 0v3.1c0 .84.28 1.67.8 2.33l.75.97c.42.54.03 1.35-.66 1.35H5.86c-.69 0-1.08-.81-.66-1.35l.75-.97c.52-.66.8-1.49.8-2.33z" />
+      <path d="M10 19.25a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
 export function SplitViewIcon({ className, size = 18 }: IconProps) {
   return (
     <svg

@@ -41,7 +41,20 @@ import {
 import { getAckRecipientIdsForEvent, getRecipientActorIdsForEvent } from "../hooks/useSSE";
 import { getChatSession } from "../stores/useUIStore";
 import * as api from "../services/api";
-import { Actor, ActorProfile, RUNTIME_INFO, LedgerEvent, GroupSettings, ChatMessageData, PresentationMessageRef, SupportedRuntime, TextScale, Theme } from "../types";
+import {
+  Actor,
+  ActorProfile,
+  ChatMessageData,
+  ChatNotificationSoundId,
+  ChatNotificationSoundPreference,
+  GroupSettings,
+  LedgerEvent,
+  PresentationMessageRef,
+  RUNTIME_INFO,
+  SupportedRuntime,
+  TextScale,
+  Theme,
+} from "../types";
 
 const ContextModal = lazy(() => import("./ContextModal/index").then((module) => ({ default: module.ContextModal })));
 const SettingsModal = lazy(() => import("./SettingsModal").then((module) => ({ default: module.SettingsModal })));
@@ -53,12 +66,15 @@ interface AppModalsProps {
   isDark: boolean;
   theme: Theme;
   textScale: TextScale;
+  chatNotificationSound: ChatNotificationSoundPreference;
   readOnly?: boolean;
   ccccHome: string;
   composerRef: React.RefObject<HTMLTextAreaElement | null>;
   onStartReply: (ev: LedgerEvent) => void;
   onThemeChange: (theme: Theme) => void;
   onTextScaleChange: (scale: TextScale) => void;
+  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
+  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   onStartGroup: () => Promise<void>;
   onStopGroup: () => Promise<void>;
   onSetGroupState: (state: "active" | "idle" | "paused") => Promise<void>;
@@ -100,12 +116,15 @@ export function AppModals({
   isDark,
   theme,
   textScale,
+  chatNotificationSound,
   readOnly,
   ccccHome,
   composerRef,
   onStartReply,
   onThemeChange,
   onTextScaleChange,
+  onChatNotificationSoundChange,
+  onPreviewChatNotificationSound,
   onStartGroup,
   onStopGroup,
   onSetGroupState,
@@ -1436,6 +1455,7 @@ export function AppModals({
         isDark={isDark}
         theme={theme}
         textScale={textScale}
+        chatNotificationSound={chatNotificationSound}
         selectedGroupId={selectedGroupId}
         groupDoc={groupDoc}
         selectedGroupRunning={selectedGroupRunning}
@@ -1444,6 +1464,8 @@ export function AppModals({
         onClose={() => closeModal("mobileMenu")}
         onThemeChange={onThemeChange}
         onTextScaleChange={onTextScaleChange}
+        onChatNotificationSoundChange={onChatNotificationSoundChange}
+        onPreviewChatNotificationSound={onPreviewChatNotificationSound}
         onOpenSearch={() => openModal("search")}
         onOpenContext={() => {
           openModal("context");

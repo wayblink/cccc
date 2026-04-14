@@ -5,6 +5,7 @@ const WebPet = lazy(() => import("./features/webPet/WebPet").then((m) => ({ defa
 import { AppBackground } from "./components/app/AppBackground";
 import { AppFeedback } from "./components/app/AppFeedback";
 import { AppShell } from "./components/app/AppShell";
+import { useChatNotificationSound } from "./hooks/useChatNotificationSound";
 import { useTextScale } from "./hooks/useTextScale";
 import { useTheme } from "./hooks/useTheme";
 import { useActorActions } from "./hooks/useActorActions";
@@ -41,6 +42,11 @@ export default function App() {
   // Theme
   const { theme, setTheme, isDark } = useTheme();
   const { textScale, setTextScale } = useTextScale();
+  const {
+    chatNotificationSound,
+    setChatNotificationSound,
+    previewChatNotificationSound,
+  } = useChatNotificationSound();
 
   // Virtual keyboard viewport adjustment for mobile
   useViewportHeight();
@@ -204,6 +210,7 @@ export default function App() {
     activeTabRef,
     chatAtBottomRef,
     actorsRef,
+    chatNotificationSound,
   });
 
   const { dropOverlayOpen, handleAppendComposerFiles, resetDragDrop, WEB_MAX_FILE_MB } = useDragDrop({
@@ -373,6 +380,7 @@ export default function App() {
         selectedGroupActorsHydrating={selectedGroupActorsHydrating}
         theme={theme}
         textScale={textScale}
+        chatNotificationSound={chatNotificationSound}
         sseStatus={sseStatus}
         groupLabelById={groupLabelById}
         mentionSelectedIndex={mentionSelectedIndex}
@@ -384,6 +392,8 @@ export default function App() {
         chatAtBottomRef={chatAtBottomRef}
         onThemeChange={setTheme}
         onTextScaleChange={setTextScale}
+        onChatNotificationSoundChange={setChatNotificationSound}
+        onPreviewChatNotificationSound={previewChatNotificationSound}
         onSelectGroup={setSelectedGroupId}
         onWarmGroup={(gid) => void warmGroup(gid)}
         onCreateGroup={
@@ -459,12 +469,15 @@ export default function App() {
           isDark={isDark}
           theme={theme}
           textScale={textScale}
+          chatNotificationSound={chatNotificationSound}
           readOnly={webReadOnly}
           ccccHome={ccccHome}
           composerRef={composerRef}
           onStartReply={startReply}
           onThemeChange={setTheme}
           onTextScaleChange={setTextScale}
+          onChatNotificationSoundChange={setChatNotificationSound}
+          onPreviewChatNotificationSound={previewChatNotificationSound}
           onStartGroup={handleStartGroup}
           onStopGroup={handleStopGroup}
           onSetGroupState={handleSetGroupState}

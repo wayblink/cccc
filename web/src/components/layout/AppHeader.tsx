@@ -1,8 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import { Actor, GroupDoc, GroupRuntimeStatus, TextScale, Theme } from "../../types";
+import {
+  Actor,
+  ChatNotificationSoundId,
+  ChatNotificationSoundPreference,
+  GroupDoc,
+  GroupRuntimeStatus,
+  TextScale,
+  Theme,
+} from "../../types";
 import { getGroupStatusFromSource } from "../../utils/groupStatus";
 import { getGroupControlVisual, getLaunchControlMode, resolveGroupControls } from "../../utils/groupControls";
 import { classNames } from "../../utils/classNames";
+import { ChatNotificationSoundSwitcher } from "../ChatNotificationSoundSwitcher";
 import { TextScaleSwitcher } from "../TextScaleSwitcher";
 import { ThemeToggleCompact } from "../ThemeToggle";
 import { LanguageSwitcher } from "../LanguageSwitcher";
@@ -22,11 +31,14 @@ export interface AppHeaderProps {
   isDark: boolean;
   theme: Theme;
   textScale: TextScale;
+  chatNotificationSound: ChatNotificationSoundPreference;
   titleOverride?: string;
   hideGroupControls?: boolean;
   allowSettingsWithoutGroup?: boolean;
   onThemeChange: (theme: Theme) => void;
   onTextScaleChange: (scale: TextScale) => void;
+  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
+  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   webReadOnly?: boolean;
   selectedGroupId: string;
   groupDoc: GroupDoc | null;
@@ -50,11 +62,14 @@ export function AppHeader({
   isDark,
   theme,
   textScale,
+  chatNotificationSound,
   titleOverride,
   hideGroupControls = false,
   allowSettingsWithoutGroup = false,
   onThemeChange,
   onTextScaleChange,
+  onChatNotificationSoundChange,
+  onPreviewChatNotificationSound,
   webReadOnly,
   selectedGroupId,
   groupDoc,
@@ -264,6 +279,12 @@ export function AppHeader({
               <div className={headerRailClass}>
                 <ThemeToggleCompact theme={theme} onThemeChange={onThemeChange} isDark={isDark} variant="rail" />
                 <TextScaleSwitcher textScale={textScale} onTextScaleChange={onTextScaleChange} variant="rail" />
+                <ChatNotificationSoundSwitcher
+                  preference={chatNotificationSound}
+                  onPreferenceChange={onChatNotificationSoundChange}
+                  onPreviewSound={onPreviewChatNotificationSound}
+                  variant="rail"
+                />
                 <LanguageSwitcher isDark={isDark} variant="rail" />
                 <button
                   onClick={onOpenSettings}

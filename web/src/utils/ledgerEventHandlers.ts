@@ -45,6 +45,26 @@ export function hasRenderableChatMessageContent(event: { kind?: unknown; data?: 
   return refs.length > 0;
 }
 
+export function shouldPlayChatNotificationSound(args: {
+  selectedGroupId: string;
+  event: LedgerEvent;
+}): boolean {
+  if (String(args.event.kind || "").trim() !== "chat.message") return false;
+
+  const selectedGroupId = String(args.selectedGroupId || "").trim();
+  const eventGroupId = String(args.event.group_id || "").trim();
+  const by = String(args.event.by || "").trim();
+  const data = args.event.data && typeof args.event.data === "object"
+    ? (args.event.data as ChatMessageData)
+    : null;
+
+  if (!selectedGroupId || !eventGroupId || eventGroupId !== selectedGroupId) return false;
+  if (!by || by === "user") return false;
+  if (Boolean(data?.pending_placeholder)) return false;
+
+  return hasRenderableChatMessageContent(args.event);
+}
+
 export function isActorActivityEvent(
   ev: unknown,
 ): ev is BaseLedgerEvent & {

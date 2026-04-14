@@ -8,7 +8,16 @@ import { ActorTab } from "../../pages/ActorTab";
 import { ChatTab } from "../../pages/chat";
 import { NotesPage } from "../../pages/notes";
 import { ScriptManagerPage } from "../../pages/scripts";
-import type { Actor, GroupContext, GroupDoc, GroupMeta, GroupRuntimeStatus, TextScale } from "../../types";
+import type {
+  Actor,
+  ChatNotificationSoundId,
+  ChatNotificationSoundPreference,
+  GroupContext,
+  GroupDoc,
+  GroupMeta,
+  GroupRuntimeStatus,
+  TextScale,
+} from "../../types";
 import { SIDEBAR_COLLAPSED_WIDTH } from "../../stores/useUIStore";
 import { isToolAppTab, isFixedAppTab } from "../../utils/appTabs";
 
@@ -39,6 +48,7 @@ type AppShellProps = {
   selectedGroupActorsHydrating: boolean;
   theme: "light" | "dark" | "system";
   textScale: TextScale;
+  chatNotificationSound: ChatNotificationSoundPreference;
   sseStatus: "connected" | "connecting" | "disconnected";
   groupLabelById: Record<string, string>;
   mentionSelectedIndex: number;
@@ -50,6 +60,8 @@ type AppShellProps = {
   chatAtBottomRef: React.MutableRefObject<boolean>;
   onThemeChange: (theme: "light" | "dark" | "system") => void;
   onTextScaleChange: (scale: TextScale) => void;
+  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
+  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   onSelectGroup: (groupId: string) => void;
   onWarmGroup: (groupId: string) => void;
   onCreateGroup: (() => void) | undefined;
@@ -112,6 +124,7 @@ export function AppShell({
   selectedGroupActorsHydrating,
   theme,
   textScale,
+  chatNotificationSound,
   sseStatus,
   groupLabelById,
   mentionSelectedIndex,
@@ -123,6 +136,8 @@ export function AppShell({
   chatAtBottomRef,
   onThemeChange,
   onTextScaleChange,
+  onChatNotificationSoundChange,
+  onPreviewChatNotificationSound,
   onSelectGroup,
   onWarmGroup,
   onCreateGroup,
@@ -240,6 +255,7 @@ export function AppShell({
           isDark={isDark}
           theme={theme}
           textScale={textScale}
+          chatNotificationSound={chatNotificationSound}
           titleOverride={
             activeTab === "scripts"
               ? t("layout:scriptManagerTitle", { defaultValue: "Script Manager" })
@@ -251,6 +267,8 @@ export function AppShell({
           allowSettingsWithoutGroup={isToolAppTab(activeTab)}
           onThemeChange={onThemeChange}
           onTextScaleChange={onTextScaleChange}
+          onChatNotificationSoundChange={onChatNotificationSoundChange}
+          onPreviewChatNotificationSound={onPreviewChatNotificationSound}
           webReadOnly={webReadOnly}
           selectedGroupId={selectedGroupId}
           groupDoc={groupDoc}
