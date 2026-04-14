@@ -106,9 +106,19 @@ describe("chatNotificationSound", () => {
 
       preload = "";
       currentTime = 1;
+      muted = false;
       paused = true;
+      readyState = 0;
       load = vi.fn();
       play = vi.fn(async () => {
+        if (this.muted) {
+          this.readyState = 4;
+          this.paused = false;
+          return;
+        }
+        if (this.readyState < 4) {
+          throw new Error("cold audio");
+        }
         this.paused = false;
       });
       pause = vi.fn(() => {
@@ -131,16 +141,21 @@ describe("chatNotificationSound", () => {
 
     expect(typeof preload).toBe("function");
     expect(preload?.("rooster")).toBe(true);
+    await vi.waitFor(() => {
+      expect(MockAudio.instances[0]?.play).toHaveBeenCalledTimes(1);
+      expect(MockAudio.instances[0]?.pause).toHaveBeenCalledTimes(1);
+      expect(MockAudio.instances[0]?.readyState).toBe(4);
+    });
     await expect(mod.playChatNotificationSoundById("rooster")).resolves.toBe(true);
     await expect(mod.playChatNotificationSoundById("rooster")).resolves.toBe(true);
 
     expect(MockAudio.instances).toHaveLength(1);
     expect(MockAudio.instances[0]?.src).toBe(getChatNotificationSoundUrl("rooster"));
     expect(MockAudio.instances[0]?.preload).toBe("auto");
-    expect(MockAudio.instances[0]?.load).toHaveBeenCalledTimes(1);
-    expect(MockAudio.instances[0]?.play).toHaveBeenCalledTimes(2);
-    expect(MockAudio.instances[0]?.pause).toHaveBeenCalledTimes(1);
-    expect(MockAudio.instances[0]?.currentTime).toBe(0);
+    expect(MockAudio.instances[0]?.play).toHaveBeenCalledTimes(3);
+    expect(MockAudio.instances[0]?.pause).toHaveBeenCalledTimes(2);
+    expect(MockAudio.instances[0]?.currentTime).toBeGreaterThan(0);
+    expect(MockAudio.instances[0]?.muted).toBe(false);
   });
 
   it("warns without throwing when preview playback fails", async () => {

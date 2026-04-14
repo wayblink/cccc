@@ -5,6 +5,7 @@ import {
   playChatNotificationSoundById,
   primeChatNotificationSounds,
   primeChatNotificationSoundById,
+  resumeChatNotificationAudioContext,
 } from "../utils/chatNotificationAudio";
 import {
   normalizeChatNotificationSoundPreference,
@@ -23,6 +24,24 @@ export function useChatNotificationSound() {
 
   useEffect(() => {
     primeChatNotificationSounds();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const warmAllSounds = () => {
+      void resumeChatNotificationAudioContext();
+      primeChatNotificationSounds();
+      window.removeEventListener("pointerdown", warmAllSounds);
+      window.removeEventListener("keydown", warmAllSounds);
+    };
+
+    window.addEventListener("pointerdown", warmAllSounds, { once: true, passive: true });
+    window.addEventListener("keydown", warmAllSounds, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", warmAllSounds);
+      window.removeEventListener("keydown", warmAllSounds);
+    };
   }, []);
 
   useEffect(() => {
