@@ -117,9 +117,6 @@ export function ChatTab({
     // Chat state
     chatMessages,
     liveWorkEvents,
-    hasAnyChatMessages,
-    chatFilter,
-    setChatFilter,
     chatViewKey,
     chatWindowProps,
     chatInitialScrollTargetId,
@@ -416,14 +413,6 @@ export function ChatTab({
     document.body.style.setProperty("user-select", "none");
   }, [effectivePresentationSplitWidth, showDesktopSplitPresentation]);
 
-  const filterOptions: Array<["all" | "user" | "attention" | "task", string]> = [
-    ["all", t('filterAll')],
-    ["user", t('filterUser')],
-    ["attention", t('filterImportant')],
-    ["task", t('filterNeedReply')],
-  ];
-  const showMessageFilters = !readOnly && !chatWindowProps && hasAnyChatMessages;
-
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
       {/* 1. Header Area: For critical banners/setup only, very space-efficient */}
@@ -515,44 +504,7 @@ export function ChatTab({
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      {showMessageFilters ? (
-                        <div
-                          className={classNames(
-                            "min-w-0 flex-1 overflow-x-auto scrollbar-hide",
-                          )}
-                          role="tablist"
-                          aria-label={t('chatFilters')}
-                        >
-                          <div className={classNames(
-                            "inline-flex min-w-max items-center gap-1 rounded-full border p-1 backdrop-blur-md",
-                            isDark
-                              ? "border-slate-700/50 bg-transparent"
-                              : "border-gray-200/70 bg-transparent"
-                          )}>
-                            {filterOptions.map(([key, label]) => {
-                              const active = chatFilter === key;
-                              return (
-                                <button
-                                  key={key}
-                                  type="button"
-                                  className={classNames(
-                                    "min-w-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
-                                    active
-                                      ? "bg-blue-600 text-white shadow-sm"
-                                      : isDark
-                                        ? "text-slate-500 hover:text-slate-200 hover:bg-slate-800/60"
-                                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                                  )}
-                                  onClick={() => setChatFilter(key)}
-                                  aria-pressed={active}
-                                >
-                                  {label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : <div className="flex-1" />}
+                      <div className="flex-1" />
 
                       <button
                         type="button"
@@ -592,46 +544,6 @@ export function ChatTab({
                   </div>
 
                 </>
-              )}
-
-              {showMessageFilters && (
-                <div
-                  className="hidden sm:block absolute top-4 left-4 z-20 pointer-events-none"
-                  style={{ width: "calc(100% - 32px)" }}
-                >
-                  <div
-                    className={classNames(
-                      "inline-flex items-center gap-1 xl:gap-2 rounded-full border p-1 sm:p-1.5 shadow-xl pointer-events-auto backdrop-blur-xl transition-all duration-300",
-                      isDark
-                        ? "border-white/10 bg-slate-900/60 shadow-black/40 ring-1 ring-white/5"
-                        : "border-black/5 bg-white/70 shadow-gray-200/50 ring-1 ring-black/5"
-                    )}
-                    role="tablist"
-                    aria-label={t('chatFilters')}
-                  >
-                    {filterOptions.map(([key, label]) => {
-                      const active = chatFilter === key;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          className={classNames(
-                            "text-xs px-4 py-1.5 rounded-full transition-all font-medium",
-                            active
-                              ? "bg-blue-600 text-white shadow-sm"
-                              : isDark
-                                ? "text-slate-500 hover:text-slate-200 hover:bg-slate-800/60"
-                                : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                          )}
-                          onClick={() => setChatFilter(key)}
-                          aria-pressed={active}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               )}
 
               {isBusinessEmptyState && showSetupCard ? (
