@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import quote, unquote
+import re
 from typing import Callable
 
 from fastapi import Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
+import httpx
+from starlette.background import BackgroundTask
 from starlette.datastructures import MutableHeaders
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 StateGetter = Callable[[Scope, str, object], object]
@@ -13,6 +18,8 @@ TokenPartsGetter = Callable[[Request], tuple[str, str]]
 PublicPathChecker = Callable[[Request], bool]
 PrincipalResolver = Callable[[Request], object]
 TokensActiveGetter = Callable[[], bool]
+RemoteGroupGetter = Callable[[str], dict | None]
+GroupChecker = Callable[[Request, str], object]
 
 
 def _scope_state_get(scope: Scope, key: str, default: object = None) -> object:
@@ -174,3 +181,121 @@ class UiCacheControlMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_with_cache_control)
+
+
+class RemoteGroupProxyMiddleware:
+    _GROUP_PATH_RE = re.compile(r"^/api/v1/groups/([^/]+)(/.*)?$")
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        get_remote_group: RemoteGroupGetter,
+        check_group: GroupChecker,
+    ):
+        self.app = app
+        self._get_remote_group = get_remote_group
+        self._check_group = check_group
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        path = str(scope.get("path") or "")
+        match = self._GROUP_PATH_RE.match(path)
+        if not match:
+            await self.app(scope, receive, send)
+            return
+
+        gid = unquote(str(match.group(1) or "").strip())
+        if not gid:
+            await self.app(scope, receive, send)
+            return
+        route = self._get_remote_group(gid)
+        if not isinstance(route, dict):
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope, receive=receive)
+        try:
+            self._check_group(request, gid)
+        except StarletteHTTPException as exc:
+            resp = JSONResponse(
+                status_code=int(getattr(exc, "status_code", 403) or 403),
+                content={"ok": False, "error": exc.detail if isinstance(exc.detail, dict) else {"code": "permission_denied", "message": "group access denied", "details": {"group_id": gid}}},
+            )
+            await resp(scope, receive, send)
+            return
+
+        method = str(scope.get("method") or "GET").upper()
+        remote_group_id = str(route.get("remote_group_id") or gid).strip() or gid
+        base_url = str(route.get("base_url") or "").strip().rstrip("/")
+        tail = str(match.group(2) or "")
+        query_raw = scope.get("query_string") or b""
+        if isinstance(query_raw, bytes):
+            query = query_raw.decode("latin-1")
+        else:
+            query = str(query_raw or "")
+        remote_url = f"{base_url}/api/v1/groups/{quote(remote_group_id, safe='')}{tail}"
+        if query:
+            remote_url = f"{remote_url}?{query}"
+
+        body = await request.body()
+        outgoing_headers: dict[str, str] = {}
+        for key, value in request.headers.items():
+            lk = key.lower()
+            if lk in {"host", "content-length", "authorization", "cookie"}:
+                continue
+            outgoing_headers[key] = value
+        token = str(route.get("access_token") or "").strip()
+        if token:
+            outgoing_headers["Authorization"] = f"Bearer {token}"
+        else:
+            incoming_auth = str(request.headers.get("authorization") or "").strip()
+            if incoming_auth:
+                outgoing_headers["Authorization"] = incoming_auth
+        outgoing_headers["X-CCCC-Remote-Proxy"] = "1"
+
+        timeout = httpx.Timeout(connect=10.0, read=None, write=30.0, pool=30.0)
+        try:
+            client = httpx.AsyncClient(timeout=timeout, follow_redirects=False)
+            upstream = await client.send(
+                client.build_request(method, remote_url, headers=outgoing_headers, content=body),
+                stream=True,
+            )
+        except Exception as exc:
+            resp = JSONResponse(
+                status_code=502,
+                content={
+                    "ok": False,
+                    "error": {
+                        "code": "remote_group_unavailable",
+                        "message": "remote group unavailable",
+                        "details": {"group_id": gid, "base_url": base_url, "reason": str(exc)},
+                    },
+                },
+            )
+            await resp(scope, receive, send)
+            return
+
+        headers: dict[str, str] = {}
+        for key, value in upstream.headers.items():
+            lk = key.lower()
+            if lk in {"content-length", "transfer-encoding", "connection", "keep-alive"}:
+                continue
+            headers[key] = value
+        headers["X-CCCC-Remote-Proxy"] = "1"
+        response = StreamingResponse(
+            upstream.aiter_bytes(),
+            status_code=upstream.status_code,
+            headers=headers,
+            background=BackgroundTask(self._close_upstream, upstream, client),
+        )
+        await response(scope, receive, send)
+
+    @staticmethod
+    async def _close_upstream(upstream: httpx.Response, client: httpx.AsyncClient) -> None:
+        try:
+            await upstream.aclose()
+        finally:
+            await client.aclose()

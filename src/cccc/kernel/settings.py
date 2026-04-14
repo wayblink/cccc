@@ -11,6 +11,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote, unquote
 
 import yaml  # type: ignore
 
@@ -166,6 +167,13 @@ DEFAULT_REMOTE_ACCESS: Dict[str, Any] = {
     "updated_at": "",           # RFC3339 UTC timestamp (best-effort)
 }
 
+# ---------------------------------------------------------------------------
+# Remote group routing (global)
+# ---------------------------------------------------------------------------
+
+DEFAULT_REMOTE_GROUPS: List[Dict[str, Any]] = []
+DEFAULT_REMOTE_BACKENDS: List[Dict[str, Any]] = []
+
 
 # ---------------------------------------------------------------------------
 # Web branding (global)
@@ -315,6 +323,141 @@ def _merge_remote_access(raw: Any) -> Dict[str, Any]:
     return base
 
 
+def _normalize_remote_group_item(raw: Any) -> Dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    group_id = str(raw.get("group_id") or raw.get("id") or "").strip()
+    if not group_id:
+        return None
+    base_url = str(raw.get("base_url") or "").strip().rstrip("/")
+    if not base_url:
+        return None
+    if not (base_url.startswith("http://") or base_url.startswith("https://")):
+        return None
+    remote_group_id = str(raw.get("remote_group_id") or group_id).strip() or group_id
+    title = str(raw.get("title") or "").strip()
+    topic = str(raw.get("topic") or "").strip()
+    access_token = str(raw.get("access_token") or "").strip()
+    enabled = _as_bool(raw.get("enabled"), True)
+    return {
+        "group_id": group_id,
+        "base_url": base_url,
+        "remote_group_id": remote_group_id,
+        "title": title,
+        "topic": topic,
+        "access_token": access_token,
+        "enabled": enabled,
+    }
+
+
+def _normalize_backend_id(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    chars: List[str] = []
+    for ch in text:
+        if ("a" <= ch <= "z") or ("0" <= ch <= "9") or ch in ("-", "_"):
+            chars.append(ch)
+        else:
+            chars.append("-")
+    normalized = "".join(chars).strip("-_")
+    return normalized
+
+
+def _backend_id_from_base_url(base_url: str) -> str:
+    text = str(base_url or "").strip()
+    if not text:
+        return ""
+    host = text
+    if "://" in text:
+        try:
+            host = str(text.split("://", 1)[1] or "").strip()
+        except Exception:
+            host = text
+    host = host.split("/", 1)[0].strip()
+    host = host.replace(":", "-")
+    return _normalize_backend_id(host)
+
+
+def _normalize_remote_backend_item(raw: Any) -> Dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    base_url = str(raw.get("base_url") or "").strip().rstrip("/")
+    if not base_url:
+        return None
+    if not (base_url.startswith("http://") or base_url.startswith("https://")):
+        return None
+    backend_id = _normalize_backend_id(raw.get("backend_id"))
+    if not backend_id:
+        backend_id = _backend_id_from_base_url(base_url)
+    if not backend_id:
+        return None
+    return {
+        "backend_id": backend_id,
+        "base_url": base_url,
+        "access_token": str(raw.get("access_token") or "").strip(),
+        "title": str(raw.get("title") or "").strip(),
+        "enabled": _as_bool(raw.get("enabled"), True),
+    }
+
+
+def _merge_remote_backends(raw: Any) -> List[Dict[str, Any]]:
+    if not isinstance(raw, list):
+        return list(DEFAULT_REMOTE_BACKENDS)
+    out: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw:
+        normalized = _normalize_remote_backend_item(item)
+        if not normalized:
+            continue
+        bid = str(normalized.get("backend_id") or "").strip()
+        if not bid or bid in seen:
+            continue
+        seen.add(bid)
+        out.append(normalized)
+    return out
+
+
+def build_remote_virtual_group_id(backend_id: str, remote_group_id: str) -> str:
+    bid = _normalize_backend_id(backend_id)
+    rgid = str(remote_group_id or "").strip()
+    if not bid or not rgid:
+        return ""
+    return f"remote:{bid}:{quote(rgid, safe='')}"
+
+
+def parse_remote_virtual_group_id(group_id: str) -> tuple[str, str] | None:
+    text = str(group_id or "").strip()
+    if not text.startswith("remote:"):
+        return None
+    rest = text[len("remote:"):]
+    parts = rest.split(":", 1)
+    if len(parts) != 2:
+        return None
+    backend_id = _normalize_backend_id(parts[0])
+    remote_group_id = unquote(parts[1] or "").strip()
+    if not backend_id or not remote_group_id:
+        return None
+    return backend_id, remote_group_id
+
+
+def _merge_remote_groups(raw: Any) -> List[Dict[str, Any]]:
+    if not isinstance(raw, list):
+        return list(DEFAULT_REMOTE_GROUPS)
+    out: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw:
+        normalized = _normalize_remote_group_item(item)
+        if not normalized:
+            continue
+        gid = str(normalized.get("group_id") or "").strip()
+        if not gid or gid in seen:
+            continue
+        seen.add(gid)
+        out.append(normalized)
+    return out
+
+
 def _merge_web_branding(raw: Any) -> Dict[str, Any]:
     """Merge/validate web branding settings with defaults."""
     base = dict(DEFAULT_WEB_BRANDING)
@@ -413,6 +556,145 @@ def get_remote_access_settings() -> Dict[str, Any]:
     """Get merged remote access settings (global)."""
     settings = load_settings()
     return _merge_remote_access(settings.get("remote_access"))
+
+
+def get_remote_groups_settings() -> List[Dict[str, Any]]:
+    """Get merged remote-group routing settings (global)."""
+    settings = load_settings()
+    return _merge_remote_groups(settings.get("remote_groups"))
+
+
+def get_remote_backends_settings() -> List[Dict[str, Any]]:
+    """Get merged remote backend settings (global)."""
+    settings = load_settings()
+    return _merge_remote_backends(settings.get("remote_backends"))
+
+
+def get_remote_backend(backend_id: str) -> Dict[str, Any] | None:
+    """Return enabled remote backend by backend_id."""
+    bid = _normalize_backend_id(backend_id)
+    if not bid:
+        return None
+    for item in get_remote_backends_settings():
+        if str(item.get("backend_id") or "").strip() != bid:
+            continue
+        if not _as_bool(item.get("enabled"), True):
+            return None
+        return dict(item)
+    return None
+
+
+def get_remote_group_route(group_id: str) -> Dict[str, Any] | None:
+    """Return remote route config for group_id when enabled."""
+    gid = str(group_id or "").strip()
+    if not gid:
+        return None
+    parsed = parse_remote_virtual_group_id(gid)
+    if parsed is not None:
+        backend_id, remote_group_id = parsed
+        backend = get_remote_backend(backend_id)
+        if isinstance(backend, dict):
+            return {
+                "group_id": gid,
+                "base_url": str(backend.get("base_url") or "").strip(),
+                "remote_group_id": remote_group_id,
+                "access_token": str(backend.get("access_token") or "").strip(),
+                "enabled": True,
+                "backend_id": backend_id,
+            }
+    for item in get_remote_groups_settings():
+        if str(item.get("group_id") or "").strip() != gid:
+            continue
+        if not _as_bool(item.get("enabled"), True):
+            return None
+        return dict(item)
+    return None
+
+
+def update_remote_groups_settings(groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Replace remote-group routing settings in ~/.cccc/settings.yaml."""
+    settings = load_settings()
+    merged = _merge_remote_groups(groups)
+    settings["remote_groups"] = merged
+    save_settings(settings)
+    return merged
+
+
+def upsert_remote_group_setting(group: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Create or update a remote-group route by group_id."""
+    normalized = _normalize_remote_group_item(group)
+    if normalized is None:
+        return get_remote_groups_settings()
+    settings = load_settings()
+    existing = _merge_remote_groups(settings.get("remote_groups"))
+    gid = str(normalized.get("group_id") or "").strip()
+    out: List[Dict[str, Any]] = []
+    replaced = False
+    for item in existing:
+        if str(item.get("group_id") or "").strip() == gid:
+            out.append(normalized)
+            replaced = True
+        else:
+            out.append(item)
+    if not replaced:
+        out.append(normalized)
+    settings["remote_groups"] = out
+    save_settings(settings)
+    return out
+
+
+def delete_remote_group_setting(group_id: str) -> List[Dict[str, Any]]:
+    """Delete a remote-group route by group_id."""
+    gid = str(group_id or "").strip()
+    settings = load_settings()
+    existing = _merge_remote_groups(settings.get("remote_groups"))
+    out = [item for item in existing if str(item.get("group_id") or "").strip() != gid]
+    settings["remote_groups"] = out
+    save_settings(settings)
+    return out
+
+
+def update_remote_backends_settings(backends: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Replace remote backend settings in ~/.cccc/settings.yaml."""
+    settings = load_settings()
+    merged = _merge_remote_backends(backends)
+    settings["remote_backends"] = merged
+    save_settings(settings)
+    return merged
+
+
+def upsert_remote_backend_setting(backend: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Create or update remote backend by backend_id."""
+    normalized = _normalize_remote_backend_item(backend)
+    if normalized is None:
+        return get_remote_backends_settings()
+    settings = load_settings()
+    existing = _merge_remote_backends(settings.get("remote_backends"))
+    bid = str(normalized.get("backend_id") or "").strip()
+    out: List[Dict[str, Any]] = []
+    replaced = False
+    for item in existing:
+        if str(item.get("backend_id") or "").strip() == bid:
+            out.append(normalized)
+            replaced = True
+        else:
+            out.append(item)
+    if not replaced:
+        out.append(normalized)
+    settings["remote_backends"] = out
+    save_settings(settings)
+    return out
+
+
+def delete_remote_backend_setting(backend_id: str) -> List[Dict[str, Any]]:
+    """Delete remote backend by backend_id."""
+    bid = _normalize_backend_id(backend_id)
+    settings = load_settings()
+    existing = _merge_remote_backends(settings.get("remote_backends"))
+    out = [item for item in existing if str(item.get("backend_id") or "").strip() != bid]
+    settings["remote_backends"] = out
+    save_settings(settings)
+    return out
 
 
 def get_web_branding_settings() -> Dict[str, Any]:

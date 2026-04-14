@@ -3,12 +3,25 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from ....kernel.access_tokens import list_access_tokens
 from ....kernel.scope import detect_scope
-from ....kernel.settings import get_observability_settings, get_web_branding_settings
+from ....kernel.settings import (
+    delete_remote_backend_setting,
+    delete_remote_group_setting,
+    get_remote_backend,
+    get_remote_backends_settings,
+    get_observability_settings,
+    get_remote_groups_settings,
+    get_web_branding_settings,
+    update_remote_backends_settings,
+    update_remote_groups_settings,
+    upsert_remote_backend_setting,
+    upsert_remote_group_setting,
+)
 from ..branding import (
     build_branding_payload,
     delete_branding_asset,
@@ -22,6 +35,11 @@ from ..schemas import (
     ObservabilityUpdateRequest,
     RegistryReconcileRequest,
     RemoteAccessConfigureRequest,
+    RemoteBackendCreateGroupRequest,
+    RemoteBackendReplaceRequest,
+    RemoteBackendUpsertRequest,
+    RemoteGroupRouteUpsertRequest,
+    RemoteGroupRoutesReplaceRequest,
     RouteContext,
     check_group,
     get_principal,
@@ -475,6 +493,113 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
     async def remote_access_get() -> Dict[str, Any]:
         """Get global remote-access state."""
         return await ctx.daemon({"op": "remote_access_state", "args": {"by": "user"}})
+
+    async def _call_remote_backend_groups(
+        backend: Dict[str, Any],
+        *,
+        method: str,
+        body: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        base_url = str(backend.get("base_url") or "").strip().rstrip("/")
+        access_token = str(backend.get("access_token") or "").strip()
+        backend_id = str(backend.get("backend_id") or "").strip()
+        if not base_url:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "remote_backend_invalid",
+                    "message": "remote backend base_url is missing",
+                    "details": {"backend_id": backend_id},
+                },
+            )
+
+        headers: Dict[str, str] = {"X-CCCC-Remote-Proxy": "1"}
+        if access_token:
+            headers["Authorization"] = f"Bearer {access_token}"
+        timeout = httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=30.0)
+        try:
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+                response = await client.request(method.upper(), f"{base_url}/api/v1/groups", headers=headers, json=body)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "code": "remote_backend_unavailable",
+                    "message": "remote backend unavailable",
+                    "details": {"backend_id": backend_id, "base_url": base_url, "reason": str(exc)},
+                },
+            ) from exc
+        try:
+            payload = response.json()
+        except Exception:
+            payload = {"ok": False, "error": {"code": "invalid_upstream_response", "message": "invalid response from remote backend"}}
+        if not isinstance(payload, dict):
+            payload = {"ok": False, "error": {"code": "invalid_upstream_response", "message": "invalid response from remote backend"}}
+        return payload
+
+    @global_router.get("/api/v1/remote_backends", dependencies=[Depends(require_admin)])
+    async def remote_backends_get() -> Dict[str, Any]:
+        """List configured remote backends."""
+        return {"ok": True, "result": {"backends": get_remote_backends_settings()}}
+
+    @global_router.put("/api/v1/remote_backends", dependencies=[Depends(require_admin)])
+    async def remote_backends_replace(req: RemoteBackendReplaceRequest) -> Dict[str, Any]:
+        """Replace remote backend settings."""
+        rows = [row.model_dump() for row in req.backends]
+        return {"ok": True, "result": {"backends": update_remote_backends_settings(rows)}}
+
+    @global_router.post("/api/v1/remote_backends", dependencies=[Depends(require_admin)])
+    async def remote_backends_upsert(req: RemoteBackendUpsertRequest) -> Dict[str, Any]:
+        """Upsert one remote backend by backend_id/base_url."""
+        return {"ok": True, "result": {"backends": upsert_remote_backend_setting(req.model_dump())}}
+
+    @global_router.delete("/api/v1/remote_backends/{backend_id}", dependencies=[Depends(require_admin)])
+    async def remote_backends_delete(backend_id: str, by: str = "user") -> Dict[str, Any]:
+        """Delete one remote backend by backend_id."""
+        _ = str(by or "user")
+        return {"ok": True, "result": {"backends": delete_remote_backend_setting(backend_id)}}
+
+    @global_router.get("/api/v1/remote_backends/{backend_id}/groups", dependencies=[Depends(require_admin)])
+    async def remote_backend_groups_get(backend_id: str) -> Dict[str, Any]:
+        """Read all groups from one remote backend."""
+        backend = get_remote_backend(backend_id)
+        if not isinstance(backend, dict):
+            raise HTTPException(status_code=404, detail={"code": "remote_backend_not_found", "message": f"remote backend not found: {backend_id}"})
+        return await _call_remote_backend_groups(backend, method="GET")
+
+    @global_router.post("/api/v1/remote_backends/{backend_id}/groups", dependencies=[Depends(require_admin)])
+    async def remote_backend_groups_create(backend_id: str, req: RemoteBackendCreateGroupRequest) -> Dict[str, Any]:
+        """Create one group directly on the remote backend."""
+        backend = get_remote_backend(backend_id)
+        if not isinstance(backend, dict):
+            raise HTTPException(status_code=404, detail={"code": "remote_backend_not_found", "message": f"remote backend not found: {backend_id}"})
+        return await _call_remote_backend_groups(
+            backend,
+            method="POST",
+            body={"title": req.title, "topic": req.topic, "by": req.by},
+        )
+
+    @global_router.get("/api/v1/remote_groups", dependencies=[Depends(require_admin)])
+    async def remote_groups_get() -> Dict[str, Any]:
+        """List configured remote-group routes."""
+        return {"ok": True, "result": {"groups": get_remote_groups_settings()}}
+
+    @global_router.put("/api/v1/remote_groups", dependencies=[Depends(require_admin)])
+    async def remote_groups_replace(req: RemoteGroupRoutesReplaceRequest) -> Dict[str, Any]:
+        """Replace remote-group routes."""
+        rows = [row.model_dump() for row in req.groups]
+        return {"ok": True, "result": {"groups": update_remote_groups_settings(rows)}}
+
+    @global_router.post("/api/v1/remote_groups", dependencies=[Depends(require_admin)])
+    async def remote_groups_upsert(req: RemoteGroupRouteUpsertRequest) -> Dict[str, Any]:
+        """Upsert one remote-group route by group_id."""
+        return {"ok": True, "result": {"groups": upsert_remote_group_setting(req.model_dump())}}
+
+    @global_router.delete("/api/v1/remote_groups/{group_id}", dependencies=[Depends(require_admin)])
+    async def remote_groups_delete(group_id: str, by: str = "user") -> Dict[str, Any]:
+        """Delete one remote-group route by group_id."""
+        _ = str(by or "user")
+        return {"ok": True, "result": {"groups": delete_remote_group_setting(group_id)}}
 
     @global_router.put("/api/v1/remote_access", dependencies=[Depends(require_admin)])
     async def remote_access_configure(req: RemoteAccessConfigureRequest) -> Dict[str, Any]:

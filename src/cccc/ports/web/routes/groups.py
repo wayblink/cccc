@@ -9,6 +9,7 @@ import time
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
+import httpx
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
@@ -25,6 +26,7 @@ from ....kernel.headless_events import headless_events_path
 from ....kernel.group import get_group_state, load_group
 from ....kernel.context import ContextStorage
 from ....kernel.query_projections import get_groups_projection
+from ....kernel.settings import build_remote_virtual_group_id, get_remote_backends_settings, get_remote_groups_settings
 from ....daemon.runner_state_ops import headless_state_path, pty_state_path
 from ....kernel.group_template import parse_group_template
 from ....kernel.ledger import read_last_lines
@@ -181,10 +183,13 @@ def _read_groups_local() -> Dict[str, Any]:
     projection = get_groups_projection()
     groups = projection.get("groups") if isinstance(projection.get("groups"), list) else []
     out: list[dict[str, Any]] = []
+    local_ids: set[str] = set()
     for item in groups:
         if not isinstance(item, dict):
             continue
         gid = str(item.get("group_id") or "").strip()
+        if gid:
+            local_ids.add(gid)
         row = dict(item)
         group = load_group(gid)
         runtime_status = _group_runtime_status_local(group)
@@ -192,6 +197,88 @@ def _read_groups_local() -> Dict[str, Any]:
         row["running"] = bool(runtime_status.get("runtime_running"))
         row["runtime_status"] = runtime_status
         out.append(row)
+    remote_runtime_status = {
+        "lifecycle_state": "active",
+        "runtime_running": False,
+        "running_actor_count": 0,
+        "has_running_foreman": False,
+    }
+    known_ids: set[str] = set(local_ids)
+    for backend in get_remote_backends_settings():
+        if not bool(backend.get("enabled", True)):
+            continue
+        backend_id = str(backend.get("backend_id") or "").strip()
+        base_url = str(backend.get("base_url") or "").strip().rstrip("/")
+        if not backend_id or not base_url:
+            continue
+        headers: dict[str, str] = {"X-CCCC-Remote-Proxy": "1"}
+        access_token = str(backend.get("access_token") or "").strip()
+        if access_token:
+            headers["Authorization"] = f"Bearer {access_token}"
+        try:
+            with httpx.Client(timeout=httpx.Timeout(connect=5.0, read=8.0, write=8.0, pool=8.0), follow_redirects=False) as client:
+                resp = client.get(f"{base_url}/api/v1/groups", headers=headers)
+            payload = resp.json()
+        except Exception:
+            continue
+        result = payload.get("result") if isinstance(payload, dict) else None
+        rows = result.get("groups") if isinstance(result, dict) else None
+        if not isinstance(rows, list):
+            continue
+        for remote_item in rows:
+            if not isinstance(remote_item, dict):
+                continue
+            remote_group_id = str(remote_item.get("group_id") or "").strip()
+            if not remote_group_id:
+                continue
+            gid = build_remote_virtual_group_id(backend_id, remote_group_id)
+            if not gid or gid in known_ids:
+                continue
+            title = str(remote_item.get("title") or "").strip()
+            topic = str(remote_item.get("topic") or "").strip()
+            known_ids.add(gid)
+            out.append(
+                {
+                    "group_id": gid,
+                    "title": title or remote_group_id,
+                    "topic": topic or f"remote: {base_url} ({remote_group_id})",
+                    "state": "active",
+                    "running": False,
+                    "runtime_status": dict(remote_runtime_status),
+                    "remote": {
+                        "enabled": True,
+                        "backend_id": backend_id,
+                        "base_url": base_url,
+                        "remote_group_id": remote_group_id,
+                        "transport": "web_access",
+                    },
+                }
+            )
+    for item in get_remote_groups_settings():
+        gid = str(item.get("group_id") or "").strip()
+        if not gid or gid in known_ids:
+            continue
+        base_url = str(item.get("base_url") or "").strip().rstrip("/")
+        remote_group_id = str(item.get("remote_group_id") or gid).strip() or gid
+        title = str(item.get("title") or "").strip()
+        topic = str(item.get("topic") or "").strip()
+        known_ids.add(gid)
+        out.append(
+            {
+                "group_id": gid,
+                "title": title or gid,
+                "topic": topic or f"remote: {base_url} ({remote_group_id})",
+                "state": "active",
+                "running": False,
+                "runtime_status": dict(remote_runtime_status),
+                "remote": {
+                    "enabled": True,
+                    "base_url": base_url,
+                    "remote_group_id": remote_group_id,
+                    "transport": "web_access",
+                },
+            }
+        )
     return {
         "ok": True,
         "result": {

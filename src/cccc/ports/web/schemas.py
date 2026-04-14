@@ -296,6 +296,48 @@ class RemoteAccessConfigureRequest(BaseModel):
     web_public_url: Optional[str] = None
 
 
+class RemoteGroupRouteRequest(BaseModel):
+    group_id: str = Field(default="")
+    base_url: str = Field(default="")
+    remote_group_id: Optional[str] = None
+    title: Optional[str] = None
+    topic: Optional[str] = None
+    access_token: Optional[str] = None
+    enabled: bool = True
+
+
+class RemoteGroupRoutesReplaceRequest(BaseModel):
+    by: str = Field(default="user")
+    groups: list[RemoteGroupRouteRequest] = Field(default_factory=list)
+
+
+class RemoteGroupRouteUpsertRequest(RemoteGroupRouteRequest):
+    by: str = Field(default="user")
+
+
+class RemoteBackendRequest(BaseModel):
+    backend_id: Optional[str] = None
+    base_url: str = Field(default="")
+    access_token: Optional[str] = None
+    title: Optional[str] = None
+    enabled: bool = True
+
+
+class RemoteBackendReplaceRequest(BaseModel):
+    by: str = Field(default="user")
+    backends: list[RemoteBackendRequest] = Field(default_factory=list)
+
+
+class RemoteBackendUpsertRequest(RemoteBackendRequest):
+    by: str = Field(default="user")
+
+
+class RemoteBackendCreateGroupRequest(BaseModel):
+    title: str = Field(default="working-group")
+    topic: str = Field(default="")
+    by: str = Field(default="user")
+
+
 class BrandingUpdateRequest(BaseModel):
     by: str = Field(default="user")
     product_name: Optional[str] = None

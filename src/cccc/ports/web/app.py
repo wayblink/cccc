@@ -22,6 +22,7 @@ from starlette.concurrency import run_in_threadpool
 from ... import __version__
 from ...daemon.server import call_daemon
 from ...kernel.access_tokens import list_access_tokens, lookup_access_token
+from ...kernel.settings import get_remote_group_route
 from ...paths import ensure_home
 from ...util.obslog import apply_logger_levels, setup_root_json_logging
 from ...util.process import pid_is_alive, terminate_pid
@@ -30,8 +31,8 @@ from .runtime_control import (
     clear_web_runtime_state,
     write_web_runtime_state,
 )
-from .middleware import AuthMiddleware, ReadOnlyGuardMiddleware, UiCacheControlMiddleware
-from .schemas import RouteContext
+from .middleware import AuthMiddleware, ReadOnlyGuardMiddleware, RemoteGroupProxyMiddleware, UiCacheControlMiddleware
+from .schemas import RouteContext, check_group
 
 logger = logging.getLogger("cccc.web")
 _WEB_LOG_FH: Optional[Any] = None
@@ -429,6 +430,11 @@ def create_app() -> FastAPI:
         logger.exception("unhandled exception in cccc web")
         return JSONResponse(status_code=500, content={"ok": False, "error": {"code": "internal_error", "message": "internal error", "details": {}}})
 
+    app.add_middleware(
+        RemoteGroupProxyMiddleware,
+        get_remote_group=get_remote_group_route,
+        check_group=check_group,
+    )
     app.add_middleware(
         AuthMiddleware,
         signed_out_cookie=_SIGNED_OUT_COOKIE,
