@@ -32,6 +32,7 @@ import {
 } from "./stores";
 import { useChatOutboxStore } from "./stores/chatOutboxStore";
 import type { ChatMessageData, LedgerEvent } from "./types";
+import { isFixedAppTab } from "./utils/appTabs";
 import { filterVisibleRuntimeActors } from "./utils/runtimeVisibility";
 
 // ============ Main App Component ============
@@ -185,7 +186,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (activeTab === "chat" || activeTab === "scripts") return;
+    if (isFixedAppTab(activeTab)) return;
     if (visibleRuntimeActors.some((actor) => String(actor.id || "") === activeTab)) return;
     setActiveTab("chat");
   }, [activeTab, setActiveTab, visibleRuntimeActors]);
@@ -394,6 +395,7 @@ export default function App() {
             : undefined
         }
         onCloseSidebar={() => setSidebarOpen(false)}
+        onSelectNotes={() => handleTabChange("notes")}
         onToggleSidebar={toggleSidebarCollapsed}
         onResizeSidebar={setSidebarWidth}
         onReorderGroupsInSection={reorderGroupsInSection}

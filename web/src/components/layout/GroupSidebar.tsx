@@ -7,6 +7,8 @@ import { GroupSidebarItem } from "./GroupSidebarItem";
 import { GroupSidebarSortableList } from "./GroupSidebarSortableList";
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "../../stores/useUIStore";
 import { useBrandingStore } from "../../stores";
+import { TOOL_APP_TABS } from "../../utils/appTabs";
+import { getNotesNavMeta } from "./notesNav";
 import { getScriptManagerNavMeta } from "./scriptManagerNav";
 
 export interface GroupSidebarProps {
@@ -22,6 +24,7 @@ export interface GroupSidebarProps {
   onSelectGroup: (groupId: string) => void;
   onSelectChat?: () => void;
   onSelectScripts?: () => void;
+  onSelectNotes?: () => void;
   onWarmGroup?: (groupId: string) => void;
   onCreateGroup?: () => void;
   onClose: () => void;
@@ -45,6 +48,7 @@ export function GroupSidebar({
   onSelectGroup,
   onSelectChat,
   onSelectScripts,
+  onSelectNotes,
   onWarmGroup,
   onCreateGroup,
   onClose,
@@ -57,10 +61,15 @@ export function GroupSidebar({
   const { t } = useTranslation('layout');
   const branding = useBrandingStore((s) => s.branding);
   const scriptManagerNav = getScriptManagerNavMeta();
+  const notesNav = getNotesNavMeta();
+  const toolItems = [
+    onSelectScripts ? { tab: "scripts", onSelect: onSelectScripts, ...scriptManagerNav } : null,
+    onSelectNotes ? { tab: "notes", onSelect: onSelectNotes, ...notesNav } : null,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const archivedSet = useMemo(() => new Set(archivedGroupIds), [archivedGroupIds]);
-  const visibleSelectedGroupId = activeTab === "scripts" ? "" : selectedGroupId;
+  const visibleSelectedGroupId = TOOL_APP_TABS.includes(activeTab as (typeof TOOL_APP_TABS)[number]) ? "" : selectedGroupId;
   const workingGroups = useMemo(
     () => orderedGroups.filter((g) => !archivedSet.has(String(g.group_id || "").trim())),
     [archivedSet, orderedGroups]
@@ -128,7 +137,7 @@ export function GroupSidebar({
 
   const handleSelectGroup = useCallback((groupId: string) => {
     onSelectGroup(groupId);
-    if (activeTab === "scripts") {
+    if (TOOL_APP_TABS.includes(activeTab as (typeof TOOL_APP_TABS)[number])) {
       onSelectChat?.();
     }
   }, [activeTab, onSelectChat, onSelectGroup]);
@@ -381,58 +390,62 @@ export function GroupSidebar({
           )}
         </div>
 
-        {onSelectScripts && (
+        {toolItems.length > 0 && (
           <div className={classNames("border-t border-[var(--glass-border-subtle)]", isCollapsed ? "p-2" : "p-3 pt-3")}>
             {!isCollapsed && (
               <div className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--color-text-tertiary)]">
-                Tools
+                {t("toolsSection", { defaultValue: "Tools" })}
               </div>
             )}
-            <button
-              type="button"
-              className={classNames(
-                isCollapsed
-                  ? "glass-group-item flex h-11 w-11 items-center justify-center rounded-xl"
-                  : "glass-group-item flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left",
-                activeTab === "scripts" && "glass-group-item-active glow-pulse"
-              )}
-              onClick={() => {
-                onSelectScripts();
-                if (window.matchMedia("(max-width: 767px)").matches) onClose();
-              }}
-              title={scriptManagerNav.title}
-              aria-label={scriptManagerNav.title}
-            >
-              <span
-                className={classNames(
-                  "flex h-9 w-9 items-center justify-center rounded-xl",
-                  activeTab === "scripts"
-                    ? "text-cyan-700 dark:text-cyan-300"
-                    : "text-[var(--color-text-secondary)]"
-                )}
-              >
-                <scriptManagerNav.Icon size={18} />
-              </span>
-              {!isCollapsed && (
-                <span className="min-w-0 flex-1">
-                  <span
+            <div className={classNames(isCollapsed ? "flex flex-col items-center gap-2" : "space-y-2")}>
+              {toolItems.map((tool) => {
+                const active = activeTab === tool.tab;
+                return (
+                  <button
+                    key={tool.tab}
+                    type="button"
                     className={classNames(
-                      "block truncate text-sm font-medium",
-                      activeTab === "scripts"
-                        ? "text-cyan-700 dark:text-cyan-300"
-                        : "text-[var(--color-text-primary)]"
+                      isCollapsed
+                        ? "glass-group-item flex h-11 w-11 items-center justify-center rounded-xl"
+                        : "glass-group-item flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left",
+                      active && "glass-group-item-active glow-pulse"
                     )}
+                    onClick={() => {
+                      tool.onSelect();
+                      if (window.matchMedia("(max-width: 767px)").matches) onClose();
+                    }}
+                    title={tool.title}
+                    aria-label={tool.title}
                   >
-                    {scriptManagerNav.title}
-                  </span>
-                  {scriptManagerNav.subtitle ? (
-                    <span className="mt-0.5 block truncate text-xs text-[var(--color-text-secondary)]">
-                      {scriptManagerNav.subtitle}
+                    <span
+                      className={classNames(
+                        "flex h-9 w-9 items-center justify-center rounded-xl",
+                        active ? "text-cyan-700 dark:text-cyan-300" : "text-[var(--color-text-secondary)]"
+                      )}
+                    >
+                      <tool.Icon size={18} />
                     </span>
-                  ) : null}
-                </span>
-              )}
-            </button>
+                    {!isCollapsed && (
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={classNames(
+                            "block truncate text-sm font-medium",
+                            active ? "text-cyan-700 dark:text-cyan-300" : "text-[var(--color-text-primary)]"
+                          )}
+                        >
+                          {tool.title}
+                        </span>
+                        {tool.subtitle ? (
+                          <span className="mt-0.5 block truncate text-xs text-[var(--color-text-secondary)]">
+                            {tool.subtitle}
+                          </span>
+                        ) : null}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 

@@ -6,9 +6,11 @@ import { GroupSidebar } from "../layout/GroupSidebar";
 import { ModalFrame } from "../modals/ModalFrame";
 import { ActorTab } from "../../pages/ActorTab";
 import { ChatTab } from "../../pages/chat";
+import { NotesPage } from "../../pages/notes";
 import { ScriptManagerPage } from "../../pages/scripts";
 import type { Actor, GroupContext, GroupDoc, GroupMeta, GroupRuntimeStatus, TextScale } from "../../types";
 import { SIDEBAR_COLLAPSED_WIDTH } from "../../stores/useUIStore";
+import { isToolAppTab, isFixedAppTab } from "../../utils/appTabs";
 
 type AppShellProps = {
   orderedGroups: GroupMeta[];
@@ -52,6 +54,7 @@ type AppShellProps = {
   onWarmGroup: (groupId: string) => void;
   onCreateGroup: (() => void) | undefined;
   onCloseSidebar: () => void;
+  onSelectNotes: () => void;
   onToggleSidebar: () => void;
   onResizeSidebar: (width: number) => void;
   onReorderGroupsInSection: (section: "working" | "archived", fromIndex: number, toIndex: number) => void;
@@ -124,6 +127,7 @@ export function AppShell({
   onWarmGroup,
   onCreateGroup,
   onCloseSidebar,
+  onSelectNotes,
   onToggleSidebar,
   onResizeSidebar,
   onReorderGroupsInSection,
@@ -153,7 +157,7 @@ export function AppShell({
   onTouchStart,
   onTouchEnd,
 }: AppShellProps) {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation(["chat", "layout"]);
   const shellStyle = {
     "--sidebar-width": `${sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}px`,
   } as CSSProperties;
@@ -216,6 +220,7 @@ export function AppShell({
         onSelectGroup={onSelectGroup}
         onSelectChat={() => onTabChange("chat")}
         onSelectScripts={() => onTabChange("scripts")}
+        onSelectNotes={onSelectNotes}
         onWarmGroup={onWarmGroup}
         onCreateGroup={onCreateGroup}
         onClose={onCloseSidebar}
@@ -235,9 +240,15 @@ export function AppShell({
           isDark={isDark}
           theme={theme}
           textScale={textScale}
-          titleOverride={activeTab === "scripts" ? "Script Manager" : undefined}
-          hideGroupControls={activeTab === "scripts"}
-          allowSettingsWithoutGroup={activeTab === "scripts"}
+          titleOverride={
+            activeTab === "scripts"
+              ? t("layout:scriptManagerTitle", { defaultValue: "Script Manager" })
+              : activeTab === "notes"
+                ? t("layout:notesToolTitle", { defaultValue: "Notes" })
+                : undefined
+          }
+          hideGroupControls={isToolAppTab(activeTab)}
+          allowSettingsWithoutGroup={isToolAppTab(activeTab)}
           onThemeChange={onThemeChange}
           onTextScaleChange={onTextScaleChange}
           webReadOnly={webReadOnly}
@@ -271,6 +282,8 @@ export function AppShell({
             <ErrorBoundary>
               {activeTab === "scripts" ? (
                 <ScriptManagerPage isDark={isDark} readOnly={webReadOnly} />
+              ) : activeTab === "notes" ? (
+                <NotesPage isDark={isDark} readOnly={webReadOnly} />
               ) : (
                 <ChatTab
                   isDark={isDark}
@@ -283,7 +296,7 @@ export function AppShell({
                   actors={actors}
                   runtimeActors={runtimeActors}
                   groups={groups}
-                  activeRuntimeActorId={activeTab !== "chat" && activeTab !== "scripts" ? activeTab : undefined}
+                  activeRuntimeActorId={!isFixedAppTab(activeTab) ? activeTab : undefined}
                   recipientActors={recipientActors}
                   recipientActorsBusy={recipientActorsBusy}
                   destGroupScopeLabel={destGroupScopeLabel}
@@ -306,7 +319,7 @@ export function AppShell({
 
           {renderedActorIds.map((actorId) => {
             const actor = runtimeActors.find((item) => item.id === actorId) || null;
-            const isVisible = activeTab === actorId && activeTab !== "chat" && activeTab !== "scripts";
+            const isVisible = activeTab === actorId && !isFixedAppTab(activeTab);
             const agentState =
               (groupContext?.agent_states || []).find((item) => item.id === (actor?.id || "")) || null;
 

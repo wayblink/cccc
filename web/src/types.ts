@@ -72,6 +72,17 @@ export type ScriptDetail = {
   last_output: ScriptOutputSnapshot | null;
 };
 
+export type NoteKind = "scratchpad" | "note";
+
+export type NoteRecord = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: number;
+  updatedAt: number;
+  kind: NoteKind;
+};
+
 export type ScriptAttachResult = {
   script_id?: string;
   runtime: ScriptRuntimeStatus;

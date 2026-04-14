@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Actor } from "../types";
+import { FIXED_APP_TABS, isFixedAppTab } from "../utils/appTabs";
 
 type UseAppTabStateOptions = {
   activeTab: string;
@@ -47,11 +48,11 @@ export function useAppTabState({
   const actorsRef = useRef<Actor[]>([]);
   const [mountedActorIds, setMountedActorIds] = useState<string[]>([]);
 
-  const allTabs = useMemo(() => ["chat", "scripts"], []);
+  const allTabs = useMemo(() => [...FIXED_APP_TABS], []);
 
   const handleTabChange = React.useCallback(
     (newTab: string) => {
-      if (newTab !== "chat" && newTab !== "scripts") {
+      if (!isFixedAppTab(newTab)) {
         setMountedActorIds((prev) => (prev.includes(newTab) ? prev : [...prev, newTab]));
       }
       setActiveTab(newTab);
@@ -86,7 +87,7 @@ export function useAppTabState({
   const renderedActorIds = useMemo(() => {
     const live = new Set(runtimeActors.map((actor) => String(actor.id || "")).filter((id) => id));
     const mountedLiveIds = mountedActorIds.filter((id) => live.has(id));
-    if (activeTab !== "chat" && activeTab !== "scripts" && live.has(activeTab) && !mountedLiveIds.includes(activeTab)) {
+    if (!isFixedAppTab(activeTab) && live.has(activeTab) && !mountedLiveIds.includes(activeTab)) {
       return [...mountedLiveIds, activeTab];
     }
     return mountedLiveIds;
