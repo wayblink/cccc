@@ -60,7 +60,7 @@ export function shouldPlayChatNotificationSound(args: {
 
   if (!selectedGroupId || !eventGroupId || eventGroupId !== selectedGroupId) return false;
   if (!by || by === "user") return false;
-  if (Boolean(data?.pending_placeholder)) return false;
+  if (data?.pending_placeholder) return false;
 
   return hasRenderableChatMessageContent(args.event);
 }

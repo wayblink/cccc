@@ -127,14 +127,23 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
   }, [enterCreateMode, loadScriptDetail, showError]);
 
   useEffect(() => {
-    void refreshScripts();
+    const timeoutId = globalThis.setTimeout(() => {
+      void refreshScripts();
+    }, 0);
+    return () => {
+      globalThis.clearTimeout(timeoutId);
+    };
   }, [refreshScripts]);
 
   useEffect(() => {
     const activeScriptId = String(detail?.script.id || "").trim();
     if (!activeScriptId || activeScriptId !== selectedScriptId || !shouldPollScript(detail?.runtime.status)) {
-      setPolling(false);
-      return undefined;
+      const timeoutId = globalThis.setTimeout(() => {
+        setPolling(false);
+      }, 0);
+      return () => {
+        globalThis.clearTimeout(timeoutId);
+      };
     }
 
     let cancelled = false;
@@ -177,8 +186,10 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
       if (keepPolling) scheduleNext();
     };
 
-    setPolling(true);
-    void tick();
+    timeoutId = globalThis.setTimeout(() => {
+      setPolling(true);
+      void tick();
+    }, 0);
 
     return () => {
       cancelled = true;
