@@ -1,11 +1,12 @@
 // ChatComposer renders the chat message composer.
 import type { Dispatch, RefObject, SetStateAction } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Actor, GroupMeta, PresentationMessageRef, ReplyTarget } from "../../types";
 import { classNames } from "../../utils/classNames";
 import { AttachmentIcon, SendIcon, ChevronDownIcon, ReplyIcon, CloseIcon, AlertIcon } from "../../components/Icons";
 import { ScrollFade } from "../../components/ScrollFade";
 import { getPresentationRefChipLabel } from "../../utils/presentationRefs";
+import { parseChatSlotActorId, type ChatSlotId } from "../../stores/useUIStore";
 import { useTranslation } from 'react-i18next';
 
 export interface ChatComposerProps {
@@ -17,6 +18,7 @@ export interface ChatComposerProps {
   recipientActorsBusy?: boolean;
   groups: GroupMeta[];
   destGroupId: string;
+  effectiveDestGroupId?: string;
   setDestGroupId: (groupId: string) => void;
   destGroupScopeLabel?: string;
   busy: string;
@@ -29,6 +31,7 @@ export interface ChatComposerProps {
 
   // Recipients
   toTokens: string[];
+  effectiveToTokens?: string[];
   onToggleRecipient: (token: string) => void;
   onClearRecipients: () => void;
 
@@ -56,6 +59,8 @@ export interface ChatComposerProps {
   setMentionSelectedIndex: Dispatch<SetStateAction<number>>;
   setMentionFilter: Dispatch<SetStateAction<string>>;
   onAppendRecipientToken: (token: string) => void;
+  effectiveSlotId?: ChatSlotId;
+  activeSlotLabel?: string;
 }
 
 export function ChatComposer({
@@ -67,6 +72,7 @@ export function ChatComposer({
   recipientActorsBusy,
   groups,
   destGroupId,
+  effectiveDestGroupId,
   setDestGroupId,
   destGroupScopeLabel: _destGroupScopeLabel,
   busy,
@@ -75,6 +81,7 @@ export function ChatComposer({
   quotedPresentationRef,
   onClearQuotedPresentationRef,
   toTokens,
+  effectiveToTokens,
   onToggleRecipient,
   onClearRecipients,
   composerFiles,
@@ -96,6 +103,8 @@ export function ChatComposer({
   setMentionSelectedIndex,
   setMentionFilter,
   onAppendRecipientToken,
+  effectiveSlotId,
+  activeSlotLabel,
 }: ChatComposerProps) {
   const composerHeightRef = useRef(0);
   const isUserInputRef = useRef(false);
@@ -103,25 +112,25 @@ export function ChatComposer({
   const modeMenuRef = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation('chat');
 
-  const readRootFontScale = () => {
+  const readRootFontScale = useCallback(() => {
     if (typeof document === "undefined") return 1;
     const rootFontSize = parseFloat(window.getComputedStyle(document.documentElement).fontSize);
     if (!Number.isFinite(rootFontSize) || rootFontSize <= 0) return 1;
     return rootFontSize / 16;
-  };
+  }, []);
 
-  const [rootFontScale, setRootFontScale] = useState(readRootFontScale);
+  const [rootFontScale, setRootFontScale] = useState(() => readRootFontScale());
   const baseComposerHeight = (isSmallScreen ? 44 : 48) * rootFontScale;
   const maxComposerHeight = 128 * rootFontScale;
   const composerFontSize = (isSmallScreen ? 15 : 14) * rootFontScale;
   const composerLineHeight = (isSmallScreen ? 24 : 20) * rootFontScale;
 
-  const resizeComposer = (node: HTMLTextAreaElement) => {
+  const resizeComposer = useCallback((node: HTMLTextAreaElement) => {
     node.style.height = "auto";
     const nextHeight = Math.min(Math.max(node.scrollHeight, baseComposerHeight), maxComposerHeight);
     node.style.height = `${nextHeight}px`;
     composerHeightRef.current = nextHeight;
-  };
+  }, [baseComposerHeight, maxComposerHeight]);
 
   // Auto-adjust textarea height when composerText changes programmatically
   // (e.g. mention selection). Skips when handleChange already handled resize.
@@ -140,7 +149,7 @@ export function ChatComposer({
     });
 
     return () => cancelAnimationFrame(rafId);
-  }, [baseComposerHeight, composerText, composerRef, maxComposerHeight]);
+  }, [composerRef, composerText, resizeComposer]);
 
   useEffect(() => {
     const el = composerRef.current;
@@ -160,7 +169,7 @@ export function ChatComposer({
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [composerRef]);
+  }, [composerRef, readRootFontScale, resizeComposer]);
 
   useEffect(() => {
     if (!showModeMenu) return;
@@ -200,6 +209,17 @@ export function ChatComposer({
     () => (quotedPresentationRef ? getPresentationRefChipLabel(quotedPresentationRef) : ""),
     [quotedPresentationRef],
   );
+  const lockedActorId = parseChatSlotActorId(effectiveSlotId);
+  const isLockedToSlot = Boolean(lockedActorId);
+  const displayedGroupId = String(effectiveDestGroupId || destGroupId || selectedGroupId || "").trim();
+  const displayedToTokens = effectiveToTokens && effectiveToTokens.length > 0 ? effectiveToTokens : toTokens;
+  const lockedRecipientLabel = useMemo(() => {
+    if (!lockedActorId) return "";
+    const matchingActor = [...recipientActors, ...actors].find(
+      (actor) => String(actor.id || "").trim() === lockedActorId,
+    );
+    return activeSlotLabel || String(matchingActor?.title || "").trim() || lockedActorId;
+  }, [activeSlotLabel, actors, lockedActorId, recipientActors]);
 
   // Handle pasted files (clipboard items).
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -320,7 +340,7 @@ export function ChatComposer({
       const before = composerText.slice(0, lastAt);
       setComposerText(before + selected + " ");
     }
-    if (!toTokens.includes(selected)) {
+    if (!displayedToTokens.includes(selected) && !isLockedToSlot) {
       onAppendRecipientToken(selected);
     }
     setShowMentionMenu(false);
@@ -329,9 +349,14 @@ export function ChatComposer({
 
   const canSend = composerText.trim() || composerFiles.length > 0;
   const isAttention = priority === "attention";
-  const isCrossGroup = !!destGroupId && destGroupId !== selectedGroupId;
+  const isCrossGroup = !!displayedGroupId && displayedGroupId !== selectedGroupId;
   const canChooseDestGroup =
-    !!selectedGroupId && busy !== "send" && !replyTarget && !quotedPresentationRef && composerFiles.length === 0;
+    !!selectedGroupId
+    && busy !== "send"
+    && !replyTarget
+    && !quotedPresentationRef
+    && composerFiles.length === 0
+    && !isLockedToSlot;
 
   type MessageMode = "normal" | "attention" | "task";
   const modeOptions: Array<{ key: MessageMode; label: string; description: string }> = [
@@ -496,7 +521,7 @@ export function ChatComposer({
               {/* Group Selector - Styled to match buttons */}
               <div className="relative flex-shrink-0">
                 <select
-                  value={destGroupId || selectedGroupId || ""}
+                  value={displayedGroupId}
                   onChange={(e) => setDestGroupId(e.target.value)}
                   style={{ colorScheme: isDark ? "dark" : "light" }}
                   className={classNames(
@@ -522,74 +547,115 @@ export function ChatComposer({
               <div className="w-[1px] h-4 bg-current opacity-10 flex-shrink-0 mx-1 hidden sm:block" />
 
               {/* Recipients List - Scrollable horizontally */}
-              <div className={classNames(
-                "flex items-center gap-1 sm:gap-1.5 transition-opacity",
-                recipientActorsBusy ? "opacity-50 pointer-events-none" : ""
-              )}>
-                {/* Special tokens */}
-                {["@all", "@foreman", "@peers"].map((tok) => {
-                  const active = toTokens.includes(tok);
-                  return (
-                    <button
-                      key={tok}
-                      className={classNames(
-                        "h-[26px] sm:h-8",
-                        chipBaseClass,
-                        active
-                          ? "bg-blue-600 text-white border-blue-500 shadow-sm shadow-blue-500/20"
-                          : isDark
-                            ? "bg-white/[0.08] text-[var(--color-text-secondary)] border-white/[0.1] hover:border-white/[0.16] hover:text-[var(--color-text-primary)]"
-                            : "bg-black/5 text-gray-600 border-transparent hover:border-black/10 hover:text-gray-800"
-                      )}
-                      onClick={() => onToggleRecipient(tok)}
-                      disabled={!selectedGroupId || busy === "send"}
-                      aria-pressed={active}
-                    >
-                      {tok}
-                    </button>
-                  );
-                })}
-                {/* Actor tokens */}
-                {recipientActors.map((actor) => {
-                  const id = String(actor.id || "");
-                  if (!id) return null;
-                  const active = toTokens.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      className={classNames(
-                        "h-[26px] sm:h-8",
-                        chipBaseClass,
-                        active
-                          ? "bg-blue-600 text-white border-blue-500 shadow-sm shadow-blue-500/20"
-                          : isDark
-                            ? "bg-white/[0.08] text-[var(--color-text-secondary)] border-white/[0.1] hover:border-white/[0.16] hover:text-[var(--color-text-primary)]"
-                            : "bg-black/5 text-gray-600 border-transparent hover:border-black/10 hover:text-gray-800"
-                      )}
-                      onClick={() => onToggleRecipient(id)}
-                      disabled={!selectedGroupId || busy === "send" || !!recipientActorsBusy}
-                      aria-pressed={active}
-                    >
-                      {actor.title || id}
-                    </button>
-                  );
-                })}
-
-                {toTokens.length > 0 && (
-                  <button
+              {isLockedToSlot ? (
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div
                     className={classNames(
-                      "p-2 rounded-full transition-all flex-shrink-0 opacity-40 hover:opacity-100",
-                      isDark ? "text-[var(--color-text-tertiary)] hover:bg-white/10 hover:text-[var(--color-text-primary)]" : "hover:bg-black/10"
+                      "h-[26px] sm:h-8",
+                      chipBaseClass,
+                      isDark
+                        ? "bg-blue-500/15 text-blue-100 border-blue-400/25"
+                        : "bg-blue-50 text-blue-700 border-blue-200",
                     )}
-                    onClick={onClearRecipients}
-                    disabled={busy === "send"}
-                    aria-label={t('clearRecipients')}
-                    title={t('clearRecipients')}
                   >
-                    <CloseIcon size={14} />
-                  </button>
-                )}
-              </div>
+                    {t("chatSlotDirectTo", {
+                      name: lockedRecipientLabel,
+                      defaultValue: `Direct to ${lockedRecipientLabel || "agent"}`,
+                    })}
+                  </div>
+                  <div
+                    className={classNames(
+                      "h-[26px] sm:h-8",
+                      chipBaseClass,
+                      isDark
+                        ? "bg-white/[0.08] text-[var(--color-text-secondary)] border-white/[0.1]"
+                        : "bg-black/5 text-gray-700 border-transparent",
+                    )}
+                  >
+                    {lockedRecipientLabel}
+                  </div>
+                  <div
+                    className={classNames(
+                      "h-[26px] sm:h-8",
+                      chipBaseClass,
+                      isDark
+                        ? "bg-white/[0.04] text-[var(--color-text-tertiary)] border-white/[0.08]"
+                        : "bg-black/[0.03] text-gray-500 border-transparent",
+                    )}
+                  >
+                    {t("chatSlotLockedGroup", { defaultValue: "Locked to this group" })}
+                  </div>
+                </div>
+              ) : (
+                <div className={classNames(
+                  "flex items-center gap-1 sm:gap-1.5 transition-opacity",
+                  recipientActorsBusy ? "opacity-50 pointer-events-none" : ""
+                )}>
+                  {/* Special tokens */}
+                  {["@all", "@foreman", "@peers"].map((tok) => {
+                    const active = displayedToTokens.includes(tok);
+                    return (
+                      <button
+                        key={tok}
+                        className={classNames(
+                          "h-[26px] sm:h-8",
+                          chipBaseClass,
+                          active
+                            ? "bg-blue-600 text-white border-blue-500 shadow-sm shadow-blue-500/20"
+                            : isDark
+                              ? "bg-white/[0.08] text-[var(--color-text-secondary)] border-white/[0.1] hover:border-white/[0.16] hover:text-[var(--color-text-primary)]"
+                              : "bg-black/5 text-gray-600 border-transparent hover:border-black/10 hover:text-gray-800"
+                        )}
+                        onClick={() => onToggleRecipient(tok)}
+                        disabled={!selectedGroupId || busy === "send"}
+                        aria-pressed={active}
+                      >
+                        {tok}
+                      </button>
+                    );
+                  })}
+                  {/* Actor tokens */}
+                  {recipientActors.map((actor) => {
+                    const id = String(actor.id || "");
+                    if (!id) return null;
+                    const active = displayedToTokens.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        className={classNames(
+                          "h-[26px] sm:h-8",
+                          chipBaseClass,
+                          active
+                            ? "bg-blue-600 text-white border-blue-500 shadow-sm shadow-blue-500/20"
+                            : isDark
+                              ? "bg-white/[0.08] text-[var(--color-text-secondary)] border-white/[0.1] hover:border-white/[0.16] hover:text-[var(--color-text-primary)]"
+                              : "bg-black/5 text-gray-600 border-transparent hover:border-black/10 hover:text-gray-800"
+                        )}
+                        onClick={() => onToggleRecipient(id)}
+                        disabled={!selectedGroupId || busy === "send" || !!recipientActorsBusy}
+                        aria-pressed={active}
+                      >
+                        {actor.title || id}
+                      </button>
+                    );
+                  })}
+
+                  {displayedToTokens.length > 0 && (
+                    <button
+                      className={classNames(
+                        "p-2 rounded-full transition-all flex-shrink-0 opacity-40 hover:opacity-100",
+                        isDark ? "text-[var(--color-text-tertiary)] hover:bg-white/10 hover:text-[var(--color-text-primary)]" : "hover:bg-black/10"
+                      )}
+                      onClick={onClearRecipients}
+                      disabled={busy === "send"}
+                      aria-label={t('clearRecipients')}
+                      title={t('clearRecipients')}
+                    >
+                      <CloseIcon size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </ScrollFade>
         </div>

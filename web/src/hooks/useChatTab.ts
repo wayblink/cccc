@@ -1,7 +1,7 @@
 // useChatTab - Encapsulates ChatTab business logic and state.
 // Reduces prop drilling by providing state from stores and computed values directly.
 
-import { useMemo, useCallback, useRef, useState } from "react";
+import { useMemo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   useGroupStore,
@@ -12,11 +12,19 @@ import {
   selectChatBucketState,
 } from "../stores";
 import { getEffectiveComposerDestGroupId } from "../stores/useComposerStore";
-import { getChatSession } from "../stores/useUIStore";
+import {
+  buildAgentChatSlotId,
+  getChatSession,
+  getChatSlotLastViewedAt,
+  getChatSlotState,
+  parseChatSlotActorId,
+  sanitizeChatSlotId,
+  type ChatSlotId,
+} from "../stores/useUIStore";
 import { useChatOutboxStore, selectOutboxEntries } from "../stores/chatOutboxStore";
 import type { Actor, LedgerEvent, ChatMessageData, MessageRef, OptimisticAttachment } from "../types";
 import * as api from "../services/api";
-import { buildReplyComposerState } from "../utils/chatReply";
+import { buildReplyComposerState, getReplyEventId } from "../utils/chatReply";
 import { hasRenderableChatMessageContent } from "../utils/ledgerEventHandlers";
 
 export function supportsChatStreamingPlaceholder(actor: Pick<Actor, "runtime" | "runner" | "runner_effective">): boolean {
@@ -37,6 +45,149 @@ export function shouldRestoreDetachedScrollSnapshot(
   const updatedAt = Number(snapshot.updatedAt);
   if (!Number.isFinite(updatedAt) || updatedAt <= 0) return false;
   return now - updatedAt <= CHAT_SCROLL_SNAPSHOT_MAX_AGE_MS;
+}
+
+export function getEffectiveChatSlotId(
+  selectedSlotId: ChatSlotId | string | null | undefined,
+  actors: Array<Pick<Actor, "id"> | { id: string }>,
+): ChatSlotId {
+  const normalizedSlotId = sanitizeChatSlotId(selectedSlotId);
+  if (normalizedSlotId === "all") return "all";
+
+  const actorId = parseChatSlotActorId(normalizedSlotId);
+  if (!actorId) return "all";
+
+  const actorExists = actors.some((actor) => String(actor.id || "").trim() === actorId);
+  return actorExists ? normalizedSlotId : "all";
+}
+
+export function isEventVisibleInChatSlot(
+  event: LedgerEvent,
+  slotId: ChatSlotId | string | null | undefined,
+  currentGroupId?: string,
+): boolean {
+  if (!event || String(event.kind || "").trim() !== "chat.message") return false;
+
+  const normalizedSlotId = sanitizeChatSlotId(slotId);
+  const currentGroup = String(currentGroupId || "").trim();
+  const eventGroupId = String(event.group_id || "").trim();
+  if (currentGroup && eventGroupId && eventGroupId !== currentGroup) return false;
+
+  if (normalizedSlotId === "all") return true;
+
+  const actorId = parseChatSlotActorId(normalizedSlotId);
+  if (!actorId) return false;
+
+  const data = event.data && typeof event.data === "object" ? event.data as ChatMessageData : null;
+  const dstGroupId = data && typeof data.dst_group_id === "string" ? String(data.dst_group_id || "").trim() : "";
+  if (dstGroupId) return false;
+
+  const to = Array.isArray(data?.to)
+    ? data.to.map((token) => String(token || "").trim()).filter((token) => token.length > 0)
+    : [];
+  if (to.length !== 1) return false;
+
+  const by = String(event.by || "").trim();
+  if (!by) return false;
+
+  return (
+    (by === "user" && to[0] === actorId)
+    || (by === actorId && (to[0] === "user" || to[0] === "@user"))
+  );
+}
+
+export function buildChatViewKey(
+  groupId: string | null | undefined,
+  slotId: ChatSlotId | string | null | undefined,
+  chatWindow?: { centerEventId?: string | null } | null,
+): string {
+  const gid = String(groupId || "").trim();
+  const normalizedSlotId = sanitizeChatSlotId(slotId);
+  const centerEventId = String(chatWindow?.centerEventId || "").trim();
+  if (centerEventId) {
+    return `${gid}:${normalizedSlotId}:window:${centerEventId}`;
+  }
+  return `${gid}:${normalizedSlotId}:live`;
+}
+
+export function getEffectiveChatMentionSuggestions(
+  slotId: ChatSlotId | string | null | undefined,
+  recipientActors: Array<Pick<Actor, "id"> | { id: string }>,
+): string[] {
+  const actorId = parseChatSlotActorId(sanitizeChatSlotId(slotId));
+  if (actorId) return [actorId];
+
+  const actorIds = recipientActors
+    .map((actor) => String(actor.id || "").trim())
+    .filter((id) => id.length > 0);
+  return ["@all", "@foreman", "@peers", ...actorIds];
+}
+
+export function getEffectiveChatSendGroupId(
+  slotId: ChatSlotId | string | null | undefined,
+  selectedGroupId: string | null | undefined,
+  sendGroupId: string | null | undefined,
+): string {
+  const actorId = parseChatSlotActorId(sanitizeChatSlotId(slotId));
+  const selectedGroup = String(selectedGroupId || "").trim();
+  const requestedGroup = String(sendGroupId || "").trim();
+  if (actorId) return selectedGroup;
+  return requestedGroup || selectedGroup;
+}
+
+export function getEffectiveChatToTokens(
+  slotId: ChatSlotId | string | null | undefined,
+  requestedTokens: string[],
+): string[] {
+  const actorId = parseChatSlotActorId(sanitizeChatSlotId(slotId));
+  if (actorId) return [actorId];
+  return requestedTokens;
+}
+
+export function isReplyTargetVisibleInChatSlot(
+  replyTarget: MessageRef | { eventId?: string | null } | null | undefined,
+  messages: LedgerEvent[],
+  slotId: ChatSlotId | string | null | undefined,
+  currentGroupId?: string,
+): boolean {
+  if (!replyTarget) return true;
+
+  const normalizedSlotId = sanitizeChatSlotId(slotId);
+  if (normalizedSlotId === "all") return true;
+
+  const replyEventId = String(replyTarget.eventId || "").trim();
+  if (!replyEventId) return false;
+
+  const targetMessage = messages.find((message) => {
+    const canonicalReplyId = getReplyEventId(message);
+    if (canonicalReplyId && canonicalReplyId === replyEventId) return true;
+    return String(message.id || "").trim() === replyEventId;
+  });
+  if (!targetMessage) return false;
+
+  return isEventVisibleInChatSlot(targetMessage, normalizedSlotId, currentGroupId);
+}
+
+function getEventTimestampMs(event: LedgerEvent): number {
+  const value = Date.parse(String(event.ts || ""));
+  return Number.isFinite(value) ? value : 0;
+}
+
+export function shouldShowUnreadDotForChatSlot(
+  slotId: ChatSlotId | string | null | undefined,
+  messages: LedgerEvent[],
+  lastViewedAt: number,
+  currentGroupId?: string,
+): boolean {
+  const normalizedSlotId = sanitizeChatSlotId(slotId);
+  if (normalizedSlotId === "all") return false;
+
+  const lastViewedAtMs = Number.isFinite(Number(lastViewedAt)) ? Number(lastViewedAt) : 0;
+  return messages.some((message) => {
+    if (String(message.by || "").trim() === "user") return false;
+    if (!isEventVisibleInChatSlot(message, normalizedSlotId, currentGroupId)) return false;
+    return getEventTimestampMs(message) > lastViewedAtMs;
+  });
 }
 
 function mergeStreamingCandidates(primary: LedgerEvent, secondary: LedgerEvent): LedgerEvent {
@@ -667,6 +818,7 @@ export function useChatTab({
   const busy = useUIStore((s) => s.busy);
   const chatSessions = useUIStore((s) => s.chatSessions);
   const setChatFilter = useUIStore((s) => s.setChatFilter);
+  const setChatSelectedSlotId = useUIStore((s) => s.setChatSelectedSlotId);
   const setShowScrollButton = useUIStore((s) => s.setShowScrollButton);
   const setChatUnreadCount = useUIStore((s) => s.setChatUnreadCount);
   const setChatScrollSnapshot = useUIStore((s) => s.setChatScrollSnapshot);
@@ -678,7 +830,16 @@ export function useChatTab({
     () => getChatSession(selectedGroupId, chatSessions),
     [selectedGroupId, chatSessions]
   );
-  const { chatFilter, showScrollButton, chatUnreadCount, scrollSnapshot } = chatSession;
+  const effectiveSlotId = useMemo(
+    () => getEffectiveChatSlotId(chatSession.selectedSlotId, actors),
+    [chatSession.selectedSlotId, actors]
+  );
+  const effectiveSlotState = useMemo(
+    () => getChatSlotState(selectedGroupId, effectiveSlotId, chatSessions),
+    [selectedGroupId, effectiveSlotId, chatSessions]
+  );
+  const { chatFilter, showScrollButton, chatUnreadCount } = chatSession;
+  const scrollSnapshot = effectiveSlotState.scrollSnapshot;
 
   const {
     activeGroupId,
@@ -786,15 +947,19 @@ export function useChatTab({
 
   // Mention suggestions
   const mentionSuggestions = useMemo(() => {
-    const base = ["@all", "@foreman", "@peers"];
-    const actorIds = recipientActors.map((a) => String(a.id || "")).filter((id) => id);
-    return [...base, ...actorIds];
-  }, [recipientActors]);
+    return getEffectiveChatMentionSuggestions(effectiveSlotId, recipientActors);
+  }, [effectiveSlotId, recipientActors]);
 
   // Send group ID (respects cross-group destination)
   const sendGroupId = useMemo(() => {
-    return getEffectiveComposerDestGroupId(destGroupId, activeGroupId, selectedGroupId);
-  }, [destGroupId, activeGroupId, selectedGroupId]);
+    const requestedGroupId = getEffectiveComposerDestGroupId(destGroupId, activeGroupId, selectedGroupId);
+    return getEffectiveChatSendGroupId(effectiveSlotId, selectedGroupId, requestedGroupId);
+  }, [destGroupId, activeGroupId, effectiveSlotId, selectedGroupId]);
+
+  const effectiveToTokens = useMemo(
+    () => getEffectiveChatToTokens(effectiveSlotId, toTokens),
+    [effectiveSlotId, toTokens]
+  );
 
   // Project root
   const projectRoot = useMemo(() => {
@@ -822,11 +987,8 @@ export function useChatTab({
   }, [chatWindow, selectedGroupId]);
 
   const chatViewKey = useMemo(() => {
-    if (inChatWindow && chatWindow) {
-      return `${selectedGroupId}:window:${chatWindow.centerEventId}`;
-    }
-    return `${selectedGroupId}:live`;
-  }, [inChatWindow, chatWindow, selectedGroupId]);
+    return buildChatViewKey(selectedGroupId, effectiveSlotId, inChatWindow ? chatWindow : null);
+  }, [effectiveSlotId, inChatWindow, chatWindow, selectedGroupId]);
   const logicalMessageOrderStateRef = useRef<{ viewKey: string; map: Map<string, number>; next: number }>({
     viewKey: "",
     map: new Map(),
@@ -850,6 +1012,12 @@ export function useChatTab({
     );
   }, [events, streamingEvents]);
 
+  useEffect(() => {
+    if (!selectedGroupId) return;
+    if (chatSession.selectedSlotId === effectiveSlotId) return;
+    setChatSelectedSlotId(selectedGroupId, effectiveSlotId);
+  }, [chatSession.selectedSlotId, effectiveSlotId, selectedGroupId, setChatSelectedSlotId]);
+
   // Filtered live chat messages (canonical + optimistic pending merged)
   const liveChatMessages = useMemo(() => {
     const all = events.filter((ev: LedgerEvent) => ev.kind === "chat.message");
@@ -869,21 +1037,22 @@ export function useChatTab({
       mergeVisibleChatMessages(all, [], pendingEvents, logicalMessageOrderStateRef.current),
       new Map(),
     );
+    const visibleInSlot = ordered.filter((ev: LedgerEvent) => isEventVisibleInChatSlot(ev, effectiveSlotId, selectedGroupId));
 
     if (chatFilter === "attention") {
-      return ordered.filter((ev: LedgerEvent) => {
+      return visibleInSlot.filter((ev: LedgerEvent) => {
         const d = ev.data as ChatMessageData | undefined;
         return String(d?.priority || "normal") === "attention";
       });
     }
     if (chatFilter === "task") {
-      return ordered.filter((ev: LedgerEvent) => {
+      return visibleInSlot.filter((ev: LedgerEvent) => {
         const d = ev.data as ChatMessageData | undefined;
         return !!d?.reply_required;
       });
     }
     if (chatFilter === "user") {
-      return ordered.filter((ev: LedgerEvent) => {
+      return visibleInSlot.filter((ev: LedgerEvent) => {
         const d = ev.data as ChatMessageData | undefined;
         const dst = typeof d?.dst_group_id === "string" ? String(d.dst_group_id || "").trim() : "";
         if (dst) return false;
@@ -892,14 +1061,53 @@ export function useChatTab({
         return by === "user" || to.includes("user") || to.includes("@user");
       });
     }
-    return ordered;
-  }, [events, chatFilter, outboxEntries]);
+    return visibleInSlot;
+  }, [events, chatFilter, effectiveSlotId, outboxEntries, selectedGroupId]);
 
   // Chat messages (window or live)
   const chatMessages = useMemo(() => {
-    if (inChatWindow && chatWindow) return chatWindow.events || [];
+    if (inChatWindow && chatWindow) {
+      return (chatWindow.events || []).filter((ev: LedgerEvent) => isEventVisibleInChatSlot(ev, effectiveSlotId, selectedGroupId));
+    }
     return liveChatMessages;
-  }, [chatWindow, inChatWindow, liveChatMessages]);
+  }, [chatWindow, effectiveSlotId, inChatWindow, liveChatMessages, selectedGroupId]);
+
+  useEffect(() => {
+    if (!replyTarget) return;
+    const allMessages = events.filter((ev: LedgerEvent) => ev.kind === "chat.message");
+    if (isReplyTargetVisibleInChatSlot(replyTarget, allMessages, effectiveSlotId, selectedGroupId)) return;
+    setReplyTarget(null);
+  }, [events, effectiveSlotId, replyTarget, selectedGroupId, setReplyTarget]);
+
+  const chatSlots = useMemo(() => {
+    const allMessages = events.filter((ev: LedgerEvent) => ev.kind === "chat.message");
+    const slotActors = actors.filter((actor) => {
+      const actorId = String(actor.id || "").trim();
+      return actorId.length > 0 && actorId !== "user" && !String(actor.internal_kind || "").trim();
+    });
+    return [
+      {
+        slotId: "all" as ChatSlotId,
+        actorId: null,
+        label: t("allMessages", { defaultValue: "All" }),
+        hasUnreadDot: false,
+      },
+      ...slotActors.map((actor) => {
+        const slotId = buildAgentChatSlotId(actor.id);
+        return {
+          slotId,
+          actorId: String(actor.id || "").trim(),
+          label: String(actor.title || "").trim() || String(actor.id || "").trim(),
+          hasUnreadDot: shouldShowUnreadDotForChatSlot(
+            slotId,
+            allMessages,
+            getChatSlotLastViewedAt(selectedGroupId, slotId, chatSessions),
+            selectedGroupId,
+          ),
+        };
+      }),
+    ];
+  }, [actors, chatSessions, events, selectedGroupId, t]);
 
   const hasAnyChatMessages = useMemo(
     () => events.some((ev: LedgerEvent) => ev.kind === "chat.message") || outboxEntries.length > 0,
@@ -1043,7 +1251,7 @@ export function useChatTab({
     const prioritySnapshot = priority;
     const replyRequiredSnapshot = replyRequired;
     const toTextSnapshot = toText;
-    const assistantTargets = !isCrossGroup ? resolveAssistantTargets(toTokens) : [];
+    const assistantTargets = !isCrossGroup ? resolveAssistantTargets(effectiveToTokens) : [];
 
     // Generate a local ID for outbox tracking
     const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1143,7 +1351,7 @@ export function useChatTab({
         group_id: selectedGroupId,
         data: {
           text: txt,
-          to: toTokens,
+          to: effectiveToTokens,
           priority: prio,
           reply_required: replyRequired,
           client_id: localId,
@@ -1162,7 +1370,7 @@ export function useChatTab({
     applyImmediateComposerFeedback();
     sendInFlightRef.current = true;
     try {
-      const to = toTokens;
+      const to = effectiveToTokens;
       let resp;
       if (replyTargetSnapshot) {
         resp = await api.replyMessage(
@@ -1227,7 +1435,7 @@ export function useChatTab({
         }
       }
       setDestGroupId(selectedGroupId);
-      clearDraft(selectedGroupId);
+      clearDraft(selectedGroupId, effectiveSlotId);
       if (fileInputRef?.current) fileInputRef.current.value = "";
       if (inChatWindow) {
         closeChatWindow();
@@ -1260,7 +1468,8 @@ export function useChatTab({
     priority,
     replyRequired,
     toText,
-    toTokens,
+    effectiveToTokens,
+    effectiveSlotId,
     replyTarget,
     quotedPresentationRef,
     inChatWindow,
@@ -1479,8 +1688,11 @@ export function useChatTab({
     chatMessages,
     liveWorkEvents,
     hasAnyChatMessages,
+    effectiveSlotId,
+    chatSlots,
     chatFilter,
     setChatFilter: updateChatFilter,
+    setChatSelectedSlotId,
     chatViewKey,
     chatWindowProps,
     chatInitialScrollTargetId,

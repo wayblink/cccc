@@ -15,6 +15,7 @@ interface UINotice {
 
 export type ChatFilter = "all" | "user" | "attention" | "task";
 export type ChatFollowMode = "follow" | "detached";
+export type ChatSlotId = "all" | `agent:${string}`;
 
 export interface ChatScrollSnapshot {
   mode: ChatFollowMode;
@@ -23,30 +24,122 @@ export interface ChatScrollSnapshot {
   updatedAt: number;
 }
 
+export interface ChatSlotState {
+  scrollSnapshot: ChatScrollSnapshot | null;
+  lastViewedAt: number;
+}
+
 export interface ChatSessionState {
   showScrollButton: boolean;
   chatUnreadCount: number;
   chatFilter: ChatFilter;
+  selectedSlotId: ChatSlotId;
+  slotStates: Record<string, ChatSlotState>;
   scrollSnapshot: ChatScrollSnapshot | null;
   mobileSurface: "messages" | "presentation";
   presentationDockOpen: boolean;
   presentationDisplayMode: "modal" | "split";
 }
 
+const DEFAULT_CHAT_SLOT_STATE: ChatSlotState = {
+  scrollSnapshot: null,
+  lastViewedAt: 0,
+};
+
 const DEFAULT_CHAT_SESSION: ChatSessionState = {
   showScrollButton: false,
   chatUnreadCount: 0,
   chatFilter: "all",
+  selectedSlotId: "all",
+  slotStates: {},
   scrollSnapshot: null,
   mobileSurface: "messages",
   presentationDockOpen: false,
   presentationDisplayMode: "modal",
 };
 
+export function buildAgentChatSlotId(actorId: string | null | undefined): ChatSlotId {
+  const normalizedActorId = String(actorId || "").trim();
+  return normalizedActorId ? `agent:${normalizedActorId}` : "all";
+}
+
+export function parseChatSlotActorId(slotId: string | null | undefined): string | null {
+  const normalizedSlotId = String(slotId || "").trim();
+  if (!normalizedSlotId.startsWith("agent:")) return null;
+  const actorId = normalizedSlotId.slice("agent:".length).trim();
+  return actorId || null;
+}
+
+export function sanitizeChatSlotId(value: unknown): ChatSlotId {
+  const normalized = String(value || "").trim();
+  if (normalized === "all") return "all";
+  const actorId = parseChatSlotActorId(normalized);
+  return actorId ? `agent:${actorId}` : "all";
+}
+
+function sanitizeChatSlotState(value: unknown): ChatSlotState | null {
+  if (!value || typeof value !== "object") return null;
+  const slotState = value as {
+    scrollSnapshot?: unknown;
+    lastViewedAt?: unknown;
+  };
+  return {
+    scrollSnapshot: sanitizeChatScrollSnapshot(slotState.scrollSnapshot),
+    lastViewedAt: Number.isFinite(Number(slotState.lastViewedAt)) ? Math.max(0, Number(slotState.lastViewedAt)) : 0,
+  };
+}
+
+function sanitizeChatSlotStates(value: unknown): Record<string, ChatSlotState> {
+  if (!value || typeof value !== "object") return {};
+  const input = value as Record<string, unknown>;
+  const next: Record<string, ChatSlotState> = {};
+  for (const [slotId, raw] of Object.entries(input)) {
+    const normalizedSlotId = sanitizeChatSlotId(slotId);
+    const slotState = sanitizeChatSlotState(raw);
+    if (!slotState) continue;
+    next[normalizedSlotId] = slotState;
+  }
+  return next;
+}
+
+function getSessionSlotState(session: Pick<ChatSessionState, "slotStates">, slotId: ChatSlotId): ChatSlotState {
+  return session.slotStates[slotId] || DEFAULT_CHAT_SLOT_STATE;
+}
+
+function materializeChatSession(session: Partial<ChatSessionState>): ChatSessionState {
+  const selectedSlotId = sanitizeChatSlotId(session.selectedSlotId);
+  const slotStates = sanitizeChatSlotStates(session.slotStates);
+  const selectedSlotState = getSessionSlotState({ slotStates }, selectedSlotId);
+  return {
+    ...DEFAULT_CHAT_SESSION,
+    ...session,
+    selectedSlotId,
+    slotStates,
+    scrollSnapshot: selectedSlotState.scrollSnapshot,
+  };
+}
+
 export function getChatSession(groupId: string | null | undefined, sessions: Record<string, ChatSessionState>): ChatSessionState {
   const gid = String(groupId || "").trim();
   if (!gid) return DEFAULT_CHAT_SESSION;
-  return sessions[gid] || DEFAULT_CHAT_SESSION;
+  return materializeChatSession(sessions[gid] || DEFAULT_CHAT_SESSION);
+}
+
+export function getChatSlotState(
+  groupId: string | null | undefined,
+  slotId: ChatSlotId,
+  sessions: Record<string, ChatSessionState>,
+): ChatSlotState {
+  const session = getChatSession(groupId, sessions);
+  return getSessionSlotState(session, sanitizeChatSlotId(slotId));
+}
+
+export function getChatSlotLastViewedAt(
+  groupId: string | null | undefined,
+  slotId: ChatSlotId,
+  sessions: Record<string, ChatSessionState>,
+): number {
+  return getChatSlotState(groupId, slotId, sessions).lastViewedAt;
 }
 
 interface UIState {
@@ -84,7 +177,9 @@ interface UIState {
   setSmallScreen: (v: boolean) => void;
   setPresentationSplitWidth: (v: number) => void;
   setChatFilter: (groupId: string, v: ChatFilter) => void;
+  setChatSelectedSlotId: (groupId: string, slotId: ChatSlotId) => void;
   setChatScrollSnapshot: (groupId: string, snap: ChatScrollSnapshot | null) => void;
+  setChatSlotLastViewedAt: (groupId: string, slotId: ChatSlotId, timestamp: number) => void;
   setChatMobileSurface: (groupId: string, v: "messages" | "presentation") => void;
   setChatPresentationDockOpen: (groupId: string, v: boolean) => void;
   setChatPresentationDisplayMode: (groupId: string, v: "modal" | "split") => void;
@@ -186,24 +281,35 @@ function sanitizeChatSessions(value: unknown): Record<string, ChatSessionState> 
     if (!gid || !raw || typeof raw !== "object") continue;
     const session = raw as {
       chatFilter?: unknown;
+      selectedSlotId?: unknown;
+      slotStates?: unknown;
       scrollSnapshot?: unknown;
       mobileSurface?: unknown;
       presentationDockOpen?: unknown;
       presentationDisplayMode?: unknown;
     };
-    next[gid] = {
-      ...DEFAULT_CHAT_SESSION,
+    const slotStates = sanitizeChatSlotStates(session.slotStates);
+    const legacyScrollSnapshot = sanitizeChatScrollSnapshot(session.scrollSnapshot);
+    if (legacyScrollSnapshot) {
+      slotStates.all = {
+        ...getSessionSlotState({ slotStates }, "all"),
+        scrollSnapshot: legacyScrollSnapshot,
+      };
+    }
+    const selectedSlotId = sanitizeChatSlotId(session.selectedSlotId);
+    next[gid] = materializeChatSession({
       chatFilter:
         session.chatFilter === "user" ||
         session.chatFilter === "attention" ||
         session.chatFilter === "task"
           ? session.chatFilter
           : "all",
-      scrollSnapshot: sanitizeChatScrollSnapshot(session.scrollSnapshot),
+      selectedSlotId,
+      slotStates,
       mobileSurface: session.mobileSurface === "presentation" ? "presentation" : "messages",
       presentationDockOpen: Boolean(session.presentationDockOpen),
       presentationDisplayMode: session.presentationDisplayMode === "split" ? "split" : "modal",
-    };
+    });
   }
   return next;
 }
@@ -226,7 +332,8 @@ function saveChatSessions(sessions: Record<string, ChatSessionState>): void {
         groupId,
         {
           chatFilter: session.chatFilter,
-          scrollSnapshot: session.scrollSnapshot,
+          selectedSlotId: session.selectedSlotId,
+          slotStates: session.slotStates,
           mobileSurface: session.mobileSurface,
           presentationDockOpen: session.presentationDockOpen,
           presentationDisplayMode: session.presentationDisplayMode,
@@ -242,16 +349,14 @@ function saveChatSessions(sessions: Record<string, ChatSessionState>): void {
 function updateChatSession(
   sessions: Record<string, ChatSessionState>,
   groupId: string,
-  patch: Partial<ChatSessionState>
+  updater: (session: ChatSessionState) => ChatSessionState
 ): Record<string, ChatSessionState> {
   const gid = String(groupId || "").trim();
   if (!gid) return sessions;
+  const current = getChatSession(gid, sessions);
   return {
     ...sessions,
-    [gid]: {
-      ...(sessions[gid] || DEFAULT_CHAT_SESSION),
-      ...patch,
-    },
+    [gid]: materializeChatSession(updater(current)),
   };
 }
 
@@ -335,20 +440,27 @@ export const useUIStore = create<UIState>((set) => ({
     }),
   setShowScrollButton: (groupId, v) =>
     set((state) => {
-      const chatSessions = updateChatSession(state.chatSessions, groupId, { showScrollButton: v });
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        showScrollButton: v,
+      }));
       return { chatSessions };
     }),
   setChatUnreadCount: (groupId, v) =>
     set((state) => ({
-      chatSessions: updateChatSession(state.chatSessions, groupId, { chatUnreadCount: Math.max(0, Number(v || 0)) }),
+      chatSessions: updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        chatUnreadCount: Math.max(0, Number(v || 0)),
+      })),
     })),
   incrementChatUnread: (groupId) =>
     set((state) => {
       const current = getChatSession(groupId, state.chatSessions);
       return {
-        chatSessions: updateChatSession(state.chatSessions, groupId, {
+        chatSessions: updateChatSession(state.chatSessions, groupId, (session) => ({
+          ...session,
           chatUnreadCount: current.chatUnreadCount + 1,
-        }),
+        })),
       };
     }),
   setSmallScreen: (v) => set({ isSmallScreen: v }),
@@ -359,31 +471,82 @@ export const useUIStore = create<UIState>((set) => ({
   },
   setChatFilter: (groupId, v) =>
     set((state) => {
-      const chatSessions = updateChatSession(state.chatSessions, groupId, { chatFilter: v });
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        chatFilter: v,
+      }));
+      saveChatSessions(chatSessions);
+      return { chatSessions };
+    }),
+  setChatSelectedSlotId: (groupId, slotId) =>
+    set((state) => {
+      const selectedSlotId = sanitizeChatSlotId(slotId);
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        selectedSlotId,
+      }));
       saveChatSessions(chatSessions);
       return { chatSessions };
     }),
   setChatScrollSnapshot: (groupId, snap) =>
     set((state) => {
-      const chatSessions = updateChatSession(state.chatSessions, groupId, { scrollSnapshot: snap });
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => {
+        const slotId = session.selectedSlotId;
+        return {
+          ...session,
+          slotStates: {
+            ...session.slotStates,
+            [slotId]: {
+              ...getSessionSlotState(session, slotId),
+              scrollSnapshot: snap,
+            },
+          },
+        };
+      });
+      saveChatSessions(chatSessions);
+      return { chatSessions };
+    }),
+  setChatSlotLastViewedAt: (groupId, slotId, timestamp) =>
+    set((state) => {
+      const normalizedSlotId = sanitizeChatSlotId(slotId);
+      const lastViewedAt = Number.isFinite(Number(timestamp)) ? Math.max(0, Number(timestamp)) : 0;
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        slotStates: {
+          ...session.slotStates,
+          [normalizedSlotId]: {
+            ...getSessionSlotState(session, normalizedSlotId),
+            lastViewedAt,
+          },
+        },
+      }));
       saveChatSessions(chatSessions);
       return { chatSessions };
     }),
   setChatMobileSurface: (groupId, v) =>
     set((state) => {
-      const chatSessions = updateChatSession(state.chatSessions, groupId, { mobileSurface: v });
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        mobileSurface: v,
+      }));
       saveChatSessions(chatSessions);
       return { chatSessions };
     }),
   setChatPresentationDockOpen: (groupId, v) =>
     set((state) => {
-      const chatSessions = updateChatSession(state.chatSessions, groupId, { presentationDockOpen: v });
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        presentationDockOpen: v,
+      }));
       saveChatSessions(chatSessions);
       return { chatSessions };
     }),
   setChatPresentationDisplayMode: (groupId, v) =>
     set((state) => {
-      const chatSessions = updateChatSession(state.chatSessions, groupId, { presentationDisplayMode: v });
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        presentationDisplayMode: v,
+      }));
       saveChatSessions(chatSessions);
       return { chatSessions };
     }),

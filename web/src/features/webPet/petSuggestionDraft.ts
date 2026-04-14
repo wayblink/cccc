@@ -1,4 +1,5 @@
 import { useComposerStore, useGroupStore, useUIStore } from "../../stores";
+import { buildComposerDraftKey } from "../../stores/useComposerStore";
 import type { ChatMessageData, LedgerEvent, PresentationMessageRef, ReplyTarget } from "../../types";
 import { getReplyEventId } from "../../utils/chatReply";
 import type { PetReminder } from "./types";
@@ -110,7 +111,8 @@ export function stagePetReminderDraft(reminder: PetReminder): boolean {
   const composerStore = useComposerStore.getState();
   const selectedGroupId = String(groupStore.selectedGroupId || "").trim();
   const isCrossGroup = selectedGroupId !== groupId;
-  const targetDraft = isCrossGroup ? composerStore.drafts[groupId] || null : composerStore;
+  const targetDraftKey = buildComposerDraftKey(groupId, "all");
+  const targetDraft = isCrossGroup ? composerStore.drafts[targetDraftKey] || null : composerStore;
   const shouldPreserveDraft = targetDraft ? hasMeaningfulComposerDraft(targetDraft) : false;
 
   if (isCrossGroup) {

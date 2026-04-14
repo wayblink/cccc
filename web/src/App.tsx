@@ -112,7 +112,7 @@ export default function App() {
     setDestGroupId,
     setReplyTarget,
     setToText,
-    switchGroup,
+    switchContext,
   } = useComposerStore();
 
   const { setEditGroupTitle, setEditGroupTopic, setDirSuggestions } = useFormStore();
@@ -325,12 +325,13 @@ export default function App() {
 
   useAppGroupLifecycle({
     selectedGroupId,
+    selectedSlotId: chatSession.selectedSlotId,
     destGroupId,
     sendGroupId,
     hasReplyTarget,
     hasComposerFiles,
     setDestGroupId,
-    switchGroup,
+    switchContext,
     fileInputRef,
     resetDragDrop,
     resetMountedActorIds,

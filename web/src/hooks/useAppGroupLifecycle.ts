@@ -1,13 +1,20 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
+import type { ChatSlotId } from "../stores/useUIStore";
 
 type UseAppGroupLifecycleOptions = {
   selectedGroupId: string;
+  selectedSlotId: ChatSlotId;
   destGroupId: string;
   sendGroupId: string;
   hasReplyTarget: boolean;
   hasComposerFiles: boolean;
   setDestGroupId: (groupId: string) => void;
-  switchGroup: (prevGroupId: string | null, nextGroupId: string | null) => void;
+  switchContext: (
+    prevGroupId: string | null,
+    prevSlotId: ChatSlotId | null,
+    nextGroupId: string | null,
+    nextSlotId: ChatSlotId | null,
+  ) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   resetDragDrop: () => void;
   resetMountedActorIds: () => void;
@@ -20,12 +27,13 @@ type UseAppGroupLifecycleOptions = {
 
 export function useAppGroupLifecycle({
   selectedGroupId,
+  selectedSlotId,
   destGroupId,
   sendGroupId,
   hasReplyTarget,
   hasComposerFiles,
   setDestGroupId,
-  switchGroup,
+  switchContext,
   fileInputRef,
   resetDragDrop,
   resetMountedActorIds,
@@ -36,6 +44,7 @@ export function useAppGroupLifecycle({
   cleanupSSE,
 }: UseAppGroupLifecycleOptions) {
   const prevGroupIdRef = useRef<string | null>(null);
+  const prevSlotIdRef = useRef<ChatSlotId | null>(null);
 
   useEffect(() => {
     const gid = String(selectedGroupId || "").trim();
@@ -57,9 +66,15 @@ export function useAppGroupLifecycle({
 
   // 切组前先切换 composer 归属，避免首帧读到旧组草稿。
   useLayoutEffect(() => {
-    switchGroup(prevGroupIdRef.current, selectedGroupId || null);
+    switchContext(
+      prevGroupIdRef.current,
+      prevSlotIdRef.current,
+      selectedGroupId || null,
+      selectedSlotId || null,
+    );
     prevGroupIdRef.current = selectedGroupId || null;
-  }, [selectedGroupId, switchGroup]);
+    prevSlotIdRef.current = selectedSlotId || null;
+  }, [selectedGroupId, selectedSlotId, switchContext]);
 
   useEffect(() => {
     if (fileInputRef.current) fileInputRef.current.value = "";

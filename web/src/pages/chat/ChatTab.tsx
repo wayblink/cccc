@@ -7,11 +7,12 @@ import { Actor, GroupMeta, HeadlessPreviewSession, LedgerEvent, PresentationMess
 import { VirtualMessageList } from "../../components/VirtualMessageList";
 import { classNames } from "../../utils/classNames";
 import { ChatComposer } from "./ChatComposer";
+import { ChatSlotStrip } from "./ChatSlotStrip";
 import { RuntimeDock } from "./RuntimeDock";
 import { useChatTab } from "../../hooks/useChatTab";
 import { useTranslation } from 'react-i18next';
 import { useComposerStore, useGroupStore, useModalStore, useUIStore } from "../../stores";
-import { getChatSession } from "../../stores/useUIStore";
+import { getChatSession, parseChatSlotActorId } from "../../stores/useUIStore";
 import { findPresentationSlot } from "../../utils/presentation";
 import { buildPresentationRefForSlot } from "../../utils/presentationRefs";
 import { clearPresentationSlot } from "../../services/api";
@@ -117,6 +118,9 @@ export function ChatTab({
     // Chat state
     chatMessages,
     liveWorkEvents,
+    effectiveSlotId,
+    chatSlots,
+    setChatSelectedSlotId,
     chatViewKey,
     chatWindowProps,
     chatInitialScrollTargetId,
@@ -413,6 +417,17 @@ export function ChatTab({
     document.body.style.setProperty("user-select", "none");
   }, [effectivePresentationSplitWidth, showDesktopSplitPresentation]);
 
+  const showChatSlots = chatSlots.length > 1;
+  const activeSlotLabel = useMemo(
+    () => chatSlots.find((slot) => slot.slotId === effectiveSlotId)?.label || t("allMessages", { defaultValue: "All" }),
+    [chatSlots, effectiveSlotId, t],
+  );
+  const activeSlotActorId = parseChatSlotActorId(effectiveSlotId);
+  const handleSelectSlot = useCallback((slotId: typeof effectiveSlotId) => {
+    if (!selectedGroupId) return;
+    setChatSelectedSlotId(selectedGroupId, slotId);
+  }, [selectedGroupId, setChatSelectedSlotId]);
+
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
       {/* 1. Header Area: For critical banners/setup only, very space-efficient */}
@@ -503,47 +518,79 @@ export function ChatTab({
                       isDark ? "border-white/5" : "border-black/5"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1" />
+                    <div className="flex flex-col gap-2">
+                      {showChatSlots ? (
+                        <div className="overflow-x-auto scrollbar-hide">
+                          <ChatSlotStrip
+                            isDark={isDark}
+                            slots={chatSlots}
+                            selectedSlotId={effectiveSlotId}
+                            onSelectSlot={handleSelectSlot}
+                          />
+                        </div>
+                      ) : null}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1" />
 
-                      <button
-                        type="button"
-                        onClick={() => selectedGroupId && setChatMobileSurface(selectedGroupId, "presentation")}
-                        className={classNames(
-                          "relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-200",
-                          isDark
-                            ? "border-white/10 bg-transparent text-slate-100"
-                            : "border-black/10 bg-transparent text-gray-900",
-                          hasPresentationAttention &&
-                            (isDark
-                              ? "presentation-slot-attention presentation-slot-attention-dark"
-                              : "presentation-slot-attention presentation-slot-attention-light")
-                        )}
-                        aria-label={t("presentationOpenDockAction", { defaultValue: "Open presentation" })}
-                        title={t("presentationOpenDockAction", { defaultValue: "Open presentation" })}
-                      >
-                        <BookmarkIcon size={18} />
-                        {hasPresentationAttention ? (
-                          <>
-                            <span
-                              className={classNames(
-                                "pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full animate-ping",
-                                isDark ? "bg-cyan-300/70" : "bg-cyan-500/45"
-                              )}
-                            />
-                            <span
-                              className={classNames(
-                                "pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full",
-                                isDark ? "bg-cyan-200" : "bg-cyan-500"
-                              )}
-                            />
-                          </>
-                        ) : null}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => selectedGroupId && setChatMobileSurface(selectedGroupId, "presentation")}
+                          className={classNames(
+                            "relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-200",
+                            isDark
+                              ? "border-white/10 bg-transparent text-slate-100"
+                              : "border-black/10 bg-transparent text-gray-900",
+                            hasPresentationAttention &&
+                              (isDark
+                                ? "presentation-slot-attention presentation-slot-attention-dark"
+                                : "presentation-slot-attention presentation-slot-attention-light")
+                          )}
+                          aria-label={t("presentationOpenDockAction", { defaultValue: "Open presentation" })}
+                          title={t("presentationOpenDockAction", { defaultValue: "Open presentation" })}
+                        >
+                          <BookmarkIcon size={18} />
+                          {hasPresentationAttention ? (
+                            <>
+                              <span
+                                className={classNames(
+                                  "pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full animate-ping",
+                                  isDark ? "bg-cyan-300/70" : "bg-cyan-500/45"
+                                )}
+                              />
+                              <span
+                                className={classNames(
+                                  "pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full",
+                                  isDark ? "bg-cyan-200" : "bg-cyan-500"
+                                )}
+                              />
+                            </>
+                          ) : null}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                 </>
+              )}
+
+              {showChatSlots && (
+                <div
+                  className="hidden sm:block absolute top-4 left-4 z-20 pointer-events-none"
+                  style={{ width: "calc(100% - 32px)" }}
+                >
+                  <div className="flex flex-col items-start">
+                    {showChatSlots ? (
+                      <div className="pointer-events-auto">
+                        <ChatSlotStrip
+                          isDark={isDark}
+                          slots={chatSlots}
+                          selectedSlotId={effectiveSlotId}
+                          onSelectSlot={handleSelectSlot}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               )}
 
               {isBusinessEmptyState && showSetupCard ? (
@@ -747,6 +794,7 @@ export function ChatTab({
             recipientActorsBusy={recipientActorsBusy}
             groups={groups}
             destGroupId={destGroupId}
+            effectiveDestGroupId={activeSlotActorId ? selectedGroupId : undefined}
             setDestGroupId={setDestGroupId}
             destGroupScopeLabel={destGroupScopeLabel}
             busy={busy}
@@ -755,6 +803,7 @@ export function ChatTab({
             quotedPresentationRef={quotedPresentationRef}
             onClearQuotedPresentationRef={clearQuotedPresentationRef}
             toTokens={toTokens}
+            effectiveToTokens={activeSlotActorId ? [activeSlotActorId] : undefined}
             onToggleRecipient={toggleRecipient}
             onClearRecipients={clearRecipients}
             composerFiles={composerFiles}
@@ -776,6 +825,8 @@ export function ChatTab({
             setMentionSelectedIndex={setMentionSelectedIndex}
             setMentionFilter={setMentionFilter}
             onAppendRecipientToken={appendRecipientToken}
+            effectiveSlotId={effectiveSlotId}
+            activeSlotLabel={activeSlotLabel}
           />
         </footer>
       )}

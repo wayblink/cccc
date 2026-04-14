@@ -1,6 +1,7 @@
 // Chat composer state store with per-group draft preservation.
 import { create } from "zustand";
 import type { PresentationMessageRef, ReplyTarget } from "../types";
+import { parseChatSlotActorId, sanitizeChatSlotId, type ChatSlotId } from "./useUIStore";
 
 export function getEffectiveComposerDestGroupId(
   destGroupId: string,
@@ -17,7 +18,7 @@ export function getEffectiveComposerDestGroupId(
   return dest || selected;
 }
 
-interface GroupDraft {
+export interface ComposerDraft {
   composerText: string;
   composerFiles: File[];
   toText: string;
@@ -28,8 +29,69 @@ interface GroupDraft {
   destGroupId: string;
 }
 
+function normalizeGroupId(groupId: string | null | undefined): string {
+  return String(groupId || "").trim();
+}
+
+function normalizeSlotId(slotId: ChatSlotId | string | null | undefined): ChatSlotId {
+  return sanitizeChatSlotId(slotId);
+}
+
+export function buildComposerDraftKey(groupId: string, slotId: ChatSlotId = "all"): string {
+  const gid = normalizeGroupId(groupId);
+  const normalizedSlotId = normalizeSlotId(slotId);
+  if (!gid) return "";
+  return normalizedSlotId === "all" ? gid : `${gid}::${normalizedSlotId}`;
+}
+
+function createEmptyDraft(groupId: string, slotId: ChatSlotId): ComposerDraft {
+  const actorId = parseChatSlotActorId(slotId);
+  return {
+    composerText: "",
+    composerFiles: [],
+    toText: actorId || "",
+    replyTarget: null,
+    quotedPresentationRef: null,
+    priority: "normal",
+    replyRequired: false,
+    destGroupId: groupId,
+  };
+}
+
+function normalizeDraftForSlot(draft: ComposerDraft, groupId: string, slotId: ChatSlotId): ComposerDraft {
+  const actorId = parseChatSlotActorId(slotId);
+  if (!actorId) {
+    return {
+      ...draft,
+      destGroupId: normalizeGroupId(draft.destGroupId || groupId) || groupId,
+    };
+  }
+  return {
+    ...draft,
+    toText: actorId,
+    destGroupId: groupId,
+  };
+}
+
+function hasMeaningfulDraft(draft: ComposerDraft, groupId: string, slotId: ChatSlotId): boolean {
+  const actorId = parseChatSlotActorId(slotId);
+  const trimmedToText = String(draft.toText || "").trim();
+  const destGroupId = normalizeGroupId(draft.destGroupId || groupId) || groupId;
+  return Boolean(
+    String(draft.composerText || "").trim()
+      || draft.composerFiles.length > 0
+      || (trimmedToText && trimmedToText !== actorId)
+      || draft.replyTarget
+      || draft.quotedPresentationRef
+      || draft.priority !== "normal"
+      || draft.replyRequired
+      || destGroupId !== groupId
+  );
+}
+
 interface ComposerState {
   activeGroupId: string;
+  activeSlotId: ChatSlotId;
   // Current active state
   composerText: string;
   composerFiles: File[];
@@ -40,8 +102,8 @@ interface ComposerState {
   replyRequired: boolean;
   destGroupId: string;
 
-  // Drafts per group (memory only)
-  drafts: Record<string, GroupDraft>;
+  // Drafts per group/slot (memory only)
+  drafts: Record<string, ComposerDraft>;
 
   // Actions
   setComposerText: (text: string | ((prev: string) => string)) => void;
@@ -55,18 +117,26 @@ interface ComposerState {
   setDestGroupId: (groupId: string) => void;
   clearComposer: () => void;
 
-  // Group switching: save current draft and load new group's draft
+  // Context switching: save current draft and load new group/slot draft
+  switchContext: (
+    fromGroupId: string | null,
+    fromSlotId: ChatSlotId | null,
+    toGroupId: string | null,
+    toSlotId: ChatSlotId | null,
+  ) => void;
+  // Group switching compatibility wrapper.
   switchGroup: (fromGroupId: string | null, toGroupId: string | null) => void;
   upsertDraft: (
     groupId: string,
-    updater: (draft: GroupDraft | null) => GroupDraft | null,
+    updater: (draft: ComposerDraft | null) => ComposerDraft | null,
   ) => void;
-  // Clear draft for a specific group
-  clearDraft: (groupId: string) => void;
+  // Clear draft for the active slot unless one is provided.
+  clearDraft: (groupId: string, slotId?: ChatSlotId | null) => void;
 }
 
 export const useComposerStore = create<ComposerState>((set, get) => ({
   activeGroupId: "",
+  activeSlotId: "all",
   composerText: "",
   composerFiles: [],
   toText: "",
@@ -103,88 +173,94 @@ export const useComposerStore = create<ComposerState>((set, get) => ({
   setQuotedPresentationRef: (ref) => set({ quotedPresentationRef: ref }),
   setPriority: (priority) => set({ priority }),
   setReplyRequired: (value) => set({ replyRequired: !!value }),
-  setDestGroupId: (groupId) => set({ destGroupId: String(groupId || "").trim() }),
+  setDestGroupId: (groupId) => set({ destGroupId: normalizeGroupId(groupId) }),
 
   clearComposer: () =>
-    set({
-      composerText: "",
-      composerFiles: [],
-      toText: "",
-      replyTarget: null,
-      quotedPresentationRef: null,
-      priority: "normal",
-      replyRequired: false,
-    }),
+    set((state) => ({
+      ...createEmptyDraft(state.activeGroupId, state.activeSlotId),
+    })),
 
-  switchGroup: (fromGroupId, toGroupId) => {
+  switchContext: (fromGroupId, fromSlotId, toGroupId, toSlotId) => {
     const state = get();
-    const newDrafts = { ...state.drafts };
+    const normalizedFromGroupId = normalizeGroupId(fromGroupId);
+    const normalizedToGroupId = normalizeGroupId(toGroupId);
+    const normalizedFromSlotId = normalizeSlotId(fromSlotId || state.activeSlotId);
+    const normalizedToSlotId = normalizeSlotId(toSlotId || "all");
+    const drafts = { ...state.drafts };
 
-    // Save current state as draft for the old group (if any content)
-    if (fromGroupId) {
-      const hasContent =
-        state.composerText.trim() ||
-        state.composerFiles.length > 0 ||
-        state.toText.trim() ||
-        state.replyTarget ||
-        state.quotedPresentationRef;
+    if (normalizedFromGroupId) {
+      const fromDraftKey = buildComposerDraftKey(normalizedFromGroupId, normalizedFromSlotId);
+      const fromDraft = normalizeDraftForSlot({
+        composerText: state.composerText,
+        composerFiles: state.composerFiles,
+        toText: state.toText,
+        replyTarget: state.replyTarget,
+        quotedPresentationRef: state.quotedPresentationRef,
+        priority: state.priority,
+        replyRequired: state.replyRequired,
+        destGroupId: normalizeGroupId(state.destGroupId || normalizedFromGroupId) || normalizedFromGroupId,
+      }, normalizedFromGroupId, normalizedFromSlotId);
 
-      if (hasContent) {
-        newDrafts[fromGroupId] = {
-          composerText: state.composerText,
-          composerFiles: state.composerFiles,
-          toText: state.toText,
-          replyTarget: state.replyTarget,
-          quotedPresentationRef: state.quotedPresentationRef,
-          priority: state.priority,
-          replyRequired: state.replyRequired,
-          destGroupId: state.destGroupId,
-        };
+      if (hasMeaningfulDraft(fromDraft, normalizedFromGroupId, normalizedFromSlotId)) {
+        drafts[fromDraftKey] = fromDraft;
       } else {
-        delete newDrafts[fromGroupId];
+        delete drafts[fromDraftKey];
       }
     }
 
-    // Load draft for the new group
-    const draft = toGroupId ? newDrafts[toGroupId] : null;
-    const normalizedDestGroupId = String(toGroupId || "").trim();
+    const nextDraft = normalizedToGroupId
+      ? normalizeDraftForSlot(
+          drafts[buildComposerDraftKey(normalizedToGroupId, normalizedToSlotId)]
+            || createEmptyDraft(normalizedToGroupId, normalizedToSlotId),
+          normalizedToGroupId,
+          normalizedToSlotId,
+        )
+      : createEmptyDraft("", normalizedToSlotId);
 
     set({
-      activeGroupId: normalizedDestGroupId,
-      drafts: newDrafts,
-      composerText: draft?.composerText || "",
-      composerFiles: draft?.composerFiles || [],
-      toText: draft?.toText || "",
-      replyTarget: draft?.replyTarget || null,
-      quotedPresentationRef: draft?.quotedPresentationRef || null,
-      priority: draft?.priority || "normal",
-      replyRequired: draft?.replyRequired || false,
-      // 切组后先回到当前组，跨组发送由用户显式重新选择，避免恢复草稿时误触发远端拉取。
-      destGroupId: normalizedDestGroupId,
+      activeGroupId: normalizedToGroupId,
+      activeSlotId: normalizedToSlotId,
+      drafts,
+      composerText: nextDraft.composerText,
+      composerFiles: nextDraft.composerFiles,
+      toText: nextDraft.toText,
+      replyTarget: nextDraft.replyTarget,
+      quotedPresentationRef: nextDraft.quotedPresentationRef,
+      priority: nextDraft.priority,
+      replyRequired: nextDraft.replyRequired,
+      destGroupId: nextDraft.destGroupId,
     });
+  },
+
+  switchGroup: (fromGroupId, toGroupId) => {
+    get().switchContext(fromGroupId, get().activeSlotId, toGroupId, "all");
   },
 
   upsertDraft: (groupId, updater) =>
     set((state) => {
-      const gid = String(groupId || "").trim();
+      const gid = normalizeGroupId(groupId);
       if (!gid) return state;
-      const nextDraft = updater(state.drafts[gid] || null);
+      const draftKey = buildComposerDraftKey(gid, "all");
+      const nextDraft = updater(state.drafts[draftKey] || null);
       const drafts = { ...state.drafts };
       if (nextDraft) {
-        drafts[gid] = {
+        drafts[draftKey] = normalizeDraftForSlot({
           ...nextDraft,
-          destGroupId: String(nextDraft.destGroupId || gid).trim() || gid,
-        };
+          destGroupId: normalizeGroupId(nextDraft.destGroupId || gid) || gid,
+        }, gid, "all");
       } else {
-        delete drafts[gid];
+        delete drafts[draftKey];
       }
       return { drafts };
     }),
 
-  clearDraft: (groupId) => {
+  clearDraft: (groupId, slotId) => {
     const state = get();
-    const newDrafts = { ...state.drafts };
-    delete newDrafts[groupId];
-    set({ drafts: newDrafts });
+    const gid = normalizeGroupId(groupId);
+    if (!gid) return;
+    const draftKey = buildComposerDraftKey(gid, normalizeSlotId(slotId || state.activeSlotId));
+    const drafts = { ...state.drafts };
+    delete drafts[draftKey];
+    set({ drafts });
   },
 }));

@@ -183,7 +183,7 @@ describe("stagePetReminderDraft", () => {
   });
 
   it("preserves cross-group pet drafts by prewriting the target group draft before switching", async () => {
-    const { useComposerStore } = await import("../../../src/stores/useComposerStore");
+    const { buildComposerDraftKey, useComposerStore } = await import("../../../src/stores/useComposerStore");
     const { useGroupStore } = await import("../../../src/stores/useGroupStore");
     const { useUIStore } = await import("../../../src/stores/useUIStore");
     const { stagePetReminderDraft } = await import("../../../src/features/webPet/petSuggestionDraft");
@@ -236,7 +236,12 @@ describe("stagePetReminderDraft", () => {
 
     expect(staged).toBe(true);
     expect(useGroupStore.getState().selectedGroupId).toBe("g-2");
-    useComposerStore.getState().switchGroup("g-1", "g-2");
+    expect(useComposerStore.getState().drafts[buildComposerDraftKey("g-2", "all")]).toMatchObject({
+      composerText: "Cross-group PET suggestion",
+      toText: "@foreman",
+      destGroupId: "g-2",
+    });
+    useComposerStore.getState().switchContext("g-1", "all", "g-2", "all");
     expect(useComposerStore.getState().composerText).toBe("Cross-group PET suggestion");
     expect(useComposerStore.getState().toText).toBe("@foreman");
     expect(useComposerStore.getState().replyTarget).toEqual({

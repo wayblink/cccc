@@ -107,4 +107,77 @@ describe("useUIStore sidebar width", () => {
       presentationDisplayMode: "modal",
     });
   });
+
+  it("persists the selected chat slot per group", async () => {
+    let mod = await import("../../src/stores/useUIStore");
+    mod.useUIStore.getState().setChatSelectedSlotId("g-demo", "agent:coder");
+
+    expect(mod.getChatSession("g-demo", mod.useUIStore.getState().chatSessions).selectedSlotId).toBe("agent:coder");
+
+    vi.resetModules();
+    mod = await import("../../src/stores/useUIStore");
+    expect(mod.getChatSession("g-demo", mod.useUIStore.getState().chatSessions).selectedSlotId).toBe("agent:coder");
+  });
+
+  it("keeps scroll snapshots isolated per chat slot", async () => {
+    const mod = await import("../../src/stores/useUIStore");
+
+    mod.useUIStore.getState().setChatSelectedSlotId("g-demo", "all");
+    mod.useUIStore.getState().setChatScrollSnapshot("g-demo", {
+      mode: "detached",
+      anchorId: "evt-all",
+      offsetPx: 32,
+      updatedAt: 111,
+    });
+
+    mod.useUIStore.getState().setChatSelectedSlotId("g-demo", "agent:coder");
+    mod.useUIStore.getState().setChatScrollSnapshot("g-demo", {
+      mode: "detached",
+      anchorId: "evt-agent",
+      offsetPx: 64,
+      updatedAt: 222,
+    });
+
+    expect(mod.getChatSession("g-demo", mod.useUIStore.getState().chatSessions).scrollSnapshot).toEqual({
+      mode: "detached",
+      anchorId: "evt-agent",
+      offsetPx: 64,
+      updatedAt: 222,
+    });
+
+    mod.useUIStore.getState().setChatSelectedSlotId("g-demo", "all");
+    expect(mod.getChatSession("g-demo", mod.useUIStore.getState().chatSessions).scrollSnapshot).toEqual({
+      mode: "detached",
+      anchorId: "evt-all",
+      offsetPx: 32,
+      updatedAt: 111,
+    });
+  });
+
+  it("persists slot last-viewed markers per group", async () => {
+    let mod = await import("../../src/stores/useUIStore");
+    mod.useUIStore.getState().setChatSlotLastViewedAt("g-demo", "agent:coder", 123456);
+
+    expect(mod.getChatSlotLastViewedAt("g-demo", "agent:coder", mod.useUIStore.getState().chatSessions)).toBe(123456);
+
+    vi.resetModules();
+    mod = await import("../../src/stores/useUIStore");
+    expect(mod.getChatSlotLastViewedAt("g-demo", "agent:coder", mod.useUIStore.getState().chatSessions)).toBe(123456);
+  });
+
+  it("sanitizes invalid persisted slot ids back to all", async () => {
+    localStorageMock.setItem("cccc-chat-sessions", JSON.stringify({
+      "g-demo": {
+        selectedSlotId: "agent:",
+        slotStates: {
+          "agent:coder": {
+            lastViewedAt: 10,
+          },
+        },
+      },
+    }));
+
+    const mod = await import("../../src/stores/useUIStore");
+    expect(mod.getChatSession("g-demo", mod.useUIStore.getState().chatSessions).selectedSlotId).toBe("all");
+  });
 });

@@ -25,13 +25,21 @@ const { localStorageMock } = vi.hoisted(() => {
 
 import {
   CHAT_SCROLL_SNAPSHOT_MAX_AGE_MS,
+  buildChatViewKey,
   buildReplyAnchorTsMap,
   buildReplySlotTsMap,
   collapseActorStreamingPlaceholders,
   dedupeStreamingEvents,
+  getEffectiveChatMentionSuggestions,
+  getEffectiveChatSendGroupId,
+  getEffectiveChatToTokens,
+  getEffectiveChatSlotId,
+  isEventVisibleInChatSlot,
+  isReplyTargetVisibleInChatSlot,
   mergeVisibleChatMessages,
   sortChatMessages,
   shouldRestoreDetachedScrollSnapshot,
+  shouldShowUnreadDotForChatSlot,
   supportsChatStreamingPlaceholder,
 } from "../../src/hooks/useChatTab";
 import type { LedgerEvent } from "../../src/types";
@@ -67,6 +75,33 @@ function makeStreamingEvent({
       activities: pendingPlaceholder
         ? [{ id: `queued:${id}`, kind: "queued", status: "started", summary: "queued" }]
         : [],
+    },
+  };
+}
+
+function makeChatEvent({
+  id,
+  by,
+  to,
+  ts = "2026-04-13T10:00:00.000Z",
+  dstGroupId,
+}: {
+  id: string;
+  by: string;
+  to: string[];
+  ts?: string;
+  dstGroupId?: string;
+}): LedgerEvent {
+  return {
+    id,
+    kind: "chat.message",
+    by,
+    ts,
+    group_id: "g-demo",
+    data: {
+      text: `${id}-text`,
+      to,
+      ...(dstGroupId ? { dst_group_id: dstGroupId } : {}),
     },
   };
 }
@@ -1055,5 +1090,129 @@ describe("supportsChatStreamingPlaceholder", () => {
       runner: "pty",
       runner_effective: "pty",
     })).toBe(false);
+  });
+});
+
+describe("chat slot helpers", () => {
+  it("falls back to all when the selected actor slot no longer exists", () => {
+    expect(getEffectiveChatSlotId("agent:coder", [{ id: "reviewer" } as { id: string }])).toBe("all");
+    expect(getEffectiveChatSlotId("agent:coder", [{ id: "coder" } as { id: string }])).toBe("agent:coder");
+  });
+
+  it("keeps only strict bilateral traffic inside an agent slot", () => {
+    expect(isEventVisibleInChatSlot(makeChatEvent({
+      id: "user-direct",
+      by: "user",
+      to: ["coder"],
+    }), "agent:coder", "g-demo")).toBe(true);
+
+    expect(isEventVisibleInChatSlot(makeChatEvent({
+      id: "agent-direct",
+      by: "coder",
+      to: ["user"],
+    }), "agent:coder", "g-demo")).toBe(true);
+
+    expect(isEventVisibleInChatSlot(makeChatEvent({
+      id: "agent-direct-at-user",
+      by: "coder",
+      to: ["@user"],
+    }), "agent:coder", "g-demo")).toBe(true);
+
+    expect(isEventVisibleInChatSlot(makeChatEvent({
+      id: "broadcast",
+      by: "user",
+      to: ["@all"],
+    }), "agent:coder", "g-demo")).toBe(false);
+
+    expect(isEventVisibleInChatSlot(makeChatEvent({
+      id: "multi-recipient",
+      by: "user",
+      to: ["coder", "reviewer"],
+    }), "agent:coder", "g-demo")).toBe(false);
+
+    expect(isEventVisibleInChatSlot(makeChatEvent({
+      id: "wrong-actor",
+      by: "reviewer",
+      to: ["user"],
+    }), "agent:coder", "g-demo")).toBe(false);
+
+    expect(isEventVisibleInChatSlot(makeChatEvent({
+      id: "cross-group",
+      by: "user",
+      to: ["coder"],
+      dstGroupId: "g-remote",
+    }), "agent:coder", "g-demo")).toBe(false);
+  });
+
+  it("builds slot-aware chat view keys", () => {
+    expect(buildChatViewKey("g-demo", "all")).toBe("g-demo:all:live");
+    expect(buildChatViewKey("g-demo", "agent:coder", { centerEventId: "evt-1" })).toBe("g-demo:agent:coder:window:evt-1");
+  });
+
+  it("invalidates replies that are not visible in the active slot", () => {
+    const messages = [
+      makeChatEvent({ id: "evt-user-to-coder", by: "user", to: ["coder"] }),
+      makeChatEvent({ id: "evt-reviewer-to-user", by: "reviewer", to: ["user"] }),
+    ];
+
+    expect(isReplyTargetVisibleInChatSlot({
+      eventId: "evt-user-to-coder",
+      by: "user",
+      text: "hello",
+    }, messages, "agent:coder", "g-demo")).toBe(true);
+
+    expect(isReplyTargetVisibleInChatSlot({
+      eventId: "evt-reviewer-to-user",
+      by: "reviewer",
+      text: "hidden",
+    }, messages, "agent:coder", "g-demo")).toBe(false);
+  });
+
+  it("derives unread dots from newer in-scope non-user messages only", () => {
+    const messages = [
+      makeChatEvent({
+        id: "old-agent-reply",
+        by: "coder",
+        to: ["user"],
+        ts: "2026-04-13T10:00:00.000Z",
+      }),
+      makeChatEvent({
+        id: "new-user-message",
+        by: "user",
+        to: ["coder"],
+        ts: "2026-04-13T10:01:00.000Z",
+      }),
+      makeChatEvent({
+        id: "new-agent-reply",
+        by: "coder",
+        to: ["user"],
+        ts: "2026-04-13T10:02:00.000Z",
+      }),
+    ];
+
+    expect(shouldShowUnreadDotForChatSlot("agent:coder", messages, Date.parse("2026-04-13T10:01:30.000Z"), "g-demo")).toBe(true);
+    expect(shouldShowUnreadDotForChatSlot("agent:coder", messages, Date.parse("2026-04-13T10:02:30.000Z"), "g-demo")).toBe(false);
+    expect(shouldShowUnreadDotForChatSlot("all", messages, 0, "g-demo")).toBe(false);
+  });
+
+  it("limits mention suggestions to the locked actor in an agent slot", () => {
+    expect(getEffectiveChatMentionSuggestions("all", [{ id: "coder" }, { id: "reviewer" }] as Array<{ id: string }>)).toEqual([
+      "@all",
+      "@foreman",
+      "@peers",
+      "coder",
+      "reviewer",
+    ]);
+    expect(getEffectiveChatMentionSuggestions("agent:coder", [{ id: "coder" }, { id: "reviewer" }] as Array<{ id: string }>)).toEqual([
+      "coder",
+    ]);
+  });
+
+  it("forces agent slots back to same-group direct sends", () => {
+    expect(getEffectiveChatSendGroupId("all", "g-demo", "g-remote")).toBe("g-remote");
+    expect(getEffectiveChatSendGroupId("agent:coder", "g-demo", "g-remote")).toBe("g-demo");
+
+    expect(getEffectiveChatToTokens("all", ["@all", "coder"])).toEqual(["@all", "coder"]);
+    expect(getEffectiveChatToTokens("agent:coder", ["@all", "reviewer"])).toEqual(["coder"]);
   });
 });
