@@ -5,13 +5,16 @@ export type Theme = "light" | "dark" | "system";
 export type TextScale = 90 | 100 | 125;
 export type ChatNotificationSoundId =
   | "abstract-sound1"
-  | "abstract-sound2"
   | "abstract-sound3"
   | "abstract-sound4"
   | "cow-mooing"
-  | "fahhhhh"
   | "phone-vibration"
-  | "rooster";
+  | "rooster"
+  | "horse-neigh"
+  | "horse-neigh-2"
+  | "horse-neigh-3"
+  | "duck-quack"
+  | "drum-hit";
 
 export type ChatNotificationSoundPreference = {
   enabled: boolean;

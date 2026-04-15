@@ -50,6 +50,48 @@ describe("chatNotificationSound", () => {
     });
   });
 
+  it("accepts the kept, renamed, and split horse sounds while dropping removed ids", () => {
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh" }),
+    ).toEqual({
+      enabled: true,
+      soundId: "horse-neigh",
+    });
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh-2" }),
+    ).toEqual({
+      enabled: true,
+      soundId: "horse-neigh-2",
+    });
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh-3" }),
+    ).toEqual({
+      enabled: true,
+      soundId: "horse-neigh-3",
+    });
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "duck-quack" }),
+    ).toEqual({
+      enabled: true,
+      soundId: "duck-quack",
+    });
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "drum-hit" }),
+    ).toEqual({
+      enabled: true,
+      soundId: "drum-hit",
+    });
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "cicada-buzz" }),
+    ).toEqual(DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE);
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "fahhhhh" }),
+    ).toEqual(DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE);
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "abstract-sound2" }),
+    ).toEqual(DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE);
+  });
+
   it("resolves the built-in asset URL for a known sound", () => {
     expect(getChatNotificationSoundUrl("abstract-sound1")).toBe(
       `${import.meta.env.BASE_URL}sounds/abstract-sound1.wav`,
@@ -96,7 +138,7 @@ describe("chatNotificationSound", () => {
     expect(MockAudio.instances.every((instance) => instance.preload === "auto")).toBe(true);
     expect(MockAudio.instances.every((instance) => instance.load.mock.calls.length === 1)).toBe(true);
 
-    await expect(mod.playChatNotificationSoundById("abstract-sound2")).resolves.toBe(true);
+    await expect(mod.playChatNotificationSoundById("duck-quack")).resolves.toBe(true);
     expect(MockAudio.instances).toHaveLength(CHAT_NOTIFICATION_SOUND_IDS.length);
   });
 

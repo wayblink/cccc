@@ -20,13 +20,16 @@ let chatNotificationAudioContext: AudioContext | null | undefined;
 // Skip the measured leading silence so previews and live replies feel immediate.
 const CHAT_NOTIFICATION_SOUND_CUE_POINTS: Record<ChatNotificationSoundId, number> = {
   "abstract-sound1": 0.033,
-  "abstract-sound2": 0.403,
   "abstract-sound3": 0.04,
   "abstract-sound4": 0.044,
   "cow-mooing": 0.316,
-  fahhhhh: 0.115,
   "phone-vibration": 0.073,
   rooster: 0.037,
+  "horse-neigh": 0.0,
+  "horse-neigh-2": 0.0,
+  "horse-neigh-3": 0.0,
+  "duck-quack": 0.0,
+  "drum-hit": 0.0,
 };
 
 function getOrCreateChatNotificationAudio(soundId: ChatNotificationSoundId): HTMLAudioElement | null {
