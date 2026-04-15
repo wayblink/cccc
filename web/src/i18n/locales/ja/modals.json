@@ -34,7 +34,8 @@
     "copyDataDir": "グループデータディレクトリのパスをコピー",
     "copyConfigFile": "グループ設定ファイルのパスをコピー",
     "copyLedgerFile": "グループ台帳ファイルのパスをコピー",
-    "deleteTitle": "このグループを完全に削除します"
+    "deleteTitle": "このグループを完全に削除します",
+    "deleteConfirm": "アーカイブ済みグループ「{{name}}」を完全に削除しますか？"
   },
   "inbox": {
     "title": "受信トレイ · {{actorId}}",

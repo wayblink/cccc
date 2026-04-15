@@ -192,6 +192,64 @@ describe("useGroupStore selection and archive persistence", () => {
     expect(mod.useGroupStore.getState().groupOrder).toEqual(["g-3", "g-4", "g-1", "g-2"]);
   });
 
+  it("applies local cleanup after deleting an archived selected group", async () => {
+    const mod = await importFreshStore();
+    mod.useGroupStore.setState({
+      groups: [
+        { group_id: "g-1", title: "Archived", state: "idle", topic: "" },
+        { group_id: "g-2", title: "Active", state: "active", topic: "" },
+      ],
+      groupOrder: ["g-1", "g-2"],
+      archivedGroupIds: ["g-1"],
+      selectedGroupId: "g-1",
+      chatByGroup: {
+        "g-1": {
+          events: [{ id: "e-1", kind: "chat.message" }],
+          streamingEvents: [],
+          streamingTextByStreamId: {},
+          streamingActivitiesByStreamId: {},
+          replySessionsByPendingEventId: {},
+          pendingEventIdByStreamId: {},
+          previewSessionsByActorId: {},
+          latestActorPreviewByActorId: {},
+          latestActorTextByActorId: {},
+          latestActorActivitiesByActorId: {},
+          chatWindow: null,
+          hasMoreHistory: true,
+          hasLoadedTail: true,
+          isLoadingHistory: false,
+          isChatWindowLoading: false,
+        },
+      },
+      groupDoc: { group_id: "g-1", title: "Archived", state: "idle" },
+      events: [{ id: "e-1", kind: "chat.message" }],
+      actors: [{ id: "actor-1" }],
+      groupContext: { summary: "ctx" },
+      groupSettings: { default_send_to: "foreman" },
+      groupPresentation: { v: 1, slots: [] },
+      hasMoreHistory: true,
+    });
+
+    groupStoreCore.saveGroupView("g-2", {
+      groupDoc: { group_id: "g-2", title: "Active", state: "active" },
+      events: [{ id: "e-2", kind: "chat.message" }],
+      actors: [{ id: "actor-2" }],
+      hasMoreHistory: false,
+    });
+
+    mod.useGroupStore.getState().applyDeletedGroup("g-1");
+
+    expect(mod.useGroupStore.getState().groups.map((group) => group.group_id)).toEqual(["g-2"]);
+    expect(mod.useGroupStore.getState().groupOrder).toEqual(["g-2"]);
+    expect(mod.useGroupStore.getState().archivedGroupIds).toEqual([]);
+    expect(mod.useGroupStore.getState().selectedGroupId).toBe("g-2");
+    expect(mod.useGroupStore.getState().events.map((event) => event.id)).toEqual(["e-2"]);
+    expect(mod.useGroupStore.getState().actors.map((actor) => actor.id)).toEqual(["actor-2"]);
+    expect(localStorageMock.getItem(SELECTED_GROUP_ID_KEY)).toBe("g-2");
+    expect(localStorageMock.getItem(ARCHIVED_GROUP_IDS_KEY)).toBeNull();
+    expect(groupStoreCore.groupViewCache.has("g-1")).toBe(false);
+  });
+
   it("projects cached runtime state for non-selected groups in ordered results", async () => {
     const mod = await importFreshStore();
     mod.useGroupStore.setState({

@@ -33,6 +33,7 @@ export interface GroupSidebarProps {
   onReorderSection: (section: "working" | "archived", fromIndex: number, toIndex: number) => void;
   onArchiveGroup: (groupId: string) => void;
   onRestoreGroup: (groupId: string) => void;
+  onDeleteGroup: (groupId: string) => void;
 }
 
 export function GroupSidebar({
@@ -57,6 +58,7 @@ export function GroupSidebar({
   onReorderSection,
   onArchiveGroup,
   onRestoreGroup,
+  onDeleteGroup,
 }: GroupSidebarProps) {
   const { t } = useTranslation('layout');
   const branding = useBrandingStore((s) => s.branding);
@@ -145,14 +147,22 @@ export function GroupSidebar({
   const renderGroupList = useCallback(
     (groups: GroupMeta[], section: "working" | "archived") => {
       const isArchivedSection = section === "archived";
-      const menuActionLabel = isArchivedSection ? t("restoreGroup") : t("archiveGroup");
-      const handleMenuAction = (gid: string) => {
+      const getMenuActions = (gid: string) => {
         if (isArchivedSection) {
-          onRestoreGroup(gid);
-          return;
+          return [
+            { label: t("restoreGroup"), onSelect: () => onRestoreGroup(gid) },
+            { label: t("deleteGroup"), onSelect: () => onDeleteGroup(gid) },
+          ];
         }
-        setArchivedOpen(true);
-        onArchiveGroup(gid);
+        return [
+          {
+            label: t("archiveGroup"),
+            onSelect: () => {
+              setArchivedOpen(true);
+              onArchiveGroup(gid);
+            },
+          },
+        ];
       };
 
       if (!isCollapsed && !readOnly) {
@@ -164,9 +174,8 @@ export function GroupSidebar({
               isDark={isDark}
               isCollapsed={false}
               readOnly={readOnly}
-              menuActionLabel={menuActionLabel}
               menuAriaLabel={t("groupActions")}
-              onMenuAction={handleMenuAction}
+              getMenuActions={getMenuActions}
               onReorderSection={onReorderSection}
               onSelectGroup={handleSelectGroup}
               onWarmGroup={onWarmGroup}
@@ -186,9 +195,8 @@ export function GroupSidebar({
                 isActive={gid === visibleSelectedGroupId}
                 isCollapsed={isCollapsed}
                 isArchived={isArchivedSection}
-                menuActionLabel={isCollapsed ? undefined : menuActionLabel}
+                menuActions={isCollapsed ? undefined : getMenuActions(gid)}
                 menuAriaLabel={isCollapsed ? undefined : `${t("groupActions")} · ${g.title || gid}`}
-                onMenuAction={isCollapsed ? undefined : () => handleMenuAction(gid)}
                 onSelect={() => {
                   handleSelectGroup(gid);
                   if (window.matchMedia("(max-width: 767px)").matches) onClose();
@@ -200,7 +208,7 @@ export function GroupSidebar({
         </div>
       );
     },
-    [handleSelectGroup, isCollapsed, isDark, onArchiveGroup, onClose, onReorderSection, onRestoreGroup, onWarmGroup, readOnly, t, visibleSelectedGroupId]
+    [handleSelectGroup, isCollapsed, isDark, onArchiveGroup, onClose, onDeleteGroup, onReorderSection, onRestoreGroup, onWarmGroup, readOnly, t, visibleSelectedGroupId]
   );
 
   return (

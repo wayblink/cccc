@@ -217,7 +217,7 @@ export default function App() {
     selectedGroupId,
   });
 
-  const { handleStartGroup, handleStopGroup, handleSetGroupState } = useGroupActions();
+  const { handleStartGroup, handleStopGroup, handleSetGroupState, handleDeleteGroup } = useGroupActions();
 
   const computedSendGroupId = getEffectiveComposerDestGroupId(destGroupId, activeGroupId, selectedGroupId);
 
@@ -412,6 +412,7 @@ export default function App() {
         onReorderGroupsInSection={reorderGroupsInSection}
         onArchiveGroup={archiveGroup}
         onRestoreGroup={restoreGroup}
+        onDeleteGroup={(groupId) => void handleDeleteGroup(groupId)}
         onOpenSidebar={() => setSidebarOpen(true)}
         onOpenGroupEdit={
           canManageGroups
@@ -482,6 +483,7 @@ export default function App() {
           onStartGroup={handleStartGroup}
           onStopGroup={handleStopGroup}
           onSetGroupState={handleSetGroupState}
+          onDeleteGroup={handleDeleteGroup}
           fetchContext={fetchContext}
           canManageGroups={canManageGroups}
         />

@@ -38,6 +38,7 @@ export interface GroupState {
   reorderGroupsInSection: (section: "working" | "archived", fromIndex: number, toIndex: number) => void;
   archiveGroup: (groupId: string) => void;
   restoreGroup: (groupId: string) => void;
+  applyDeletedGroup: (groupId: string) => void;
   getOrderedGroups: () => GroupMeta[];
   setSelectedGroupId: (id: string) => void;
   setGroupDoc: (doc: GroupDoc | null) => void;

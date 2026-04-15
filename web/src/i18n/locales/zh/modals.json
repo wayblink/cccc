@@ -34,7 +34,8 @@
     "copyDataDir": "复制工作组数据目录",
     "copyConfigFile": "复制工作组配置文件路径",
     "copyLedgerFile": "复制工作组日志文件路径",
-    "deleteTitle": "永久删除此工作组"
+    "deleteTitle": "永久删除此工作组",
+    "deleteConfirm": "确认永久删除已归档工作组“{{name}}”？"
   },
   "inbox": {
     "title": "收件箱 · {{actorId}}",

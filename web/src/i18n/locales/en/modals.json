@@ -34,7 +34,8 @@
     "copyDataDir": "Copy group data directory",
     "copyConfigFile": "Copy group config file path",
     "copyLedgerFile": "Copy group ledger file path",
-    "deleteTitle": "Delete this group permanently"
+    "deleteTitle": "Delete this group permanently",
+    "deleteConfirm": "Delete archived group \"{{name}}\" permanently?"
   },
   "inbox": {
     "title": "Inbox · {{actorId}}",

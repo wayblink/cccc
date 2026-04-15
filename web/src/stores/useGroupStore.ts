@@ -10,6 +10,7 @@ import {
   upsertReplySession,
 } from "./chatStreamingSessions";
 import {
+  groupViewCache,
   buildChatBucketPatch,
   buildPrimedGroupState,
   ensureGroupChatBucket,
@@ -27,6 +28,7 @@ import {
   patchGroupRuntimeStatus,
   presentationRequestEpochByGroup,
   reorderGroupSubset,
+  removeGroupChatBucket,
   resolveChatGroupId,
   saveArchivedGroupIds,
   saveCurrentViewSnapshot,
@@ -120,6 +122,72 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     saveArchivedGroupIds(next);
     set({ archivedGroupIds: next });
   },
+  applyDeletedGroup: (groupId) =>
+    set((state) => {
+      const gid = String(groupId || "").trim();
+      if (!gid) return state;
+
+      const nextGroups = state.groups.filter((group) => String(group.group_id || "").trim() !== gid);
+      const nextGroupOrder = state.groupOrder.filter((id) => id !== gid);
+      const nextArchivedGroupIds = state.archivedGroupIds.filter((id) => id !== gid);
+      const nextChatByGroup = removeGroupChatBucket(state.chatByGroup, gid);
+
+      saveGroupOrder(nextGroupOrder);
+      saveArchivedGroupIds(nextArchivedGroupIds);
+      saveSelectedGroupId(state.selectedGroupId === gid ? nextGroupOrder[0] || "" : state.selectedGroupId);
+
+      groupViewCache.delete(gid);
+
+      const nextSelectedGroupId =
+        String(state.selectedGroupId || "").trim() === gid
+          ? String(nextGroupOrder[0] || "").trim()
+          : String(state.selectedGroupId || "").trim();
+
+      if (!nextSelectedGroupId) {
+        return {
+          groups: nextGroups,
+          groupOrder: nextGroupOrder,
+          archivedGroupIds: nextArchivedGroupIds,
+          selectedGroupId: "",
+          chatByGroup: nextChatByGroup,
+          groupDoc: null,
+          events: [],
+          chatWindow: null,
+          actors: [],
+          groupContext: null,
+          groupSettings: null,
+          groupPresentation: null,
+          hasMoreHistory: false,
+          isLoadingHistory: false,
+          isChatWindowLoading: false,
+        };
+      }
+
+      const nextBucket = getGroupChatBucket(nextChatByGroup, nextSelectedGroupId);
+      const nextCached = getCachedGroupView(nextSelectedGroupId);
+
+      return {
+        groups: nextGroups,
+        groupOrder: nextGroupOrder,
+        archivedGroupIds: nextArchivedGroupIds,
+        selectedGroupId: nextSelectedGroupId,
+        chatByGroup: {
+          ...nextChatByGroup,
+          [nextSelectedGroupId]: nextBucket,
+        },
+        groupDoc: buildPrimedGroupState(nextSelectedGroupId, nextGroups).groupDoc,
+        events: nextBucket.events,
+        chatWindow: nextBucket.chatWindow,
+        actors: nextCached?.actors || [],
+        groupContext: nextCached?.groupContext || null,
+        groupSettings: nextCached?.groupSettings || null,
+        groupPresentation: nextCached?.groupPresentation || null,
+        hasMoreHistory: nextBucket.hasMoreHistory,
+        isLoadingHistory: nextBucket.isLoadingHistory,
+        isChatWindowLoading: nextBucket.isChatWindowLoading,
+        selectedGroupActorsHydrating: true,
+      };
+    }),
   getOrderedGroups: () => {
     const { groups, groupOrder, selectedGroupId, groupDoc, actors } = get();
     const groupMap = new Map(groups.map((g) => [String(g.group_id || ""), g]));

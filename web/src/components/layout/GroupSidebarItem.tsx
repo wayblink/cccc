@@ -9,9 +9,8 @@ interface GroupSidebarItemProps {
   isActive: boolean;
   isCollapsed: boolean;
   isArchived?: boolean;
-  menuActionLabel?: string;
   menuAriaLabel?: string;
-  onMenuAction?: () => void;
+  menuActions?: Array<{ label: string; onSelect: () => void }>;
   onSelect: () => void;
   onWarm?: () => void;
 }
@@ -21,9 +20,8 @@ export function GroupSidebarItem({
   isActive,
   isCollapsed,
   isArchived = false,
-  menuActionLabel,
   menuAriaLabel,
-  onMenuAction,
+  menuActions,
   onSelect,
   onWarm,
 }: GroupSidebarItemProps) {
@@ -107,7 +105,7 @@ export function GroupSidebarItem({
           </span>
         </div>
 
-        {onMenuAction && menuActionLabel && (
+        {menuActions && menuActions.length > 0 && (
           <div className="relative shrink-0">
             <button
               type="button"
@@ -117,8 +115,8 @@ export function GroupSidebarItem({
                   ? "text-cyan-700 dark:text-cyan-300"
                   : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
               )}
-              aria-label={menuAriaLabel || menuActionLabel}
-              title={menuAriaLabel || menuActionLabel}
+              aria-label={menuAriaLabel || menuActions[0]?.label}
+              title={menuAriaLabel || menuActions[0]?.label}
               onClick={(event) => {
                 event.stopPropagation();
                 setMenuOpen((prev) => !prev);
@@ -128,20 +126,23 @@ export function GroupSidebarItem({
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-full z-20 mt-2 min-w-[160px] rounded-xl p-1.5 shadow-2xl glass-panel">
-                <button
-                  type="button"
-                  className={classNames(
-                    "w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
-                    "text-[var(--color-text-primary)] hover:bg-[var(--glass-tab-bg-hover)]"
-                  )}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setMenuOpen(false);
-                    onMenuAction();
-                  }}
-                >
-                  {menuActionLabel}
-                </button>
+                {menuActions.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    className={classNames(
+                      "w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
+                      "text-[var(--color-text-primary)] hover:bg-[var(--glass-tab-bg-hover)]"
+                    )}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setMenuOpen(false);
+                      action.onSelect();
+                    }}
+                  >
+                    {action.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>

@@ -78,6 +78,7 @@ interface AppModalsProps {
   onStartGroup: () => Promise<void>;
   onStopGroup: () => Promise<void>;
   onSetGroupState: (state: "active" | "idle" | "paused") => Promise<void>;
+  onDeleteGroup: (groupId?: string) => Promise<void>;
   fetchContext: ContextModalFetch;
   canManageGroups: boolean;
 }
@@ -128,6 +129,7 @@ export function AppModals({
   onStartGroup,
   onStopGroup,
   onSetGroupState,
+  onDeleteGroup,
   fetchContext,
   canManageGroups,
 }: AppModalsProps) {
@@ -140,15 +142,13 @@ export function AppModals({
     events,
     chatWindow,
     actors,
+    archivedGroupIds,
     groupContext,
     groupSettings,
     groupPresentation,
     runtimes,
-    setSelectedGroupId,
-    setGroupDoc,
-    setGroupContext,
-    setGroupSettings,
     setGroupPresentation,
+    setSelectedGroupId,
     refreshGroups,
     refreshSettings,
     refreshActors,
@@ -568,28 +568,6 @@ export function AppModals({
       closeModal("groupEdit");
       await refreshGroups();
       await loadGroup(selectedGroupId);
-    } finally {
-      setBusy("");
-    }
-  };
-
-  const handleDeleteGroup = async () => {
-    if (!selectedGroupId) return;
-    if (!window.confirm(t('deleteGroupConfirm', { name: groupDoc?.title || selectedGroupId }))) return;
-    setBusy("group-delete");
-    try {
-      const resp = await api.deleteGroup(selectedGroupId);
-      if (!resp.ok) {
-        showError(`${resp.error.code}: ${resp.error.message}`);
-        return;
-      }
-      setSelectedGroupId("");
-      setGroupDoc(null);
-      useGroupStore.getState().setEvents([]);
-      useGroupStore.getState().setActors([]);
-      setGroupContext(null);
-      setGroupSettings(null);
-      await refreshGroups();
     } finally {
       setBusy("");
     }
@@ -1655,7 +1633,9 @@ export function AppModals({
         onChangeTopic={setEditGroupTopic}
         onSave={handleSaveGroupEdit}
         onCancel={() => closeModal("groupEdit")}
-        onDelete={handleDeleteGroup}
+        onDelete={() => void onDeleteGroup(selectedGroupId)}
+        canDelete={archivedGroupIds.includes(String(selectedGroupId || "").trim())}
+        deleteConfirmMessage={t("groupEdit.deleteConfirm", { name: groupDoc?.title || selectedGroupId })}
       />
 
       <EditActorModal

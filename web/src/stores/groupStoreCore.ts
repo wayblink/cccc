@@ -977,6 +977,17 @@ export function buildPrimedGroupState(groupId: string, groups: GroupMeta[]) {
   };
 }
 
+export function removeGroupChatBucket(
+  chatByGroup: Record<string, GroupChatBucket>,
+  groupId: string,
+): Record<string, GroupChatBucket> {
+  const gid = String(groupId || "").trim();
+  if (!gid || !chatByGroup[gid]) return chatByGroup;
+  const next = { ...chatByGroup };
+  delete next[gid];
+  return next;
+}
+
 export function filterUiEvents(events: LedgerEvent[] | undefined): LedgerEvent[] {
   return Array.isArray(events) ? events.filter((ev) => ev && ev.kind !== "context.sync") : [];
 }

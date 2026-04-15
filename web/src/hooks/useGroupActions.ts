@@ -8,6 +8,7 @@ export function useGroupActions() {
     selectedGroupId,
     groupDoc,
     setGroupDoc,
+    applyDeletedGroup,
     refreshGroups,
     refreshActors,
   } = useGroupStore();
@@ -87,9 +88,27 @@ export function useGroupActions() {
     [selectedGroupId, groupDoc, setBusy, showError, setGroupDoc, refreshGroups, refreshActors]
   );
 
+  const handleDeleteGroup = useCallback(async (groupId?: string) => {
+    const targetGroupId = String(groupId || selectedGroupId || "").trim();
+    if (!targetGroupId) return;
+    setBusy("group-delete");
+    try {
+      const resp = await api.deleteGroup(targetGroupId);
+      if (!resp.ok) {
+        showError(`${resp.error.code}: ${resp.error.message}`);
+        return;
+      }
+      applyDeletedGroup(targetGroupId);
+      await refreshGroups();
+    } finally {
+      setBusy("");
+    }
+  }, [selectedGroupId, setBusy, showError, applyDeletedGroup, refreshGroups]);
+
   return {
     handleStartGroup,
     handleStopGroup,
     handleSetGroupState,
+    handleDeleteGroup,
   };
 }

@@ -72,6 +72,7 @@ type AppShellProps = {
   onReorderGroupsInSection: (section: "working" | "archived", fromIndex: number, toIndex: number) => void;
   onArchiveGroup: (groupId: string) => void;
   onRestoreGroup: (groupId: string) => void;
+  onDeleteGroup: (groupId: string) => void;
   onOpenSidebar: () => void;
   onOpenGroupEdit: (() => void) | undefined;
   onOpenSearch: () => void;
@@ -148,6 +149,7 @@ export function AppShell({
   onReorderGroupsInSection,
   onArchiveGroup,
   onRestoreGroup,
+  onDeleteGroup,
   onOpenSidebar,
   onOpenGroupEdit,
   onOpenSearch,
@@ -244,6 +246,7 @@ export function AppShell({
         onReorderSection={onReorderGroupsInSection}
         onArchiveGroup={onArchiveGroup}
         onRestoreGroup={onRestoreGroup}
+        onDeleteGroup={onDeleteGroup}
       />
 
       <main

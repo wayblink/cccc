@@ -25,9 +25,8 @@ interface GroupSidebarSortableListProps {
   isDark: boolean;
   isCollapsed: boolean;
   readOnly?: boolean;
-  menuActionLabel?: string;
   menuAriaLabel?: string;
-  onMenuAction?: (groupId: string) => void;
+  getMenuActions?: (groupId: string) => Array<{ label: string; onSelect: () => void }>;
   onReorderSection: (section: "working" | "archived", fromIndex: number, toIndex: number) => void;
   onSelectGroup: (groupId: string) => void;
   onWarmGroup?: (groupId: string) => void;
@@ -41,9 +40,8 @@ export function GroupSidebarSortableList({
   isDark,
   isCollapsed,
   readOnly,
-  menuActionLabel,
   menuAriaLabel,
-  onMenuAction,
+  getMenuActions,
   onReorderSection,
   onSelectGroup,
   onWarmGroup,
@@ -93,9 +91,8 @@ export function GroupSidebarSortableList({
                 isCollapsed={isCollapsed}
                 isArchived={isArchivedSection}
                 dragDisabled={!!readOnly}
-                menuActionLabel={menuActionLabel}
+                menuActions={getMenuActions ? getMenuActions(gid) : undefined}
                 menuAriaLabel={menuAriaLabel ? `${menuAriaLabel} · ${group.title || gid}` : undefined}
-                onMenuAction={onMenuAction ? () => onMenuAction(gid) : undefined}
                 onSelect={() => {
                   onSelectGroup(gid);
                   if (window.matchMedia("(max-width: 767px)").matches) onClose();

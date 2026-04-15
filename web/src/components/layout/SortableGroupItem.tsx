@@ -25,9 +25,8 @@ interface SortableGroupItemProps {
   isCollapsed: boolean;
   isArchived?: boolean;
   dragDisabled?: boolean;
-  menuActionLabel?: string;
   menuAriaLabel?: string;
-  onMenuAction?: () => void;
+  menuActions?: Array<{ label: string; onSelect: () => void }>;
   onSelect: () => void;
   onWarm?: () => void;
 }
@@ -39,9 +38,8 @@ export function SortableGroupItem({
   isCollapsed,
   isArchived = false,
   dragDisabled = false,
-  menuActionLabel,
   menuAriaLabel,
-  onMenuAction,
+  menuActions,
   onSelect,
   onWarm,
 }: SortableGroupItemProps) {
@@ -200,7 +198,7 @@ export function SortableGroupItem({
           </span>
         </div>
 
-        {onMenuAction && menuActionLabel && (
+        {menuActions && menuActions.length > 0 && (
           <>
             <button
               type="button"
@@ -212,8 +210,8 @@ export function SortableGroupItem({
                     ? "text-cyan-700 dark:text-cyan-300"
                     : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
                 ),
-                "aria-label": menuAriaLabel || menuActionLabel,
-                title: menuAriaLabel || menuActionLabel,
+                "aria-label": menuAriaLabel || menuActions[0]?.label,
+                title: menuAriaLabel || menuActions[0]?.label,
                 onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
                   event.stopPropagation();
                 },
@@ -232,19 +230,22 @@ export function SortableGroupItem({
                   {...getFloatingProps()}
                   className="z-max min-w-[160px] rounded-xl p-1.5 shadow-2xl glass-panel"
                 >
-                  <button
-                    type="button"
-                    className={classNames(
-                      "w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
-                      "text-[var(--color-text-primary)] hover:bg-[var(--glass-tab-bg-hover)]"
-                    )}
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onMenuAction();
-                    }}
-                  >
-                    {menuActionLabel}
-                  </button>
+                  {menuActions.map((action) => (
+                    <button
+                      key={action.label}
+                      type="button"
+                      className={classNames(
+                        "w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
+                        "text-[var(--color-text-primary)] hover:bg-[var(--glass-tab-bg-hover)]"
+                      )}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        action.onSelect();
+                      }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
                 </div>
               )}
             </FloatingPortal>

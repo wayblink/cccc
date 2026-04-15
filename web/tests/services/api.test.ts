@@ -1918,3 +1918,34 @@ describe("api.fetchActors invalidation", () => {
     await staleRead;
   });
 });
+
+
+describe("api.deleteGroup", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    fetchMock.mockReset();
+    sessionStorageMock.clear();
+  });
+
+  afterEach(async () => {
+    const api = await import("../../src/services/api");
+    api.clearAuthToken();
+  });
+
+  it("issues DELETE with confirm query for group deletion", async () => {
+    fetchMock.mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({ ok: true, result: { deleted: true } }),
+    });
+
+    const api = await import("../../src/services/api");
+    const resp = await api.deleteGroup("g-1");
+
+    expect(resp.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/groups/g-1?confirm=g-1&by=user",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+});

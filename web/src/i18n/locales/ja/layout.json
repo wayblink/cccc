@@ -24,6 +24,7 @@
   "groupActions": "グループ操作",
   "archiveGroup": "アーカイブ",
   "restoreGroup": "戻す",
+  "deleteGroup": "削除",
   "noGroupsYet": "まだ作業グループがありません",
   "noGroupsDescription": "作業グループは、複数の AI エージェントがプロジェクトで協働するためのスペースです。",
   "createFirstGroup": "最初の作業グループを作成",

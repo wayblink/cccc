@@ -15,6 +15,8 @@ export interface GroupEditModalProps {
   onSave: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  canDelete?: boolean;
+  deleteConfirmMessage?: string;
 }
 
 export function GroupEditModal({
@@ -30,6 +32,8 @@ export function GroupEditModal({
   onSave,
   onCancel,
   onDelete,
+  canDelete = false,
+  deleteConfirmMessage = "",
 }: GroupEditModalProps) {
   const { t } = useTranslation("modals");
   const { modalRef } = useModalA11y(isOpen, onCancel);
@@ -212,17 +216,19 @@ export function GroupEditModal({
             >
               {t("common:cancel")}
             </button>
-            <button
-              className="px-4 py-2.5 rounded-xl border text-sm font-medium disabled:opacity-50 transition-colors min-h-[44px] bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/25"
-              onClick={() => {
-                onCancel();
-                onDelete();
-              }}
-              disabled={busy === "group-delete"}
-              title={t("groupEdit.deleteTitle")}
-            >
-              {t("common:delete")}
-            </button>
+            {canDelete ? (
+              <button
+                className="px-4 py-2.5 rounded-xl border text-sm font-medium disabled:opacity-50 transition-colors min-h-[44px] bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/25"
+                onClick={() => {
+                  if (deleteConfirmMessage && !window.confirm(deleteConfirmMessage)) return;
+                  onDelete();
+                }}
+                disabled={busy === "group-delete"}
+                title={t("groupEdit.deleteTitle")}
+              >
+                {t("common:delete")}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
