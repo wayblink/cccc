@@ -20,7 +20,7 @@ export async function fetchPing(options?: { includeHome?: boolean }) {
 }
 
 export async function fetchRuntimes() {
-  return apiJson<{ runtimes: RuntimeInfo[]; available: string[] }>("/api/v1/runtimes");
+  return apiJson<{ runtimes: RuntimeInfo[]; available: string[]; quick_terminal_command?: string }>("/api/v1/runtimes");
 }
 
 export async function fetchDirSuggestions() {

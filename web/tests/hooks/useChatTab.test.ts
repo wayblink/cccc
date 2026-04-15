@@ -26,6 +26,7 @@ const { localStorageMock } = vi.hoisted(() => {
 import {
   CHAT_SCROLL_SNAPSHOT_MAX_AGE_MS,
   buildChatViewKey,
+  buildQuickTerminalActorId,
   buildReplyAnchorTsMap,
   buildReplySlotTsMap,
   collapseActorStreamingPlaceholders,
@@ -34,7 +35,9 @@ import {
   getEffectiveChatSendGroupId,
   getEffectiveChatToTokens,
   getEffectiveChatSlotId,
+  getQuickTerminalCommand,
   isEventVisibleInChatSlot,
+  isQuickTerminalActor,
   isReplyTargetVisibleInChatSlot,
   mergeVisibleChatMessages,
   sortChatMessages,
@@ -1019,6 +1022,34 @@ describe("mergeVisibleChatMessages", () => {
       "pending:user-msg-1:project-director",
       "evt-final",
     ]);
+  });
+});
+
+describe("quick terminal helpers", () => {
+  it("returns the backend-provided quick terminal command from the custom runtime", () => {
+    expect(getQuickTerminalCommand([
+      { name: "codex", display_name: "Codex CLI", available: true },
+      { name: "custom", display_name: "Custom Runtime", quick_terminal_command: "/bin/zsh -i", available: false },
+    ])).toBe("/bin/zsh -i");
+  });
+
+  it("returns an empty string when no quick terminal command is available", () => {
+    expect(getQuickTerminalCommand([
+      { name: "codex", display_name: "Codex CLI", recommended_command: "codex --search", available: true },
+    ])).toBe("");
+  });
+
+  it("builds a stable terminal actor id from the timestamp suffix", () => {
+    expect(buildQuickTerminalActorId(1713088645123)).toMatch(/^terminal-[a-z0-9]+-[a-z0-9]+$/);
+  });
+
+  it("adds entropy so repeated timestamps still produce unique actor ids", () => {
+    expect(buildQuickTerminalActorId(1713088645123)).not.toBe(buildQuickTerminalActorId(1713088645123));
+  });
+
+  it("identifies quick terminals from explicit metadata instead of id prefixes", () => {
+    expect(isQuickTerminalActor({ id: "terminal-foo", runtime: "custom" })).toBe(false);
+    expect(isQuickTerminalActor({ id: "peer-1", runtime: "custom", ui_kind: "quick_terminal" })).toBe(true);
   });
 });
 

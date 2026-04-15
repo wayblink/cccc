@@ -278,6 +278,7 @@ export type Actor = {
   id: string;
   role?: string;
   internal_kind?: string | null;
+  ui_kind?: string | null;
   title?: string;
   avatar_url?: string | null;
   has_custom_avatar?: boolean;
@@ -484,6 +485,7 @@ export type RuntimeInfo = {
   name: string;
   display_name: string;
   recommended_command?: string;
+  quick_terminal_command?: string;
   available: boolean;
 };
 

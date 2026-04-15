@@ -100,6 +100,38 @@ class TestActorLifecycleOps(unittest.TestCase):
         finally:
             cleanup()
 
+    def test_actor_add_preserves_quick_terminal_ui_kind(self) -> None:
+        _, cleanup = self._with_home()
+        try:
+            create, _ = self._call("group_create", {"title": "quick-terminal-kind", "topic": "", "by": "user"})
+            self.assertTrue(create.ok, getattr(create, "error", None))
+            group_id = str((create.result or {}).get("group_id") or "").strip()
+            self.assertTrue(group_id)
+
+            attach, _ = self._call("attach", {"group_id": group_id, "path": ".", "by": "user"})
+            self.assertTrue(attach.ok, getattr(attach, "error", None))
+
+            add, _ = self._call(
+                "actor_add",
+                {
+                    "group_id": group_id,
+                    "actor_id": "terminal-abc123",
+                    "title": "Temporary terminal",
+                    "runtime": "custom",
+                    "runner": "pty",
+                    "command": ["/bin/sh", "-i"],
+                    "ui_kind": "quick_terminal",
+                    "by": "user",
+                },
+            )
+            self.assertTrue(add.ok, getattr(add, "error", None))
+            actor = (add.result or {}).get("actor") if isinstance(add.result, dict) else {}
+            self.assertIsInstance(actor, dict)
+            assert isinstance(actor, dict)
+            self.assertEqual(str(actor.get("ui_kind") or ""), "quick_terminal")
+        finally:
+            cleanup()
+
     def test_actor_restart_keeps_actor_enabled(self) -> None:
         _, cleanup = self._with_home()
         try:

@@ -46,6 +46,7 @@ def handle_actor_add(
     submit = str(args.get("submit") or "").strip()
     requested_runner = str(args.get("runner") or "").strip()
     runtime = str(args.get("runtime") or "codex").strip()
+    ui_kind = str(args.get("ui_kind") or "").strip()
     by = str(args.get("by") or "user").strip()
     command_raw = args.get("command")
     env_raw = args.get("env")
@@ -220,6 +221,7 @@ def handle_actor_add(
             capability_autoload=list(capability_autoload_raw) if isinstance(capability_autoload_raw, list) else None,
             runner=runner,  # type: ignore
             runtime=runtime,  # type: ignore
+            ui_kind=ui_kind or None,
         )
 
         effective_actor_id = str(actor.get("id") or actor_id).strip() or actor_id

@@ -170,6 +170,43 @@ describe("api.fetchActors", () => {
   });
 });
 
+describe("api.addActor", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    fetchMock.mockReset();
+    sessionStorageMock.clear();
+  });
+
+  afterEach(async () => {
+    const api = await import("../../src/services/api");
+    api.clearAuthToken();
+  });
+
+  it("forwards ui_kind when creating a quick terminal actor", async () => {
+    fetchMock.mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({ ok: true, result: { actor: { id: "terminal-1" } } }),
+    });
+
+    const api = await import("../../src/services/api");
+    const resp = await api.addActor("g-demo", "terminal-1", "peer", "custom", "pty", "/bin/zsh -i", undefined, {
+      title: "Temporary terminal",
+      uiKind: "quick_terminal",
+    });
+
+    expect(resp.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/groups/g-demo/actors",
+      expect.objectContaining({ method: "POST" }),
+    );
+    const [, requestInit] = fetchMock.mock.calls[0] || [];
+    const payload = JSON.parse(String(requestInit?.body || "{}"));
+    expect(payload.actor_id).toBe("terminal-1");
+    expect(payload.ui_kind).toBe("quick_terminal");
+  });
+});
+
 describe("api.fetchPresentation", () => {
   beforeEach(() => {
     vi.resetModules();

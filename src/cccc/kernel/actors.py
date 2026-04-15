@@ -209,6 +209,7 @@ def add_actor(
     runner: RunnerKind = "pty",
     runtime: AgentRuntime = "codex",
     internal_kind: Optional[str] = None,
+    ui_kind: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Add a new actor to the group.
     
@@ -237,6 +238,7 @@ def add_actor(
         runner=runner,
         runtime=runtime,
         internal_kind=(str(internal_kind or "").strip() or None),
+        ui_kind=(str(ui_kind or "").strip() or None),
         created_at=now,
         updated_at=now,
     )

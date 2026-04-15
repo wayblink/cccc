@@ -729,9 +729,16 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                     "details": {"endpoint": "runtimes"},
                 },
             )
-        from ....kernel.runtime import detect_all_runtimes, get_runtime_command_with_flags
+        from ....kernel.runtime import (
+            detect_all_runtimes,
+            format_command_for_web,
+            get_default_interactive_shell_command,
+            get_runtime_command_with_flags,
+        )
 
         all_runtimes = detect_all_runtimes(primary_only=False)
+        quick_terminal_command = get_default_interactive_shell_command()
+        quick_terminal_command_text = format_command_for_web(quick_terminal_command)
         return {
             "ok": True,
             "result": {
@@ -739,12 +746,14 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                     {
                         "name": rt.name,
                         "display_name": rt.display_name,
-                        "recommended_command": " ".join(get_runtime_command_with_flags(rt.name)),
+                        "recommended_command": format_command_for_web(get_runtime_command_with_flags(rt.name)),
+                        "quick_terminal_command": quick_terminal_command_text,
                         "available": rt.available,
                     }
                     for rt in all_runtimes
                 ],
                 "available": [rt.name for rt in all_runtimes if rt.available],
+                "quick_terminal_command": quick_terminal_command_text,
             },
         }
 

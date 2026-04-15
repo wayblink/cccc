@@ -4,6 +4,7 @@ import tempfile
 import threading
 import time
 import unittest
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -93,6 +94,28 @@ class TestWebActorRoutesCache(unittest.TestCase):
             return_value=MagicMock(stdout="CCCC_GROUP_ID=group-1 CCCC_ACTOR_ID=peer-1 /bin/sh"),
         ):
             self.assertTrue(_pid_matches_actor_context(43210, group_id="group-1", actor_id="peer-1"))
+
+    def test_pid_matches_actor_context_accepts_matching_started_at_when_env_is_hidden(self) -> None:
+        from cccc.ports.web.routes.actors import _pid_matches_actor_context
+
+        local_started = datetime(2026, 4, 14, 10, 47, 6, tzinfo=timezone.utc).astimezone()
+        lstart_text = local_started.strftime("%a %b %d %H:%M:%S %Y")
+        responses = [
+            MagicMock(stdout="/bin/zsh -i"),
+            MagicMock(stdout=f"{lstart_text}\n"),
+        ]
+        with patch("builtins.open", side_effect=OSError("proc unavailable")), patch(
+            "cccc.ports.web.routes.actors.subprocess.run",
+            side_effect=responses,
+        ):
+            self.assertTrue(
+                _pid_matches_actor_context(
+                    43210,
+                    group_id="group-1",
+                    actor_id="peer-1",
+                    started_at="2026-04-14T10:47:06Z",
+                )
+            )
 
     def test_normal_mode_readonly_actor_list_uses_inflight_without_ttl(self) -> None:
         _, cleanup = self._with_home()
@@ -372,7 +395,7 @@ class TestWebActorRoutesCache(unittest.TestCase):
             ), patch(
                 "cccc.ports.web.routes.actors._pid_matches_actor_context",
                 return_value=True,
-            ):
+            ) as pid_match:
                 with self._client() as client:
                     resp = client.get(f"/api/v1/groups/{group_id}/actors")
 
@@ -381,6 +404,7 @@ class TestWebActorRoutesCache(unittest.TestCase):
             self.assertTrue(bool(actor["running"]))
             self.assertEqual(actor["effective_working_state"], "waiting")
             self.assertEqual(actor["effective_working_reason"], "pty_running_state_unknown")
+            pid_match.assert_called_once_with(43210, group_id=group_id, actor_id="peer-1", started_at=unittest.mock.ANY)
         finally:
             cleanup()
 

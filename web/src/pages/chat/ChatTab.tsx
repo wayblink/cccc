@@ -181,6 +181,7 @@ export function ChatTab({
     handleScrollChange,
     handleScrollSnapshot,
     addAgent,
+    launchQuickTerminal,
   } = useChatTab({
     selectedGroupId,
     selectedGroupRunning,
@@ -664,7 +665,7 @@ export function ChatTab({
                 />
               )}
 
-              {!chatWindowProps && runtimeActors.length > 0 ? (
+              {!chatWindowProps && (runtimeActors.length > 0 || !readOnly) ? (
                 <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 sm:bottom-4">
                   <RuntimeDock
                     groupId={selectedGroupId}
@@ -677,6 +678,7 @@ export function ChatTab({
                     selectedGroupRunning={selectedGroupRunning}
                     selectedGroupActorsHydrating={selectedGroupActorsHydrating}
                     onAddAgent={!readOnly ? addAgent : undefined}
+                    onLaunchQuickTerminal={!readOnly ? launchQuickTerminal : undefined}
                     onOpenRuntimeActor={onOpenRuntimeActor}
                   />
                 </div>

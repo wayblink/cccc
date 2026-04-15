@@ -1,7 +1,10 @@
 """Runtime detection and configuration for agent CLIs."""
 from __future__ import annotations
 
+import os
+import shlex
 import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -218,6 +221,61 @@ def get_runtime_command_with_flags(name: str) -> List[str]:
         "custom": [],
     }
     return commands.get(name, [name])
+
+
+def format_command_for_web(command: List[str]) -> str:
+    """Serialize argv so the web client can round-trip it back into tokens."""
+    parts = [str(part).strip() for part in (command or []) if str(part).strip()]
+    if not parts:
+        return ""
+    if os.name == "nt":
+        return subprocess.list2cmdline(parts)
+    return shlex.join(parts)
+
+
+def get_default_interactive_shell_command() -> List[str]:
+    """Return the best interactive shell command available on this host."""
+    raw_candidates: List[List[str]] = []
+    if os.name == "nt":
+        comspec = str(os.environ.get("COMSPEC") or "").strip()
+        if comspec:
+            raw_candidates.append([comspec])
+        raw_candidates.extend([
+            ["pwsh", "-NoLogo"],
+            ["powershell", "-NoLogo"],
+            ["cmd.exe"],
+            ["cmd"],
+        ])
+    else:
+        login_shell = str(os.environ.get("SHELL") or "").strip()
+        if login_shell:
+            raw_candidates.append([login_shell, "-i"])
+        raw_candidates.extend([
+            ["/bin/zsh", "-i"],
+            ["zsh", "-i"],
+            ["/bin/bash", "-i"],
+            ["bash", "-i"],
+            ["/bin/sh", "-i"],
+            ["sh", "-i"],
+        ])
+
+    resolved_candidates: List[List[str]] = []
+    seen: set[tuple[str, ...]] = set()
+    for raw in raw_candidates:
+        executable = str(raw[0] or "").strip()
+        if not executable:
+            continue
+        resolved = find_subprocess_executable(executable)
+        if not resolved:
+            continue
+        candidate = [resolved, *[str(part).strip() for part in raw[1:] if str(part).strip()]]
+        key = tuple(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        resolved_candidates.append(candidate)
+
+    return resolved_candidates[0] if resolved_candidates else []
 
 
 def runtime_start_preflight_error(runtime: str, command: Optional[List[str]] = None, *, runner: str = "pty") -> str:

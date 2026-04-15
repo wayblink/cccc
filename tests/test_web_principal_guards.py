@@ -161,6 +161,9 @@ class TestWebPrincipalGuards(unittest.TestCase):
             ), patch(
                 "cccc.kernel.runtime.get_runtime_command_with_flags",
                 return_value=["codex", "--mcp-config", "cccc"],
+            ), patch(
+                "cccc.kernel.runtime.get_default_interactive_shell_command",
+                return_value=["/bin/zsh", "-i"],
             ):
                 client = self._create_client()
                 resp = client.get("/api/v1/runtimes", headers={"Authorization": f"Bearer {token}"})
@@ -171,7 +174,9 @@ class TestWebPrincipalGuards(unittest.TestCase):
                 self.assertEqual(row.get("name"), "codex")
                 self.assertEqual(row.get("display_name"), "Codex CLI")
                 self.assertEqual(row.get("recommended_command"), "codex --mcp-config cccc")
+                self.assertEqual(row.get("quick_terminal_command"), "/bin/zsh -i")
                 self.assertEqual(row.get("available"), True)
+                self.assertEqual((resp.json().get("result") or {}).get("quick_terminal_command"), "/bin/zsh -i")
                 self.assertNotIn("command", row)
                 self.assertNotIn("path", row)
                 self.assertNotIn("capabilities", row)

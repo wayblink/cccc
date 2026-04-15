@@ -6,6 +6,7 @@ import "@xterm/xterm/css/xterm.css";
 import { useTranslation } from "react-i18next";
 import { Actor, AgentState, HeadlessPreviewSession, StreamingActivity, getRuntimeColor, RUNTIME_INFO } from "../types";
 import { useActorDisplayState } from "../hooks/useActorDisplayState";
+import { isQuickTerminalActor } from "../hooks/useChatTab";
 import { getTerminalTheme } from "../hooks/useTheme";
 import { classNames } from "../utils/classNames";
 import { formatFullTime, formatTime } from "../utils/time";
@@ -73,6 +74,7 @@ export function AgentTab({
   const { isRunning, workingState } = useActorDisplayState({ groupId, actor });
   const effectiveRunner = getEffectiveActorRunner(actor);
   const isHeadless = effectiveRunner === "headless";
+  const isQuickTerminal = !isHeadless && isQuickTerminalActor(actor);
   const canControl = !readOnly;
   const latestHeadlessText = useGroupStore((state) => {
     const bucket = state.chatByGroup[String(groupId || "").trim()];
@@ -914,7 +916,7 @@ export function AgentTab({
               <div className="text-sm text-center max-w-md mb-4">
                 {t('agentStoppedDescription')}
               </div>
-              {canControl ? (
+              {canControl && !isQuickTerminal ? (
                 <button
                   onClick={onLaunch}
                   disabled={isBusy}
@@ -943,7 +945,7 @@ export function AgentTab({
           innerClassName="flex items-center gap-2 px-4 py-3"
           fadeWidth={20}
         >
-          {isRunning ? (
+          {isQuickTerminal ? null : isRunning ? (
             <>
               <button
                 onClick={onQuit}
@@ -1018,42 +1020,44 @@ export function AgentTab({
               </button>
             </>
           )}
-          <button
-            onClick={onInbox}
-            className={classNames(
-              "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
-              unreadCount > 0
-                ? isDark
-                  ? "bg-indigo-500/10 text-indigo-200 border border-indigo-500/20 hover:bg-indigo-500/15"
-                  : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
-                : isDark
-                  ? "bg-slate-800 hover:bg-slate-700 text-slate-200"
-                  : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
-            )}
-            aria-label={`${t('openInbox')}${unreadCount > 0 ? t('unreadMessages', { count: unreadCount }) : ""}`}
-          >
-            <InboxIcon size={16} />
-            {!isSmallScreen && t('inbox')}
-            {unreadCount > 0 && (
-              <span
-                className={classNames(
-                  "text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold tracking-tight shadow-sm",
-                  "bg-indigo-500"
-                )}
-                aria-hidden="true"
-              >
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-          </button>
+          {isQuickTerminal ? null : (
+            <button
+              onClick={onInbox}
+              className={classNames(
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
+                unreadCount > 0
+                  ? isDark
+                    ? "bg-indigo-500/10 text-indigo-200 border border-indigo-500/20 hover:bg-indigo-500/15"
+                    : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                  : isDark
+                    ? "bg-slate-800 hover:bg-slate-700 text-slate-200"
+                    : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
+              )}
+              aria-label={`${t('openInbox')}${unreadCount > 0 ? t('unreadMessages', { count: unreadCount }) : ""}`}
+            >
+              <InboxIcon size={16} />
+              {!isSmallScreen && t('inbox')}
+              {unreadCount > 0 && (
+                <span
+                  className={classNames(
+                    "text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold tracking-tight shadow-sm",
+                    "bg-indigo-500"
+                  )}
+                  aria-hidden="true"
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={onRemove}
-            disabled={isBusy || isRunning}
+            disabled={isBusy}
             className={classNames(
               "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
               "hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
             )}
-            title={isRunning ? t('stopBeforeRemoving') : t('removeAgent')}
+            title={t('removeAgent')}
             aria-label={t('removeAgent')}
           >
             <TrashIcon size={16} />

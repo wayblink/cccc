@@ -85,6 +85,7 @@ class ActorCreateRequest(BaseModel):
     # Note: role is auto-determined by position (first enabled = foreman)
     runner: RunnerKind = Field(default_factory=_default_runner_kind)
     runtime: AgentRuntime = Field(default="codex")
+    ui_kind: Optional[str] = None
     title: str = Field(default="")
     command: Union[str, list[str]] = Field(default="")
     env: Dict[str, str] = Field(default_factory=dict)

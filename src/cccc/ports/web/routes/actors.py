@@ -6,6 +6,7 @@ import os
 import subprocess
 import time
 import threading
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
@@ -27,6 +28,7 @@ from ....runners import headless as headless_runner
 from ....runners import pty as pty_runner
 from ....util.fs import read_json
 from ....util.process import pid_is_alive
+from ....util.time import parse_utc_iso
 from ..actor_avatar import (
     build_actor_web_payload,
     delete_actor_avatar,
@@ -59,7 +61,13 @@ _READONLY_ACTOR_TTL_S = 0.8
 _STANDARD_WEB_HEADLESS_RUNTIMES = frozenset({"codex", "claude"})
 
 
-def _pid_matches_actor_context(pid: int, *, group_id: str, actor_id: str) -> bool:
+def _pid_matches_actor_context(
+    pid: int,
+    *,
+    group_id: str,
+    actor_id: str,
+    started_at: str = "",
+) -> bool:
     target_pid = int(pid or 0)
     gid = str(group_id or "").strip()
     aid = str(actor_id or "").strip()
@@ -94,6 +102,34 @@ def _pid_matches_actor_context(pid: int, *, group_id: str, actor_id: str) -> boo
         )
         command_parts = [part for part in str(result.stdout or "").strip().split() if part]
         if expected_group in command_parts and expected_actor in command_parts:
+            return True
+    except Exception:
+        pass
+
+    started_dt = parse_utc_iso(started_at)
+    if started_dt is None:
+        return False
+
+    try:
+        result = subprocess.run(
+            ["ps", "-p", str(target_pid), "-o", "lstart="],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=1.0,
+        )
+        started_text = str(result.stdout or "").strip()
+        if not started_text:
+            return False
+        local_tz = datetime.now().astimezone().tzinfo
+        if local_tz is None:
+            return False
+        process_started_dt = (
+            datetime.strptime(started_text, "%a %b %d %H:%M:%S %Y")
+            .replace(tzinfo=local_tz)
+            .astimezone(started_dt.tzinfo)
+        )
+        if abs((process_started_dt - started_dt).total_seconds()) <= 1.0:
             return True
     except Exception:
         pass
@@ -201,7 +237,12 @@ def _read_actor_list_local(group_id: str, *, include_unread: bool) -> Dict[str, 
                     and str(state_doc.get("actor_id") or "") == aid
                     and pid > 0
                     and pid_is_alive(pid)
-                    and _pid_matches_actor_context(pid, group_id=gid, actor_id=aid)
+                    and _pid_matches_actor_context(
+                        pid,
+                        group_id=gid,
+                        actor_id=aid,
+                        started_at=str(state_doc.get("started_at") or ""),
+                    )
                 )
             idle_seconds = pty_runner.SUPERVISOR.idle_seconds(group_id=gid, actor_id=aid) if running else None
         pty_terminal_text = ""
@@ -576,6 +617,7 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                     # Note: role is auto-determined by position
                     "runner": req.runner,
                     "runtime": req.runtime,
+                    "ui_kind": req.ui_kind,
                     "title": req.title,
                     "command": command,
                     "env": dict(req.env),

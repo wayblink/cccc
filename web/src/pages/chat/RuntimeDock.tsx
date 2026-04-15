@@ -11,7 +11,7 @@ import {
 
 import { ActorAvatar } from "../../components/ActorAvatar";
 import { HeadlessLiveTrace } from "../../components/headless/HeadlessLiveTrace";
-import { PlusIcon } from "../../components/Icons";
+import { PlusIcon, TerminalIcon } from "../../components/Icons";
 import { useActorDisplayState } from "../../hooks/useActorDisplayState";
 import type { StreamingActivity, Actor } from "../../types";
 import { classNames } from "../../utils/classNames";
@@ -645,6 +645,7 @@ export interface RuntimeDockProps {
   selectedGroupRunning: boolean;
   selectedGroupActorsHydrating: boolean;
   onAddAgent?: () => void;
+  onLaunchQuickTerminal?: () => void;
   onOpenRuntimeActor: (actorId: string) => void;
 }
 
@@ -659,6 +660,7 @@ export function RuntimeDock({
   selectedGroupRunning,
   selectedGroupActorsHydrating,
   onAddAgent,
+  onLaunchQuickTerminal,
   onOpenRuntimeActor,
 }: RuntimeDockProps) {
   const { t } = useTranslation("chat");
@@ -668,6 +670,7 @@ export function RuntimeDock({
   const lastAutoPreviewSignalRef = useRef("");
 
   const items = useMemo(() => buildRuntimeDockItems({ actors: runtimeActors, liveWorkCards }), [runtimeActors, liveWorkCards]);
+  const hasActions = !readOnly && Boolean(onLaunchQuickTerminal || onAddAgent);
   const autoPreviewCandidate = useMemo(() => {
     if (isSmallScreen) return null;
     const runtimeActorIds = new Set(runtimeActors.map((actor) => String(actor.id || "").trim()).filter(Boolean));
@@ -773,7 +776,7 @@ export function RuntimeDock({
     return clearPreviewSyncTimer;
   }, [activeRuntimeActorId, autoPreviewCandidate, clearPreviewCloseTimer, clearPreviewSyncTimer, openPreview, preview]);
 
-  if (items.length <= 0) return null;
+  if (items.length <= 0 && !hasActions) return null;
 
   return (
     <div className="pointer-events-none relative z-30 px-3 sm:px-4">
@@ -809,6 +812,21 @@ export function RuntimeDock({
               title={t("addAgent", { defaultValue: "Add an agent" })}
             >
               <PlusIcon size={18} />
+            </button>
+          ) : null}
+
+          {!readOnly && onLaunchQuickTerminal ? (
+            <button
+              type="button"
+              onClick={onLaunchQuickTerminal}
+              className={classNames(
+                "relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border shadow-[0_18px_40px_-28px_rgba(15,23,42,0.68)] transition-all duration-200",
+                isDark ? "border-cyan-300/18 bg-slate-950/86 text-cyan-100 hover:bg-slate-950" : "border-cyan-500/18 bg-white text-cyan-700 hover:bg-white",
+              )}
+              aria-label={t("chat:launchQuickTerminal", { defaultValue: "Launch temporary terminal" })}
+              title={t("chat:launchQuickTerminal", { defaultValue: "Launch temporary terminal" })}
+            >
+              <TerminalIcon size={18} />
             </button>
           ) : null}
         </div>

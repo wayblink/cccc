@@ -80,6 +80,7 @@ export async function addActor(
     profileOwner?: string;
     title?: string;
     capabilityAutoload?: string[];
+    uiKind?: string;
   },
 ) {
   clearActorsReadOnlyRequest(groupId);
@@ -91,6 +92,7 @@ export async function addActor(
       role,
       runner,
       runtime,
+      ui_kind: options?.uiKind || undefined,
       command,
       env: {},
       env_private: envPrivate && Object.keys(envPrivate).length ? envPrivate : undefined,
