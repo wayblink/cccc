@@ -1,6 +1,9 @@
 import { useMemo, useEffect, useRef } from 'react';
 import MarkdownIt from 'markdown-it';
+import type { MessageAttachment } from '../types';
 import { classNames } from '../utils/classNames';
+import type { TextDocumentReferenceMatch } from '../utils/messageAttachments';
+import { INLINE_DOCUMENT_LINK_CLASS_NAME } from './messageBubble/InlineDocumentText';
 
 interface MarkdownRendererProps {
     content: string;
@@ -8,9 +11,98 @@ interface MarkdownRendererProps {
     className?: string;
     /** Force light text (for colored backgrounds like user messages) */
     invertText?: boolean;
+    textDocumentMatches?: TextDocumentReferenceMatch[];
+    onTextDocumentClick?: (attachment: MessageAttachment) => void;
 }
 
-export function MarkdownRenderer({ content, isDark, className, invertText }: MarkdownRendererProps) {
+function replaceInlineDocumentMentions(
+    container: HTMLDivElement,
+    matches: TextDocumentReferenceMatch[],
+): void {
+    const referencesByText = new Map<string, MessageAttachment>();
+
+    matches.forEach((match) => {
+        const matchedText = String(match.matchedText || "");
+        const attachmentPath = String(match.attachment.path || "").trim();
+        if (!matchedText || !attachmentPath || referencesByText.has(matchedText)) return;
+        referencesByText.set(matchedText, match.attachment);
+    });
+
+    if (referencesByText.size <= 0) return;
+
+    const matchTexts = Array.from(referencesByText.keys()).sort((left, right) => right.length - left.length);
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+            const parent = node.parentElement;
+            if (!parent || !String(node.textContent || "").trim()) return NodeFilter.FILTER_REJECT;
+            if (parent.closest('pre')) return NodeFilter.FILTER_REJECT;
+            if (parent.closest('a')) return NodeFilter.FILTER_REJECT;
+            if (parent.closest('button, textarea, input, select')) return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_ACCEPT;
+        },
+    });
+
+    const textNodes: Text[] = [];
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+        textNodes.push(currentNode as Text);
+        currentNode = walker.nextNode();
+    }
+
+    textNodes.forEach((textNode) => {
+        const value = String(textNode.textContent || "");
+        let cursor = 0;
+        let didReplace = false;
+        const fragment = document.createDocumentFragment();
+
+        while (cursor < value.length) {
+            let nextIndex = -1;
+            let nextMatchText = "";
+
+            matchTexts.forEach((matchText) => {
+                const index = value.indexOf(matchText, cursor);
+                if (index < 0) return;
+                if (nextIndex < 0 || index < nextIndex || (index === nextIndex && matchText.length > nextMatchText.length)) {
+                    nextIndex = index;
+                    nextMatchText = matchText;
+                }
+            });
+
+            if (nextIndex < 0 || !nextMatchText) break;
+            if (nextIndex > cursor) {
+                fragment.append(document.createTextNode(value.slice(cursor, nextIndex)));
+            }
+
+            const attachment = referencesByText.get(nextMatchText);
+            const link = document.createElement('a');
+            link.href = '#';
+            link.dataset.documentLink = 'true';
+            link.dataset.documentPath = String(attachment?.path || '');
+            link.className = INLINE_DOCUMENT_LINK_CLASS_NAME;
+            link.style.color = 'inherit';
+            link.textContent = nextMatchText;
+            fragment.append(link);
+
+            cursor = nextIndex + nextMatchText.length;
+            didReplace = true;
+        }
+
+        if (!didReplace) return;
+        if (cursor < value.length) {
+            fragment.append(document.createTextNode(value.slice(cursor)));
+        }
+        textNode.parentNode?.replaceChild(fragment, textNode);
+    });
+}
+
+export function MarkdownRenderer({
+    content,
+    isDark,
+    className,
+    invertText,
+    textDocumentMatches = [],
+    onTextDocumentClick,
+}: MarkdownRendererProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
     const md = useMemo(() => {
@@ -48,12 +140,36 @@ export function MarkdownRenderer({ content, isDark, className, invertText }: Mar
         return md.render(content || "");
     }, [md, content]);
 
-    // 使用事件委托处理复制逻辑
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
+        container.innerHTML = htmlContent;
+        replaceInlineDocumentMentions(container, textDocumentMatches);
+    }, [htmlContent, textDocumentMatches]);
+
+    // 使用事件委托处理复制逻辑与正文文档打开逻辑
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const attachmentByPath = new Map<string, MessageAttachment>();
+        textDocumentMatches.forEach((match) => {
+            const path = String(match.attachment.path || "").trim();
+            if (!path || attachmentByPath.has(path)) return;
+            attachmentByPath.set(path, match.attachment);
+        });
+
         const handleCopy = async (e: MouseEvent) => {
+            const documentLink = (e.target as HTMLElement).closest('a[data-document-link="true"]');
+            if (documentLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                const path = String(documentLink.getAttribute('data-document-path') || '').trim();
+                const attachment = attachmentByPath.get(path);
+                if (attachment) onTextDocumentClick?.(attachment);
+                return;
+            }
+
             const button = (e.target as HTMLElement).closest('.copy-button');
             if (!button) return;
 
@@ -107,7 +223,7 @@ export function MarkdownRenderer({ content, isDark, className, invertText }: Mar
 
         container.addEventListener('click', handleCopy);
         return () => container.removeEventListener('click', handleCopy);
-    }, [htmlContent]);
+    }, [htmlContent, onTextDocumentClick, textDocumentMatches]);
 
     return (
         <div
@@ -120,7 +236,6 @@ export function MarkdownRenderer({ content, isDark, className, invertText }: Mar
                 className
             )}
             style={{ color: 'inherit' }}
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
     );
 }

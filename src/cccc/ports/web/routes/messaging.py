@@ -1,16 +1,25 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
-from ....kernel.blobs import resolve_blob_attachment_path, store_blob_bytes
+from ....kernel.blobs import (
+    MAX_TEXT_ATTACHMENT_BYTES,
+    decode_text_attachment_bytes,
+    normalize_text_attachment_mime_type,
+    resolve_blob_attachment_path,
+    sanitize_filename,
+    store_blob_bytes,
+)
 from ....kernel.group import load_group
 from ..schemas import (
     ReplyRequest,
     RouteContext,
+    SaveTextAttachmentRequest,
     SendCrossGroupRequest,
     SendRequest,
     UserAckRequest,
@@ -39,6 +48,22 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
             if isinstance(item, dict):
                 refs.append(item)
         return refs
+
+    def _parse_attachments_json(raw: str) -> list[dict[str, Any]]:
+        text = str(raw or "").strip()
+        if not text:
+            return []
+        try:
+            parsed = json.loads(text)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail={"code": "invalid_attachments", "message": str(exc)})
+        if not isinstance(parsed, list):
+            raise HTTPException(status_code=400, detail={"code": "invalid_attachments", "message": "attachments_json must be a JSON array"})
+        attachments: list[dict[str, Any]] = []
+        for item in parsed:
+            if isinstance(item, dict):
+                attachments.append(item)
+        return attachments
 
     def _normalize_priority(raw: str) -> str:
         prio = str(raw or "normal").strip() or "normal"
@@ -99,6 +124,7 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                 "src_event_id": req.src_event_id,
                 "client_id": _normalize_client_id(req.client_id),
                 "refs": list(req.refs),
+                "attachments": list(req.attachments),
             },
         )
         return await _submit_message(daemon_req)
@@ -140,6 +166,7 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                 "reply_required": _normalize_reply_required(req.reply_required),
                 "client_id": _normalize_client_id(req.client_id),
                 "refs": list(req.refs),
+                "attachments": list(req.attachments),
             },
         )
         return await _submit_message(daemon_req)
@@ -167,6 +194,7 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         reply_required: str = Form("false"),
         client_id: str = Form(""),
         refs_json: str = Form("[]"),
+        attachments_json: str = Form("[]"),
         files: list[UploadFile] = File(default_factory=list),
     ) -> Dict[str, Any]:
         group = load_group(group_id)
@@ -215,7 +243,8 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
 
         # Note: enabled-recipient validation + auto-wake is handled by the daemon.
 
-        attachments = await _store_upload_attachments(group, files)
+        attachments = _parse_attachments_json(attachments_json)
+        attachments.extend(await _store_upload_attachments(group, files))
         msg_text = _message_text_for_upload(text=text, attachments=attachments)
         prio = _normalize_priority(priority)
         refs = _parse_refs_json(refs_json)
@@ -248,6 +277,7 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         reply_required: str = Form("false"),
         client_id: str = Form(""),
         refs_json: str = Form("[]"),
+        attachments_json: str = Form("[]"),
         files: list[UploadFile] = File(default_factory=list),
     ) -> Dict[str, Any]:
         group = load_group(group_id)
@@ -285,7 +315,8 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
 
         # Note: enabled-recipient validation + auto-wake is handled by the daemon.
 
-        attachments = await _store_upload_attachments(group, files)
+        attachments = _parse_attachments_json(attachments_json)
+        attachments.extend(await _store_upload_attachments(group, files))
         msg_text = _message_text_for_upload(text=text, attachments=attachments)
         prio = _normalize_priority(priority)
         refs = _parse_refs_json(refs_json)
@@ -306,6 +337,64 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
             },
         )
         return await _submit_message(daemon_req)
+
+    @group_router.get("/attachments/text")
+    async def attachment_text_get(group_id: str, path: str) -> Dict[str, Any]:
+        group = load_group(group_id)
+        if group is None:
+            raise HTTPException(status_code=404, detail={"code": "group_not_found", "message": f"group not found: {group_id}"})
+
+        rel_path = str(path or "").strip()
+        try:
+            abs_path = resolve_blob_attachment_path(group, rel_path=rel_path)
+        except Exception:
+            raise HTTPException(status_code=400, detail={"code": "invalid_attachment", "message": "attachment must reference a blob path"})
+
+        if not abs_path.exists() or not abs_path.is_file():
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "attachment not found"})
+
+        blob_name = abs_path.name
+        title = blob_name.split("_", 1)[1] if "_" in blob_name else blob_name
+        mime_type = normalize_text_attachment_mime_type(title, mimetypes.guess_type(title)[0] or "")
+        raw = abs_path.read_bytes()
+        try:
+            content = decode_text_attachment_bytes(data=raw, filename=title, mime_type=mime_type)
+        except ValueError as exc:
+            code = str(exc or "").strip() or "unsupported_attachment"
+            if code == "attachment_too_large":
+                raise HTTPException(status_code=413, detail={"code": code, "message": f"attachment too large (> {MAX_TEXT_ATTACHMENT_BYTES} bytes)"})
+            raise HTTPException(status_code=415, detail={"code": "unsupported_attachment", "message": "attachment is not editable text"})
+
+        return {
+            "ok": True,
+            "result": {
+                "path": rel_path,
+                "title": title,
+                "mime_type": mime_type,
+                "bytes": len(raw),
+                "content": content,
+            },
+        }
+
+    @group_router.post("/attachments/text/save")
+    async def attachment_text_save(group_id: str, req: SaveTextAttachmentRequest) -> Dict[str, Any]:
+        group = load_group(group_id)
+        if group is None:
+            raise HTTPException(status_code=404, detail={"code": "group_not_found", "message": f"group not found: {group_id}"})
+
+        raw_name = str(req.filename or "").strip()
+        if not raw_name:
+            raise HTTPException(status_code=400, detail={"code": "invalid_filename", "message": "filename is required"})
+
+        safe_name = sanitize_filename(raw_name)
+        content = str(req.content or "")
+        raw = content.encode("utf-8")
+        if len(raw) > MAX_TEXT_ATTACHMENT_BYTES:
+            raise HTTPException(status_code=413, detail={"code": "attachment_too_large", "message": f"attachment too large (> {MAX_TEXT_ATTACHMENT_BYTES} bytes)"})
+
+        mime_type = normalize_text_attachment_mime_type(safe_name, req.mime_type or "")
+        attachment = store_blob_bytes(group, data=raw, filename=safe_name, mime_type=mime_type or "text/plain")
+        return {"ok": True, "result": {"attachment": attachment}}
 
     @group_router.get("/blobs/{blob_name}")
     async def blob_download(group_id: str, blob_name: str) -> FileResponse:

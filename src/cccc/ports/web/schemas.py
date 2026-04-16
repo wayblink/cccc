@@ -42,6 +42,7 @@ class SendRequest(BaseModel):
     src_event_id: str = Field(default="")
     client_id: str = Field(default="")
     refs: list[dict[str, Any]] = Field(default_factory=list)
+    attachments: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class SendCrossGroupRequest(BaseModel):
@@ -62,6 +63,7 @@ class ReplyRequest(BaseModel):
     reply_required: bool = False
     client_id: str = Field(default="")
     refs: list[dict[str, Any]] = Field(default_factory=list)
+    attachments: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class DebugClearLogsRequest(BaseModel):
@@ -138,6 +140,12 @@ class UserAckRequest(BaseModel):
 class ProjectMdUpdateRequest(BaseModel):
     content: str = Field(default="")
     by: str = Field(default="user")
+
+
+class SaveTextAttachmentRequest(BaseModel):
+    filename: str = Field(default="")
+    content: str = Field(default="")
+    mime_type: str = Field(default="")
 
 
 class RepoPromptUpdateRequest(BaseModel):

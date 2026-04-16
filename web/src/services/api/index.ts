@@ -9,3 +9,4 @@ export * from "./webAccess";
 export * from "./groupSpace";
 export * from "./diagnostics";
 export * from "./scripts";
+export * from "./attachments";
