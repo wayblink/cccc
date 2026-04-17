@@ -4,6 +4,7 @@ import type { MessageAttachment } from '../types';
 import { classNames } from '../utils/classNames';
 import type { TextDocumentReferenceMatch } from '../utils/messageAttachments';
 import { INLINE_DOCUMENT_LINK_CLASS_NAME } from './messageBubble/InlineDocumentText';
+import { copyTextToClipboard } from '../utils/copy';
 
 interface MarkdownRendererProps {
     content: string;
@@ -182,22 +183,8 @@ export function MarkdownRenderer({
                 return;
             }
             try {
-                // 使用 Clipboard API，如果不可用则使用 execCommand 回退
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(code);
-                } else {
-                    // Fallback for environments without clipboard API (PWA/HTTP)
-                    const textArea = document.createElement('textarea');
-                    textArea.value = code;
-                    textArea.style.position = 'fixed';
-                    textArea.style.left = '-9999px';
-                    textArea.style.top = '0';
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                }
+                const copied = await copyTextToClipboard(code);
+                if (!copied) throw new Error('copy failed');
                 // 使用 CSS 类切换显示状态，避免修改 innerHTML 导致 React DOM 同步错误
                 button.classList.add('copied', 'pointer-events-none');
                 const copyIcon = button.querySelector('.copy-icon');
