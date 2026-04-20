@@ -918,7 +918,8 @@ select {
 
 /* Glass header - enhanced */
 .glass-header {
-  background: rgba(255, 255, 255, 0.98);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.992) 0%, rgba(246, 248, 251, 0.94) 100%);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 1px solid var(--glass-border-subtle);

@@ -231,18 +231,18 @@ export function GroupSidebar({
         )}
       >
         {/* Header */}
-        <div className="px-3 py-4 pb-2">
+        <div className="px-3 py-2.5">
           <div
             className={classNames(
-              "flex items-center",
+              "flex items-center gap-1.5",
               isCollapsed ? "justify-center" : "justify-between"
             )}
           >
-            <div className={classNames("flex items-center", isCollapsed ? "" : "gap-2")}>
+            <div className={classNames("flex min-w-0 flex-1 items-center", isCollapsed ? "" : "gap-3")}>
               <div className={classNames(
-                "rounded-xl flex items-center justify-center overflow-hidden glass-btn",
-                "w-11 h-11",
-                "text-cyan-600 dark:text-cyan-400"
+                "flex items-center justify-center overflow-hidden rounded-xl bg-transparent",
+                "w-10 h-10 shrink-0",
+                "text-[rgb(35,36,37)] dark:text-white"
               )}>
                 <img
                   src={branding.logo_icon_url || "/ui/logo.svg"}
@@ -254,31 +254,37 @@ export function GroupSidebar({
                 />
               </div>
               {!isCollapsed && (
-                <span className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">{branding.product_name}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[15px] font-semibold tracking-[-0.035em] text-[var(--color-text-primary)]">
+                    {branding.product_name}
+                  </div>
+                </div>
               )}
             </div>
 
-            {!isCollapsed && (
-              <div className="flex items-center gap-1.5">
-                {!readOnly && onCreateGroup && (
-                  <button
-                    className={classNames(
-                    "text-xs px-3 py-2 rounded-xl font-medium transition-all min-h-[36px] glass-btn-accent",
-                        isDark ? "text-slate-100" : "text-gray-800"
-                    )}
-                    onClick={onCreateGroup}
-                    title={t('createNewGroup')}
-                    aria-label={t('createNewGroup')}
-                  >
-                    {t('newGroup')}
-                  </button>
+            {!isCollapsed && !readOnly && onCreateGroup && (
+              <button
+                className={classNames(
+                  "inline-flex h-9 shrink-0 items-center justify-center rounded-lg px-3 text-[13px] font-medium transition-all glass-btn border-0 shadow-none",
+                  isDark
+                    ? "text-white/88 hover:text-white"
+                    : "text-[rgb(35,36,37)]/88 hover:text-[rgb(35,36,37)]"
                 )}
+                onClick={onCreateGroup}
+                title={t('createNewGroup')}
+                aria-label={t('createNewGroup')}
+              >
+                {t('newGroup')}
+              </button>
+            )}
+
+            {!isCollapsed && (
+              <div className="flex shrink-0 items-center gap-2">
                 {/* Collapse button - desktop only */}
                 <button
                   className={classNames(
-                    "hidden md:flex p-2 min-w-[36px] min-h-[36px] items-center justify-center rounded-xl transition-all glass-btn",
-                    "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
-                                isDark ? "hover:bg-[var(--glass-tab-bg-hover)]" : "hover:bg-black/5"
+                    "hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-transparent bg-transparent transition-all duration-150",
+                    "text-[var(--color-text-tertiary)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)]"
                   )}
                   onClick={onToggleCollapse}
                   aria-label={t('collapseSidebar')}
