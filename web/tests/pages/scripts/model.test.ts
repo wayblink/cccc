@@ -6,6 +6,7 @@ import {
   createEmptyScriptDraft,
   draftFromScript,
   formatScriptEnvText,
+  mergeScriptRuntimeStatus,
   normalizeScriptKind,
   parseScriptEnvText,
   shouldPollScript,
@@ -65,6 +66,39 @@ INVALID_LINE
     expect(shouldPollScript("running")).toBe(true);
     expect(shouldPollScript("idle")).toBe(false);
     expect(shouldPollScript("failed")).toBe(false);
+  });
+
+  it("keeps a known running runtime when a passive refresh briefly reports idle", () => {
+    expect(
+      mergeScriptRuntimeStatus(
+        {
+          script_id: "script-alpha",
+          status: "running",
+          pid: 4321,
+          started_at: "2026-04-21T02:00:00Z",
+          updated_at: null,
+          exit_code: null,
+          result: null,
+        },
+        {
+          script_id: "script-alpha",
+          status: "idle",
+          pid: null,
+          started_at: null,
+          updated_at: null,
+          exit_code: null,
+          result: null,
+        }
+      )
+    ).toEqual({
+      script_id: "script-alpha",
+      status: "running",
+      pid: 4321,
+      started_at: "2026-04-21T02:00:00Z",
+      updated_at: null,
+      exit_code: null,
+      result: null,
+    });
   });
 
   it("builds script payloads from drafts", () => {
