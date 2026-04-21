@@ -1,4 +1,4 @@
-import type { ScriptDefinition, ScriptKind } from "../../types";
+import type { ScriptDefinition, ScriptKind, ScriptRuntimeStatus } from "../../types";
 
 export type ScriptEditorDraft = {
   name: string;
@@ -54,6 +54,40 @@ export function normalizeScriptKind(value: unknown): ScriptKind {
 
 export function shouldPollScript(status: unknown): boolean {
   return String(status || "").trim().toLowerCase() === "running";
+}
+
+export function mergeScriptRuntimeStatus(
+  current: ScriptRuntimeStatus | null | undefined,
+  incoming: ScriptRuntimeStatus | null | undefined,
+): ScriptRuntimeStatus | null {
+  if (!incoming && !current) return null;
+  if (!incoming) return current || null;
+  if (!current) return incoming;
+
+  const currentStatus = String(current.status || "").trim().toLowerCase();
+  const incomingStatus = String(incoming.status || "").trim().toLowerCase();
+
+  // Passive refreshes can briefly report `idle` before the runtime snapshot catches up.
+  if (currentStatus === "running" && incomingStatus === "idle") {
+    return {
+      ...incoming,
+      status: current.status,
+      pid: incoming.pid ?? current.pid ?? null,
+      started_at: incoming.started_at ?? current.started_at ?? null,
+      updated_at: incoming.updated_at ?? current.updated_at ?? null,
+      result: incoming.result ?? current.result ?? null,
+    };
+  }
+
+  return {
+    ...current,
+    ...incoming,
+    pid: incoming.pid ?? current.pid ?? null,
+    started_at: incoming.started_at ?? current.started_at ?? null,
+    updated_at: incoming.updated_at ?? current.updated_at ?? null,
+    exit_code: incoming.exit_code ?? current.exit_code ?? null,
+    result: incoming.result ?? current.result ?? null,
+  };
 }
 
 export function buildScriptPayload(draft: ScriptEditorDraft): {

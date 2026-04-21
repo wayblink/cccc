@@ -1920,6 +1920,80 @@ describe("api.fetchActors invalidation", () => {
 });
 
 
+describe("api.listScripts", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    fetchMock.mockReset();
+    sessionStorageMock.clear();
+  });
+
+  afterEach(async () => {
+    const api = await import("../../src/services/api");
+    api.clearAuthToken();
+  });
+
+  it("normalizes runtime_by_id so the script list can render live status immediately", async () => {
+    fetchMock.mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          result: {
+            scripts: [
+              {
+                id: "script-1",
+                name: "HTTP_PROXY",
+                kind: "service",
+                command: "python proxy.py",
+                cwd: "/tmp/workspace",
+                env: {},
+              },
+            ],
+            runtime_by_id: {
+              "script-1": {
+                status: "running",
+                pid: 4321,
+                started_at: "2026-04-21T02:00:00Z",
+              },
+            },
+          },
+        }),
+    });
+
+    const api = await import("../../src/services/api");
+    const resp = await api.listScripts();
+
+    expect(resp.ok).toBe(true);
+    if (!resp.ok) {
+      throw new Error("expected success response");
+    }
+    expect(resp.result.scripts).toEqual([
+      {
+        id: "script-1",
+        name: "HTTP_PROXY",
+        kind: "service",
+        command: "python proxy.py",
+        cwd: "/tmp/workspace",
+        env: {},
+        created_at: undefined,
+        updated_at: undefined,
+      },
+    ]);
+    expect(resp.result.runtime_by_id).toEqual({
+      "script-1": {
+        script_id: "script-1",
+        status: "running",
+        pid: 4321,
+        started_at: "2026-04-21T02:00:00Z",
+        updated_at: null,
+        exit_code: null,
+        result: null,
+      },
+    });
+  });
+});
+
 describe("api.deleteGroup", () => {
   beforeEach(() => {
     vi.resetModules();

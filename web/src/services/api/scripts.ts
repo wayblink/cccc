@@ -115,16 +115,26 @@ function asScriptDetailResponse(
   return { ok: true, result: detail };
 }
 
-export async function listScripts(): Promise<ApiResponse<{ scripts: ScriptDefinition[] }>> {
-  const resp = await apiJson<{ scripts?: unknown }>("/api/v1/scripts");
-  if (!resp.ok) return resp as ApiResponse<{ scripts: ScriptDefinition[] }>;
+export async function listScripts(): Promise<
+  ApiResponse<{ scripts: ScriptDefinition[]; runtime_by_id: Record<string, ScriptRuntimeStatus> }>
+> {
+  const resp = await apiJson<{ scripts?: unknown; runtime_by_id?: unknown }>("/api/v1/scripts");
+  if (!resp.ok) {
+    return resp as ApiResponse<{ scripts: ScriptDefinition[]; runtime_by_id: Record<string, ScriptRuntimeStatus> }>;
+  }
   const rawScripts = Array.isArray(resp.result.scripts) ? resp.result.scripts : [];
+  const runtimeRecord = asRecord(resp.result.runtime_by_id) ?? {};
   return {
     ok: true,
     result: {
       scripts: rawScripts
         .map((item) => normalizeScriptDefinition(item))
         .filter((item): item is ScriptDefinition => !!item),
+      runtime_by_id: Object.fromEntries(
+        Object.entries(runtimeRecord)
+          .map(([scriptId, value]) => [String(scriptId || "").trim(), normalizeScriptRuntimeStatus(value, scriptId)])
+          .filter(([scriptId]) => !!scriptId),
+      ),
     },
   };
 }
