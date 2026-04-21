@@ -129,13 +129,15 @@ function getRuntimeRingPresentation(tone: RuntimeRingTone, isDark: boolean): Run
       };
     case "working":
       return {
-        ringClassName: "absolute -inset-[3px] rounded-full animate-[spin_5s_linear_infinite] motion-reduce:animate-none",
-        ringStyle: buildMaskedRing(
-          "conic-gradient(from 120deg, rgba(16,185,129,0.18) 0deg, rgba(16,185,129,0.98) 148deg, rgba(45,212,191,0.85) 246deg, rgba(16,185,129,0.22) 360deg)"
-        ),
+        ringClassName: "absolute -inset-[4px] rounded-full animate-[spin_2.5s_linear_infinite] motion-reduce:animate-none",
+        ringStyle: {
+          WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 1px))",
+          mask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 1px))",
+          background: "conic-gradient(from 120deg, rgba(16,185,129,0.12) 0deg, rgba(16,185,129,0.99) 130deg, rgba(52,211,153,0.97) 220deg, rgba(45,212,191,0.88) 280deg, rgba(16,185,129,0.15) 360deg)",
+        },
         haloClassName: classNames(
-          "absolute -inset-[7px] rounded-full blur-md animate-pulse motion-reduce:animate-none",
-          isDark ? "bg-emerald-300/18" : "bg-emerald-400/20"
+          "absolute -inset-[9px] rounded-full blur-md animate-pulse motion-reduce:animate-none",
+          isDark ? "bg-emerald-300/30" : "bg-emerald-400/34"
         ),
         previewBorderClassName: isDark ? "border-emerald-300/28" : "border-emerald-500/24",
         statusPillClassName: isDark

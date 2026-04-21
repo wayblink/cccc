@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ActorProfile, ActorProfileUsage, RUNTIME_INFO, SUPPORTED_RUNTIMES } from "../../../types";
 import * as api from "../../../services/api";
@@ -18,6 +17,7 @@ import {
   settingsDialogHeaderClass,
 } from "./types";
 import { CapabilityPicker } from "../../CapabilityPicker";
+import { BodyPortal } from "../../ui/BodyPortal";
 
 interface ActorProfilesTabProps {
   isDark: boolean;
@@ -876,7 +876,7 @@ export function ActorProfilesTab({ isDark, isActive, scope }: ActorProfilesTabPr
         ) : null}
       </div>
 
-      {editorModal && typeof document !== "undefined" ? createPortal(editorModal, document.body) : editorModal}
+      {editorModal ? <BodyPortal>{editorModal}</BodyPortal> : null}
     </div>
   );
 }

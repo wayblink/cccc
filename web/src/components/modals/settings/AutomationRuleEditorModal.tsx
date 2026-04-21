@@ -1,6 +1,7 @@
 import React from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { BodyPortal } from "../../ui/BodyPortal";
+import { GroupCombobox } from "../../GroupCombobox";
 
 import type { AutomationRule, AutomationRuleStatus, GroupAgentLinkMode } from "../../../types";
 import {
@@ -44,6 +45,7 @@ interface AutomationRuleEditorModalProps {
   saveBusy: boolean;
   snippetIds: string[];
   agentLinkMode?: GroupAgentLinkMode;
+  snippets: Record<string, string>;
   actorTargetOptions: Array<{ value: string; label: string }>;
   oneShotMode: "after" | "exact";
   oneShotAfterMinutes: number;
@@ -53,6 +55,10 @@ interface AutomationRuleEditorModalProps {
   onSetOneShotMode: (mode: "after" | "exact") => void;
   onSetOneShotAfterMinutes: (minutes: number) => void;
   onSave: () => void | Promise<void>;
+}
+
+function buildDefaultOneShotAt(): string {
+  return new Date(Date.now() + 30 * 60 * 1000).toISOString();
 }
 
 export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps) {
@@ -65,6 +71,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
     saveBusy,
     snippetIds,
     agentLinkMode,
+    snippets,
     actorTargetOptions,
     oneShotMode,
     oneShotAfterMinutes,
@@ -457,7 +464,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                   onSetOneShotMode("after");
                   patchRule({
                     action: defaultGroupStateAction(),
-                    trigger: { kind: "at", at: atRaw || new Date(Date.now() + 30 * 60 * 1000).toISOString() },
+                    trigger: { kind: "at", at: atRaw || buildDefaultOneShotAt() },
                   });
                   return;
                 }
@@ -465,7 +472,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                   onSetOneShotMode("after");
                   patchRule({
                     action: defaultActorControlAction(agentLinkMode),
-                    trigger: { kind: "at", at: atRaw || new Date(Date.now() + 30 * 60 * 1000).toISOString() },
+                    trigger: { kind: "at", at: atRaw || buildDefaultOneShotAt() },
                   });
                   return;
                 }
@@ -504,22 +511,24 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                       onRemove={() => patchRule({ to: recipients.filter((item) => item !== token) })}
                     />
                   ))}
-                  <select
+                  <GroupCombobox
+                    items={availableRecipientOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
                     value=""
-                    onChange={(e) => {
-                      const value = String(e.target.value || "").trim();
+                    onChange={(value) => {
                       if (!value || recipients.includes(value)) return;
                       patchRule({ to: [...recipients, value] });
                     }}
-                    className="glass-input px-3 py-2 rounded-lg text-sm min-h-[44px] text-[var(--color-text-primary)]"
-                  >
-                    <option value="">{t("automation.addRecipient")}</option>
-                    {availableRecipientOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder={t("automation.addRecipient")}
+                    searchPlaceholder={t("automation.addRecipient")}
+                    emptyText={t("automation.noRecipientsAvailable", { defaultValue: "No recipients available." })}
+                    ariaLabel={t("automation.addRecipient")}
+                    triggerClassName="glass-input min-h-[44px] min-w-[17rem] px-3 py-2 text-sm text-[var(--color-text-primary)]"
+                    contentClassName="min-w-[18rem]"
+                    matchTriggerWidth
+                  />
                 </div>
               </div>
 
@@ -551,20 +560,36 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
               {contentMode === "snippet" ? (
                 <div>
                   <label className={labelClass(isDark)}>{t("ruleEditor.selectSnippet")}</label>
-                  <select
+                  <GroupCombobox
+                    items={snippetItems}
                     value={snippetRef}
-                    onChange={(e) => patchRule({ action: { ...notifyAction, snippet_ref: e.target.value || null } })}
-                    className={`${inputClass(isDark)} font-mono`}
-                  >
-                    <option value="">(select snippet)</option>
-                    {snippetIds.map((snippetId) => (
-                      <option key={snippetId} value={snippetId}>
-                        {snippetId}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => patchRule({ action: { ...notifyAction, snippet_ref: value || null } })}
+                    placeholder={t("ruleEditor.selectSnippetPlaceholder", { defaultValue: "Select snippet" })}
+                    searchPlaceholder={t("ruleEditor.searchSnippetPlaceholder", { defaultValue: "Search snippets..." })}
+                    emptyText={t("automation.noSnippetsYet")}
+                    ariaLabel={t("ruleEditor.selectSnippet")}
+                    triggerClassName={`${inputClass(isDark)} font-mono justify-between`}
+                    contentClassName="w-[min(36rem,calc(100vw-1.5rem))]"
+                    descriptionClassName="font-sans"
+                    matchTriggerWidth
+                  />
                   {snippetIds.length === 0 ? (
                     <div className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">{t("automation.noSnippetsYet")}</div>
+                  ) : null}
+                  {snippetRef ? (
+                    <div className="mt-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="text-[11px] font-medium text-[var(--color-text-secondary)]">
+                          {t("ruleEditor.snippetPreview", { defaultValue: "Snippet Preview" })}
+                        </div>
+                        <div className="rounded-full border border-[var(--glass-border-subtle)] bg-[var(--glass-tab-bg)] px-2 py-0.5 text-[10px] font-mono text-[var(--color-text-secondary)]">
+                          {snippetRef}
+                        </div>
+                      </div>
+                      <div className={`${inputClass(isDark)} min-h-[120px] whitespace-pre-wrap font-mono text-[12px] leading-6`}>
+                        {selectedSnippetContent || t("ruleEditor.snippetPreviewEmpty", { defaultValue: "This snippet is empty." })}
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               ) : (
@@ -654,10 +679,13 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                       }
                     />
                   ))}
-                  <select
+                  <GroupCombobox
+                    items={availableActorTargetOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
                     value=""
-                    onChange={(e) => {
-                      const value = String(e.target.value || "").trim();
+                    onChange={(value) => {
                       if (!value || actorTargets.includes(value)) return;
                       patchRule({
                         action: {
@@ -667,15 +695,14 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                         },
                       });
                     }}
-                    className="glass-input px-3 py-2 rounded-lg text-sm min-h-[44px] text-[var(--color-text-primary)]"
-                  >
-                    <option value="">{t("automation.addTarget")}</option>
-                    {availableActorTargetOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder={t("automation.addTarget")}
+                    searchPlaceholder={t("automation.addTarget")}
+                    emptyText={t("automation.noTargetsAvailable", { defaultValue: "No targets available." })}
+                    ariaLabel={t("automation.addTarget")}
+                    triggerClassName="glass-input min-h-[44px] min-w-[17rem] px-3 py-2 text-sm text-[var(--color-text-primary)]"
+                    contentClassName="min-w-[18rem]"
+                    matchTriggerWidth
+                  />
                 </div>
               </div>
             </div>
@@ -694,5 +721,5 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
     </div>
   );
 
-  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
+  return <BodyPortal>{content}</BodyPortal>;
 }

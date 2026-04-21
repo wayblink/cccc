@@ -682,6 +682,7 @@ export function AutomationTab(props: AutomationTabProps) {
         saveBusy={rulesBusy}
         snippetIds={snippetIds}
         agentLinkMode={groupAgentLinkMode}
+        snippets={{ ...builtinSnippetDefaults, ...(draft.snippets || {}) }}
         actorTargetOptions={actorTargetOptions}
         oneShotMode={editingOneShotMode}
         oneShotAfterMinutes={editingOneShotAfterMinutes}
