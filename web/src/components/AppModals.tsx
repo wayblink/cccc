@@ -500,7 +500,7 @@ export function AppModals({
     return { toLabel, entries, statusKind: "read" as const };
   }, [actors, messageMetaEvent]);
 
-  const loadActorProfiles = async () => {
+  const loadActorProfiles = useCallback(async () => {
     setActorProfilesBusy(true);
     try {
       const resp = await api.listActorProfiles();
@@ -512,13 +512,18 @@ export function AppModals({
     } finally {
       setActorProfilesBusy(false);
     }
-  };
+  }, [showError, t]);
 
   useEffect(() => {
-    if (!modals.addActor && !editingActor) return;
+    if (modals.addActor) {
+      void loadActorProfiles();
+      return;
+    }
+    const linkedProfileId = String(editingActor?.profile_id || "").trim();
+    if (!linkedProfileId) return;
     void loadActorProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modals.addActor, editingActor]);
+  }, [modals.addActor, editingActor?.profile_id, loadActorProfiles]);
 
   // Handlers
   const handleUpdateSettings = async (settings: Partial<GroupSettings>): Promise<boolean> => {
@@ -1671,6 +1676,7 @@ export function AppModals({
         linkedProfileOwner={String(editingActor?.profile_owner || "").trim() || undefined}
         actorProfiles={actorProfiles}
         actorProfilesBusy={actorProfilesBusy}
+        onRequestActorProfiles={loadActorProfiles}
         onSaveAsProfile={handleSaveEditActorAsProfile}
         onAvatarChanged={refreshActors}
         onCancel={handleCancelEditActor}

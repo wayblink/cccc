@@ -918,7 +918,7 @@ select {
 
 /* Glass header - enhanced */
 .glass-header {
-  background: var(--glass-bg);
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 1px solid var(--glass-border-subtle);
@@ -995,9 +995,9 @@ select {
 }
 
 .glass-group-item-active {
-  background: var(--glass-accent-bg);
-  border-color: var(--glass-accent-border);
-  box-shadow: var(--glass-inner-glow), 0 2px 10px rgba(14, 165, 233, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.9) 100%);
+  border-color: rgba(15, 23, 42, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 26px rgba(15, 23, 42, 0.05);
 }
 
 .glass-group-item-active::before {
@@ -1017,7 +1017,9 @@ select {
 }
 
 .dark .glass-group-item-active {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: linear-gradient(180deg, rgba(26, 30, 36, 0.92) 0%, rgba(19, 22, 28, 0.96) 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 /* Glass status pill — premium badge */

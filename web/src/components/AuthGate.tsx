@@ -140,9 +140,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <button
           type="submit"
           disabled={submitting || !token.trim()}
-          className={`glass-btn-accent w-full mt-4 px-4 py-2.5 rounded-lg text-sm font-medium text-[var(--color-accent-primary)] ${
-            submitting || !token.trim() ? "opacity-50 cursor-not-allowed" : ""
-          }`}
+          className="mt-4 w-full disabled:opacity-70"
         >
           {submitting ? t('verifying') : t('signIn')}
         </button>

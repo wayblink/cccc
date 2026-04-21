@@ -37,9 +37,15 @@ export function SettingsNavigation({
   const globalScopeContent = globalEnabled ? t("navigation.globalScopeContent") : t("navigation.globalLockedContent");
   return (
     <>
-      <aside className="hidden sm:flex sm:flex-col w-48 border-r flex-shrink-0 bg-[var(--glass-panel-bg)] border-[var(--glass-border-subtle)]">
-        <div className="p-3 space-y-3">
-          <div className="px-3 text-[10px] font-bold uppercase tracking-wider opacity-30 text-[var(--color-text-tertiary)]">
+      <aside
+        className={`hidden border-r border-[var(--glass-border-subtle)] sm:flex sm:w-60 lg:w-[16.5rem] sm:flex-col shrink-0 ${
+          isDark
+            ? "bg-[linear-gradient(180deg,rgba(20,22,26,0.96),rgba(14,15,18,0.92))]"
+            : "bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(247,249,252,0.94))]"
+        }`}
+      >
+        <div className="border-b border-[var(--glass-border-subtle)] px-4 pb-3 pt-4 lg:px-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
             {t("navigation.targetScope")}
           </div>
           <div className="flex flex-col gap-1">

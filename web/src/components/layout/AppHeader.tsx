@@ -97,6 +97,8 @@ export function AppHeader({
     "flex items-center gap-1 rounded-[18px] border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] p-[3px] shadow-sm backdrop-blur-xl";
   const headerRailButtonClass =
     "flex items-center justify-center h-9 w-9 rounded-[14px] transition-all shrink-0 border border-transparent bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-45 disabled:text-[var(--color-text-tertiary)] disabled:hover:bg-transparent disabled:hover:text-[var(--color-text-tertiary)]";
+  const headerMinorActionClass =
+    "hidden md:inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-text-tertiary)] transition-all hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)]";
   const selectedStatus = selectedGroupId ? getGroupStatusFromSource({
     running: selectedGroupRunning,
     state: (selectedGroupRuntimeStatus?.lifecycle_state as GroupDoc["state"] | undefined) || groupDoc?.state,
@@ -195,10 +197,7 @@ export function AppHeader({
 
         {!hideGroupControls && selectedGroupId && !webReadOnly && onOpenGroupEdit && (
           <button
-            className={classNames(
-              "hidden md:inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-all glass-btn",
-              "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-            )}
+            className={headerMinorActionClass}
             onClick={onOpenGroupEdit}
             title={t('editGroup')}
             aria-label={t('editGroup')}

@@ -8,6 +8,7 @@ interface CapabilityPickerProps {
   isDark: boolean;
   value: string[];
   onChange: (next: string[]) => void;
+  active?: boolean;
   disabled?: boolean;
   label?: string;
   hint?: string;
@@ -19,10 +20,13 @@ function firstRecommendationLine(value?: string[]) {
   return Array.isArray(value) ? String(value[0] || "").trim() : "";
 }
 
+const CAPABILITY_PICKER_QUERY_DEBOUNCE_MS = 250;
+
 export function CapabilityPicker({
   isDark: _isDark,
   value,
   onChange,
+  active = true,
   disabled = false,
   label = "",
   hint = "",
@@ -34,8 +38,22 @@ export function CapabilityPicker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rows, setRows] = useState<CapabilityOverviewItem[]>([]);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(String(query || "").trim());
+    }, CAPABILITY_PICKER_QUERY_DEBOUNCE_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  useEffect(() => {
+    if (!active) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     const run = async () => {
       setLoading(true);
@@ -61,7 +79,7 @@ export function CapabilityPicker({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [active, debouncedQuery]);
 
   const candidateRows = useMemo(() => {
     const q = String(query || "").trim().toLowerCase();
@@ -145,7 +163,9 @@ export function CapabilityPicker({
       <div
         className="mt-2 rounded-lg border max-h-56 overflow-auto border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)]"
       >
-        {loading ? (
+        {!active ? (
+          <div className="px-3 py-3 text-xs text-[var(--color-text-tertiary)]">{t("capabilities.openToLoad", { defaultValue: "Open this section to load capabilities." })}</div>
+        ) : loading ? (
           <div className="px-3 py-3 text-xs text-[var(--color-text-tertiary)]">{t("capabilities.loading")}</div>
         ) : error ? (
           <div className="px-3 py-3 text-xs text-rose-700 dark:text-rose-300">{error}</div>
