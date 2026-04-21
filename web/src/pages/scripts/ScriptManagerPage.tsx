@@ -29,6 +29,7 @@ import {
   chooseSelectedScriptId,
   createEmptyScriptDraft,
   draftFromScript,
+  mergeScriptRuntimeStatus,
   shouldPollScript,
   type ScriptEditorDraft,
   upsertScriptDefinition,
@@ -63,6 +64,7 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
   const [polling, setPolling] = useState(false);
 
   const selectedScriptIdRef = useRef<string | null>(null);
+  const runtimeByIdRef = useRef<Record<string, ScriptRuntimeStatus | undefined>>({});
   const detailRequestRef = useRef(0);
   const attachInFlightRef = useRef(false);
 
@@ -70,13 +72,30 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
     selectedScriptIdRef.current = selectedScriptId;
   }, [selectedScriptId]);
 
-  const applyDetail = useCallback((nextDetail: ScriptDetail) => {
-    setDetail(nextDetail);
+  useEffect(() => {
+    runtimeByIdRef.current = runtimeById;
+  }, [runtimeById]);
+
+  const applyDetail = useCallback((nextDetail: ScriptDetail, options?: { preserveKnownRunning?: boolean }) => {
+    const preserveKnownRunning = options?.preserveKnownRunning !== false;
+    const knownRuntime = preserveKnownRunning ? runtimeByIdRef.current[nextDetail.script.id] : null;
+    const nextRuntime = preserveKnownRunning
+      ? (mergeScriptRuntimeStatus(knownRuntime, nextDetail.runtime) || nextDetail.runtime)
+      : nextDetail.runtime;
+    setDetail({
+      ...nextDetail,
+      runtime: nextRuntime,
+    });
     setOutput(nextDetail.last_output);
     setDraft(draftFromScript(nextDetail.script));
     setIsDraftNew(false);
     setSelectedScriptId(nextDetail.script.id);
-    setRuntimeById((prev) => ({ ...prev, [nextDetail.script.id]: nextDetail.runtime }));
+    setRuntimeById((prev) => ({
+      ...prev,
+      [nextDetail.script.id]: preserveKnownRunning
+        ? (mergeScriptRuntimeStatus(prev[nextDetail.script.id], nextRuntime) || nextRuntime)
+        : nextRuntime,
+    }));
     setScripts((prev) => upsertScriptDefinition(prev, nextDetail.script));
   }, []);
 
@@ -104,7 +123,7 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
       showError(formatApiError(resp, "Failed to load script"));
       return;
     }
-    applyDetail(resp.result);
+    applyDetail(resp.result, { preserveKnownRunning: true });
   }, [applyDetail, showError]);
 
   const refreshScripts = useCallback(async (preferredId?: string | null) => {
@@ -118,6 +137,12 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
 
     const nextScripts = resp.result.scripts;
     setScripts(nextScripts);
+    setRuntimeById((prev) => Object.fromEntries(
+      Object.entries(resp.result.runtime_by_id).map(([scriptId, runtime]) => [
+        scriptId,
+        mergeScriptRuntimeStatus(prev[scriptId], runtime) || runtime,
+      ])
+    ));
     const nextSelectedId = chooseSelectedScriptId(nextScripts, preferredId ?? selectedScriptIdRef.current);
     if (!nextSelectedId) {
       enterCreateMode();
@@ -219,7 +244,7 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
       return;
     }
 
-    applyDetail(resp.result);
+    applyDetail(resp.result, { preserveKnownRunning: false });
     showNotice({ message: isDraftNew ? "Script created" : "Script saved" });
   }, [applyDetail, draft, isDraftNew, selectedScriptId, showError, showNotice]);
 
@@ -258,7 +283,7 @@ export function ScriptManagerPage({ isDark, readOnly }: ScriptManagerPageProps) 
       showError(formatApiError(resp, `Failed to ${kind} script`));
       return;
     }
-    applyDetail(resp.result);
+    applyDetail(resp.result, { preserveKnownRunning: false });
   }, [applyDetail, showError]);
 
   const selectedRuntime = useMemo(() => {
