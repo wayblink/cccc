@@ -104,6 +104,13 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
   const activeTriggerKind = scheduleLockedToOneTime ? "at" : triggerKind;
   const operationalActionsEnabled = activeTriggerKind === "at";
   const snippetRef = String(kind === "notify" && ruleDraft.action && "snippet_ref" in ruleDraft.action ? ruleDraft.action.snippet_ref || "" : "").trim();
+  const selectedSnippetContent = snippetRef ? String(snippets[snippetRef] || "").trim() : "";
+  const snippetItems = snippetIds.map((snippetId) => ({
+    value: snippetId,
+    label: snippetId,
+    description: String(snippets[snippetId] || "").trim().split("\n")[0] || t("ruleEditor.snippetPreviewEmpty", { defaultValue: "This snippet is empty." }),
+  }));
+  const availableRecipientOptions = actorTargetOptions.filter((option) => !recipients.includes(option.value));
   const message = String(kind === "notify" && ruleDraft.action && "message" in ruleDraft.action ? ruleDraft.action.message || "" : "");
   const contentMode: "snippet" | "custom" = snippetRef ? "snippet" : "custom";
   const groupStateValue = String(
@@ -115,6 +122,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
   const actorTargets = Array.isArray(kind === "actor_control" && ruleDraft.action && "targets" in ruleDraft.action ? ruleDraft.action.targets : [])
     ? (ruleDraft.action as { targets?: string[] }).targets?.map((item) => String(item || "").trim()).filter(Boolean) || []
     : [];
+  const availableActorTargetOptions = actorTargetOptions.filter((option) => !actorTargets.includes(option.value));
   const notifyAction =
     kind === "notify" && ruleDraft.action && ruleDraft.action.kind === "notify" ? ruleDraft.action : defaultNotifyAction();
   const enabled = ruleDraft.enabled !== false;
@@ -506,7 +514,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                     className="glass-input px-3 py-2 rounded-lg text-sm min-h-[44px] text-[var(--color-text-primary)]"
                   >
                     <option value="">{t("automation.addRecipient")}</option>
-                    {actorTargetOptions.map((option) => (
+                    {availableRecipientOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -662,7 +670,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                     className="glass-input px-3 py-2 rounded-lg text-sm min-h-[44px] text-[var(--color-text-primary)]"
                   >
                     <option value="">{t("automation.addTarget")}</option>
-                    {actorTargetOptions.map((option) => (
+                    {availableActorTargetOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
