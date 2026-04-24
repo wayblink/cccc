@@ -15,7 +15,8 @@ from ....kernel.blobs import (
     sanitize_filename,
     store_blob_bytes,
 )
-from ....kernel.group import load_group
+from ....kernel.group import group_requires_explicit_actor_recipient, load_group
+from ....kernel.messaging import isolated_single_enabled_actor_recipient
 from ..schemas import (
     ReplyRequest,
     RouteContext,
@@ -218,7 +219,9 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
             raise HTTPException(status_code=400, detail={"code": "invalid_recipient", "message": "invalid recipient"})
 
         raw_text = str(text or "").strip()
-        if not canonical_to and not to_list and raw_text:
+        requires_explicit_recipient = group_requires_explicit_actor_recipient(group.doc)
+
+        if not canonical_to and not to_list and raw_text and not requires_explicit_recipient:
             import re
             mention_pattern = re.compile(r"@(\w[\w-]*)")
             mentions = mention_pattern.findall(raw_text)
@@ -238,8 +241,20 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                     except Exception:
                         canonical_to = []
 
-        if not canonical_to and not to_list and get_default_send_to(group.doc) == "foreman":
+        if not canonical_to and not to_list and not requires_explicit_recipient and get_default_send_to(group.doc) == "foreman":
             canonical_to = ["@foreman"]
+
+        if requires_explicit_recipient and not canonical_to and not to_list:
+            canonical_to = isolated_single_enabled_actor_recipient(group)
+
+        if requires_explicit_recipient and not canonical_to:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "missing_recipient",
+                    "message": "This group requires explicit direct recipients. Please choose at least one agent or 'user'.",
+                },
+            )
 
         # Note: enabled-recipient validation + auto-wake is handled by the daemon.
 
@@ -310,8 +325,28 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         if to_list and not canonical_to:
             raise HTTPException(status_code=400, detail={"code": "invalid_recipient", "message": "invalid recipient"})
 
+        requires_explicit_recipient = group_requires_explicit_actor_recipient(group.doc)
+
         if not canonical_to and not to_list:
-            canonical_to = resolve_recipient_tokens(group, default_reply_recipients(group, by=by, original_event=original))
+            try:
+                canonical_to = resolve_recipient_tokens(
+                    group,
+                    default_reply_recipients(group, by=by, original_event=original),
+                )
+            except Exception:
+                canonical_to = []
+
+        if requires_explicit_recipient and not canonical_to and not to_list:
+            canonical_to = isolated_single_enabled_actor_recipient(group)
+
+        if requires_explicit_recipient and not canonical_to:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "missing_recipient",
+                    "message": "This group requires explicit direct recipients. Please choose at least one agent or 'user'.",
+                },
+            )
 
         # Note: enabled-recipient validation + auto-wake is handled by the daemon.
 

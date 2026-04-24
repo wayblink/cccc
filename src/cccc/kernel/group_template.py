@@ -8,7 +8,12 @@ import yaml  # type: ignore
 
 from ..contracts.v1.automation import AutomationRuleSet
 from ..contracts.v1.group_template import GroupTemplate, GroupTemplateActor
-from .group import Group, stored_automation_snippets
+from .group import (
+    Group,
+    get_group_agent_link_mode,
+    stored_automation_snippets,
+    supports_group_default_send_to,
+)
 from .prompt_files import (
     DEFAULT_PREAMBLE_BODY,
     HELP_FILENAME,
@@ -104,9 +109,10 @@ def build_group_template_from_group(group: Group, *, cccc_version: str = "") -> 
     features = group.doc.get("features") if isinstance(group.doc.get("features"), dict) else {}
     tt = get_terminal_transcript_settings(group.doc)
     default_send_to = get_default_send_to(group.doc)
+    supports_default_send_to = supports_group_default_send_to(group.doc)
 
     settings: dict[str, Any] = {
-        "default_send_to": default_send_to,
+        "agent_link_mode": get_group_agent_link_mode(group.doc),
         "nudge_after_seconds": _as_int(automation.get("nudge_after_seconds", 300), 300),
         "reply_required_nudge_after_seconds": _as_int(automation.get("reply_required_nudge_after_seconds", 300), 300),
         "attention_ack_nudge_after_seconds": _as_int(automation.get("attention_ack_nudge_after_seconds", 600), 600),
@@ -128,6 +134,8 @@ def build_group_template_from_group(group: Group, *, cccc_version: str = "") -> 
         "panorama_enabled": coerce_bool(features.get("panorama_enabled"), default=False),
         "desktop_pet_enabled": coerce_bool(features.get("desktop_pet_enabled"), default=False),
     }
+    if supports_default_send_to:
+        settings["default_send_to"] = default_send_to
 
     def _prompt_value(filename: str) -> Optional[str]:
         pf = read_group_prompt_file(group, filename)
@@ -146,7 +154,7 @@ def build_group_template_from_group(group: Group, *, cccc_version: str = "") -> 
 
     ruleset: AutomationRuleSet
     raw_rules = automation.get("rules") if isinstance(automation.get("rules"), list) else []
-    raw_snippets = stored_automation_snippets(automation)
+    raw_snippets = stored_automation_snippets(automation, group_doc=group.doc)
     try:
         ruleset = AutomationRuleSet.model_validate({"rules": raw_rules, "snippets": raw_snippets})
     except Exception:
@@ -226,8 +234,9 @@ def preview_group_template_replace(group: Group, template: GroupTemplate) -> Gro
     features = group.doc.get("features") if isinstance(group.doc.get("features"), dict) else {}
     tt = get_terminal_transcript_settings(group.doc)
     default_send_to = get_default_send_to(group.doc)
+    supports_default_send_to = supports_group_default_send_to(group.doc)
     current_settings: Dict[str, Any] = {
-        "default_send_to": default_send_to,
+        "agent_link_mode": get_group_agent_link_mode(group.doc),
         "nudge_after_seconds": _as_int(automation.get("nudge_after_seconds", 300), 300),
         "reply_required_nudge_after_seconds": _as_int(automation.get("reply_required_nudge_after_seconds", 300), 300),
         "attention_ack_nudge_after_seconds": _as_int(automation.get("attention_ack_nudge_after_seconds", 600), 600),
@@ -249,7 +258,9 @@ def preview_group_template_replace(group: Group, template: GroupTemplate) -> Gro
         "panorama_enabled": coerce_bool(features.get("panorama_enabled"), default=False),
         "desktop_pet_enabled": coerce_bool(features.get("desktop_pet_enabled"), default=False),
     }
-    desired_settings = template.settings.model_dump()
+    if supports_default_send_to:
+        current_settings["default_send_to"] = default_send_to
+    desired_settings = template.settings.model_dump(exclude_none=True)
     settings_changed: Dict[str, Tuple[Any, Any]] = {}
     for k, cur in current_settings.items():
         nxt = desired_settings.get(k, cur)

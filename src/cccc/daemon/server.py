@@ -21,6 +21,7 @@ from ..kernel.actors import find_actor, find_foreman, update_actor, get_effectiv
 from ..kernel.actor_avatar_assets import delete_actor_avatar as _delete_actor_avatar
 from ..kernel.blobs import resolve_blob_attachment_path
 from ..kernel.ledger_retention import compact as compact_ledger
+from ..kernel.runtime import apply_codex_cli_overrides
 from ..kernel.settings import (
     get_observability_settings,
     get_web_branding_settings,
@@ -343,10 +344,7 @@ def _normalize_runtime_command(runtime: str, command: list[str]) -> list[str]:
         except Exception:
             exe = str(cmd[0] or "").strip().lower()
         if exe == "codex":
-            # Ensure MCP servers inherit actor env (CCCC_* / ARENA_*).
-            has_env_inherit = any("shell_environment_policy.inherit" in str(x) for x in cmd)
-            if not has_env_inherit:
-                cmd = [cmd[0], "-c", "shell_environment_policy.inherit=all", *cmd[1:]]
+            cmd = apply_codex_cli_overrides(cmd)
 
     return cmd
 

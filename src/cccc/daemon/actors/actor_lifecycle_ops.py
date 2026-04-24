@@ -11,12 +11,13 @@ from ...kernel.context import ContextStorage
 from ...kernel.group import load_group
 from ...kernel.ledger import append_event
 from ...kernel.permissions import require_actor_permission
+from ...kernel.runtime import runtime_start_preflight_error
 from ..claude_app_sessions import SUPERVISOR as claude_app_supervisor
 from ..codex_app_sessions import SUPERVISOR as codex_app_supervisor
 from ...runners import headless as headless_runner
 from ...runners import pty as pty_runner
 from ...util.conv import coerce_bool
-from .actor_runtime_ops import resolve_actor_launch_spec
+from .actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
 from .actor_profile_runtime import ActorProfileAccessDeniedError, resolve_linked_actor_before_start
 from ..pet.review_scheduler import request_pet_review
 
@@ -329,19 +330,21 @@ def handle_actor_restart(
         runner_effective = str(launch_spec["effective_runner"])
         runtime = str(launch_spec["runtime"])
         effective_env = dict(launch_spec["merged_env"])
+        runtime_error = runtime_start_preflight_error(runtime, launch_spec["effective_command"], runner=runner_effective)
+        if runtime_error:
+            return _error("runtime_unavailable", runtime_error)
         if runner_effective != "headless":
-            try:
-                mcp_ready = bool(
-                    ensure_mcp_installed(
-                        runtime,
-                        cwd,
-                        env={str(k): str(v) for k, v in effective_env.items() if isinstance(k, str)},
-                    )
-                )
-            except Exception as e:
-                return _error("actor_restart_failed", f"failed to install MCP: {e}")
+            mcp_ready, mcp_error = ensure_actor_mcp_ready(
+                group,
+                actor_id,
+                runtime=runtime,
+                cwd=cwd,
+                effective_env=effective_env,
+                effective_runner=runner_effective,
+                ensure_mcp_installed=ensure_mcp_installed,
+            )
             if not mcp_ready:
-                return _error("actor_restart_failed", f"failed to install MCP for runtime: {runtime}")
+                return _error("actor_restart_failed", mcp_error or f"failed to install MCP for runtime: {runtime}")
 
         if runtime == "codex" and runner_effective == "headless":
             codex_app_supervisor.start_actor(

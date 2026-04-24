@@ -42,7 +42,7 @@ from ...kernel.context import (
     _utc_now_iso,
 )
 from ...kernel.actors import get_effective_role, list_actors
-from ...kernel.group import load_group
+from ...kernel.group import group_agent_coordination_enabled, load_group
 from ...kernel.query_projections import get_actor_list_projection
 from ...kernel.pet_actor import PET_ACTOR_ID
 from ...kernel.ledger import append_event
@@ -65,6 +65,10 @@ from ..space.group_space_store import enqueue_space_job, get_space_binding, get_
 from ..pet.profile_refresh import mark_pet_profile_refresh_applied
 from ..pet.review_scheduler import request_pet_review
 _CURATED_SPACE_SYNC_PREFIXES = (
+    "coordination.",
+    "task.",
+)
+_ISOLATED_GROUP_FORBIDDEN_CONTEXT_PREFIXES = (
     "coordination.",
     "task.",
 )
@@ -200,6 +204,17 @@ def _get_storage(group_id: str) -> Optional[ContextStorage]:
     if group is None:
         return None
     return ContextStorage(group)
+
+
+def _group_coordination_enabled(group_id: str) -> bool:
+    group = load_group(group_id)
+    if group is None:
+        return True
+    return group_agent_coordination_enabled(group.doc)
+
+
+def _is_forbidden_isolated_context_op(op_name: str) -> bool:
+    return any(op_name.startswith(prefix) for prefix in _ISOLATED_GROUP_FORBIDDEN_CONTEXT_PREFIXES)
 
 
 def _task_to_dict(task: Task) -> Dict[str, Any]:
@@ -943,6 +958,25 @@ def _empty_context_summary_result(storage: ContextStorage) -> Dict[str, Any]:
     }
 
 
+def _coordination_result_visible(group_id: str) -> bool:
+    return _group_coordination_enabled(group_id)
+
+
+def _strip_coordination_from_context_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(result)
+    out["coordination"] = {
+        "brief": _coordination_brief_to_dict(CoordinationBrief()),
+        "tasks": [],
+        "recent_decisions": [],
+        "recent_handoffs": [],
+    }
+    out["attention"] = {}
+    out["tasks_summary"] = _tasks_summary([], attention={})
+    if "board" in out:
+        out["board"] = {}
+    return out
+
+
 def _rebuild_summary_snapshot(group_id: str, *, max_attempts: int = 3) -> bool:
     storage = _get_storage(group_id)
     if storage is None:
@@ -1030,6 +1064,14 @@ def _get_summary_context_fast(storage: ContextStorage, *, group_id: str) -> Dict
     basis = storage.summary_basis()
     snapshot_basis = snapshot.get("basis") if isinstance(snapshot.get("basis"), dict) else {}
     snapshot_result = snapshot.get("result") if isinstance(snapshot.get("result"), dict) else {}
+    if not _coordination_result_visible(group_id):
+        if snapshot_result and snapshot_basis == basis:
+            return _with_summary_snapshot_meta(_strip_coordination_from_context_result(snapshot_result), state="hit")
+        if snapshot_result:
+            _schedule_summary_snapshot_rebuild(group_id)
+            return _with_summary_snapshot_meta(_strip_coordination_from_context_result(snapshot_result), state="stale")
+        _schedule_summary_snapshot_rebuild(group_id)
+        return _with_summary_snapshot_meta(_strip_coordination_from_context_result(_empty_context_summary_result(storage)), state="missing")
     if snapshot_result and snapshot_basis == basis:
         return _with_summary_snapshot_meta(snapshot_result, state="hit")
     if snapshot_result:
@@ -1094,6 +1136,8 @@ def handle_context_get(args: Dict[str, Any]) -> DaemonResponse:
         attention=attention,
         board=board,
     )
+    if not _coordination_result_visible(group_id):
+        result = _strip_coordination_from_context_result(result)
     return DaemonResponse(ok=True, result=result)
 
 
@@ -1113,6 +1157,7 @@ def handle_context_sync(args: Dict[str, Any]) -> DaemonResponse:
     if storage is None:
         return _error("group_not_found", f"group not found: {group_id}")
 
+    coordination_enabled = _group_coordination_enabled(group_id)
     current_version = storage.compute_version()
     if if_version is not None and str(if_version).strip() != current_version:
         return _error(
@@ -1150,6 +1195,10 @@ def handle_context_sync(args: Dict[str, Any]) -> DaemonResponse:
             op_name = str(raw.get("op") or "").strip()
             if not op_name:
                 raise ValueError(f"op[{idx}] missing op")
+            if not coordination_enabled and _is_forbidden_isolated_context_op(op_name):
+                raise ValueError(
+                    f"op[{idx}] {op_name} is unavailable when agent_link_mode=isolated"
+                )
 
             if op_name == "coordination.brief.update":
                 perm_err = _check_permission(by, op_name, group_id)
@@ -1847,6 +1896,11 @@ def handle_task_list(args: Dict[str, Any]) -> DaemonResponse:
     storage = _get_storage(group_id)
     if storage is None:
         return _error("group_not_found", f"group not found: {group_id}")
+    if not _coordination_result_visible(group_id):
+        return _error(
+            "tool_unavailable",
+            "task_list is unavailable when agent_link_mode=isolated",
+        )
 
     if task_id:
         task = storage.load_task(str(task_id))

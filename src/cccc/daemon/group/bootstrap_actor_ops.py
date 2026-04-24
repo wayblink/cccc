@@ -15,7 +15,7 @@ from ..codex_app_sessions import SUPERVISOR as codex_app_supervisor
 from ...util.conv import coerce_bool
 from ...runners import headless as headless_runner
 from ...runners import pty as pty_runner
-from ..actors.actor_runtime_ops import resolve_actor_launch_spec
+from ..actors.actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
 from ..pet.pet_runtime_ops import capture_pet_actor_state, restore_pet_actor_state, sync_pet_actor_from_foreman
 
 logger = logging.getLogger("cccc.daemon.server")
@@ -130,23 +130,20 @@ def autostart_running_groups(
             runtime = str(launch_spec["runtime"])
             effective_env = dict(launch_spec["merged_env"])
 
-            ok_mcp = True
             effective_cmd = list(launch_spec["effective_command"])
             runtime_error = runtime_start_preflight_error(runtime, effective_cmd, runner=effective_runner)
             if runtime_error:
                 logger.warning("Autostart skipped for %s/%s: %s", group_id, actor_id, runtime_error)
                 continue
-            if effective_runner != "headless":
-                try:
-                    ok_mcp = bool(
-                        ensure_mcp_installed(
-                            runtime,
-                            cwd,
-                            env={str(k): str(v) for k, v in effective_env.items() if isinstance(k, str)},
-                        )
-                    )
-                except Exception:
-                    ok_mcp = False
+            ok_mcp, _mcp_error = ensure_actor_mcp_ready(
+                group,
+                actor_id,
+                runtime=runtime,
+                cwd=cwd,
+                effective_env=effective_env,
+                effective_runner=effective_runner,
+                ensure_mcp_installed=ensure_mcp_installed,
+            )
             if not ok_mcp and runtime in auto_mcp_runtimes:
                 logger.warning(
                     "MCP server 'cccc' is not installed for %s/%s (runtime=%s); actor will start but tools may not work.",

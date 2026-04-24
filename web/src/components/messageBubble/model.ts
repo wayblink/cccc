@@ -1,6 +1,8 @@
 import type { Actor, LedgerEvent } from "../../types";
 import { getRecipientDisplayName } from "../../hooks/useActorDisplayName";
 
+const EMPTY_RECIPIENT_LABEL = "(no recipients)";
+
 export function buildToLabel({
     hasDestination,
     dstGroupId,
@@ -18,10 +20,10 @@ export function buildToLabel({
 }): string {
     if (hasDestination) {
         const dstLabel = String(groupLabelById?.[dstGroupId] || "").trim() || dstGroupId;
-        const dstToLabel = dstTo.length > 0 ? dstTo.join(", ") : "@all";
+        const dstToLabel = dstTo.length > 0 ? dstTo.join(", ") : EMPTY_RECIPIENT_LABEL;
         return `group: ${dstLabel} · ${dstToLabel}`;
     }
-    if (!recipients || recipients.length === 0) return "@all";
+    if (!recipients || recipients.length === 0) return EMPTY_RECIPIENT_LABEL;
     return recipients
         .map((recipient) => getRecipientDisplayName(recipient, displayNameMap))
         .join(", ");

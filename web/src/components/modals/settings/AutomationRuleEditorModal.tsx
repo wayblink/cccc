@@ -2,13 +2,15 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
-import type { AutomationRule, AutomationRuleStatus } from "../../../types";
+import type { AutomationRule, AutomationRuleStatus, GroupAgentLinkMode } from "../../../types";
 import {
   Chip,
   buildCronFromPreset,
   clampInt,
   defaultActorControlAction,
+  defaultActorControlTargets,
   defaultGroupStateAction,
+  defaultNotifyRecipients,
   defaultNotifyAction,
   formatDuration,
   formatTimeInput,
@@ -41,6 +43,7 @@ interface AutomationRuleEditorModalProps {
   errorMessage: string;
   saveBusy: boolean;
   snippetIds: string[];
+  agentLinkMode?: GroupAgentLinkMode;
   actorTargetOptions: Array<{ value: string; label: string }>;
   oneShotMode: "after" | "exact";
   oneShotAfterMinutes: number;
@@ -61,6 +64,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
     errorMessage,
     saveBusy,
     snippetIds,
+    agentLinkMode,
     actorTargetOptions,
     oneShotMode,
     oneShotAfterMinutes,
@@ -452,14 +456,14 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                 if (next === "actor_control") {
                   onSetOneShotMode("after");
                   patchRule({
-                    action: defaultActorControlAction(),
+                    action: defaultActorControlAction(agentLinkMode),
                     trigger: { kind: "at", at: atRaw || new Date(Date.now() + 30 * 60 * 1000).toISOString() },
                   });
                   return;
                 }
                 patchRule({
                   action: defaultNotifyAction(),
-                  to: recipients.length > 0 ? recipients : ["@foreman"],
+                  to: recipients.length > 0 ? recipients : defaultNotifyRecipients(agentLinkMode),
                 });
               }}
               className={inputClass(isDark)}
@@ -608,7 +612,7 @@ export function AutomationRuleEditorModal(props: AutomationRuleEditorModalProps)
                       action: {
                         kind: "actor_control",
                         operation: String(e.target.value || "restart") as "start" | "stop" | "restart",
-                        targets: actorTargets.length > 0 ? actorTargets : ["@all"],
+                        targets: actorTargets.length > 0 ? actorTargets : defaultActorControlTargets(agentLinkMode),
                       },
                     })
                   }

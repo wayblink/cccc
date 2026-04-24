@@ -4,6 +4,14 @@ import { TemplatePreviewDetails } from "../TemplatePreviewDetails";
 import type { TemplatePreviewDetailsProps } from "../TemplatePreviewDetails";
 import { useModalA11y } from "../../hooks/useModalA11y";
 
+function getPathLeaf(path: string): string {
+  return path.split("/").filter(Boolean).pop() || "";
+}
+
+function shouldAutoSyncGroupName(groupName: string, previousPath: string): boolean {
+  return !groupName || groupName === getPathLeaf(previousPath);
+}
+
 export interface CreateGroupModalProps {
   isOpen: boolean;
   busy: string;
@@ -18,6 +26,8 @@ export interface CreateGroupModalProps {
   setCreateGroupPath: (path: string) => void;
   createGroupName: string;
   setCreateGroupName: (name: string) => void;
+  createGroupMode: "interactive" | "collaboration";
+  setCreateGroupMode: (mode: "interactive" | "collaboration") => void;
   createGroupTemplateFile: File | null;
   templatePreview: TemplatePreviewDetailsProps["template"] | null;
   templateError: string;
@@ -43,6 +53,8 @@ export function CreateGroupModal({
   setCreateGroupPath,
   createGroupName,
   setCreateGroupName,
+  createGroupMode,
+  setCreateGroupMode,
   createGroupTemplateFile,
   templatePreview,
   templateError,
@@ -56,6 +68,22 @@ export function CreateGroupModal({
 }: CreateGroupModalProps) {
   const { t } = useTranslation("modals");
   const { modalRef } = useModalA11y(isOpen, onClose);
+  const modeOptions: Array<{
+    value: "interactive" | "collaboration";
+    title: string;
+    description: string;
+  }> = [
+    {
+      value: "interactive",
+      title: t("createGroup.interactiveMode"),
+      description: t("createGroup.interactiveModeHint"),
+    },
+    {
+      value: "collaboration",
+      title: t("createGroup.collaborationMode"),
+      description: t("createGroup.collaborationModeHint"),
+    },
+  ];
   if (!isOpen) return null;
 
   return (
@@ -89,7 +117,7 @@ export function CreateGroupModal({
                     className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors text-left min-h-[56px] glass-card"
                     onClick={() => {
                       setCreateGroupPath(s.path);
-                      setCreateGroupName(s.path.split("/").filter(Boolean).pop() || "");
+                      setCreateGroupName(getPathLeaf(s.path));
                       onFetchDirContents(s.path);
                     }}
                   >
@@ -110,10 +138,10 @@ export function CreateGroupModal({
                 className="flex-1 rounded-xl px-4 py-2.5 text-sm font-mono min-h-[44px] transition-colors glass-input text-[var(--color-text-primary)]"
                 value={createGroupPath}
                 onChange={(e) => {
-                  setCreateGroupPath(e.target.value);
-                  const dirName = e.target.value.split("/").filter(Boolean).pop() || "";
-                  if (!createGroupName || createGroupName === currentDir.split("/").filter(Boolean).pop()) {
-                    setCreateGroupName(dirName);
+                  const nextPath = e.target.value;
+                  setCreateGroupPath(nextPath);
+                  if (shouldAutoSyncGroupName(createGroupName, createGroupPath)) {
+                    setCreateGroupName(getPathLeaf(nextPath));
                   }
                 }}
                 placeholder={t("createGroup.pathPlaceholder")}
@@ -147,7 +175,7 @@ export function CreateGroupModal({
                       onClick={() => {
                         onFetchDirContents(parentDir);
                         setCreateGroupPath(parentDir);
-                        setCreateGroupName(parentDir.split("/").filter(Boolean).pop() || "");
+                        setCreateGroupName(getPathLeaf(parentDir));
                       }}
                     >
                       <span className="text-[var(--color-text-muted)]">📁</span>
@@ -165,7 +193,7 @@ export function CreateGroupModal({
                         className="w-full flex items-center gap-2 px-3 py-2 text-left min-h-[44px] hover:bg-[var(--glass-tab-bg-hover)]"
                         onClick={() => {
                           setCreateGroupPath(item.path);
-                          setCreateGroupName(item.name);
+                          setCreateGroupName(getPathLeaf(item.path) || item.name);
                           onFetchDirContents(item.path);
                         }}
                       >
@@ -185,6 +213,32 @@ export function CreateGroupModal({
               onChange={(e) => setCreateGroupName(e.target.value)}
               placeholder={t("createGroup.groupNamePlaceholder")}
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-2 text-[var(--color-text-muted)]">{t("createGroup.modeLabel")}</label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {modeOptions.map((option) => {
+                const selected = createGroupMode === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={selected}
+                    className={[
+                      "rounded-xl px-4 py-3 text-left transition-all border",
+                      selected
+                        ? "border-blue-500/60 bg-blue-500/10 shadow-[0_0_0_1px_rgba(59,130,246,0.18)]"
+                        : "border-[var(--glass-border-subtle)] glass-panel hover:bg-[var(--glass-tab-bg-hover)]",
+                    ].join(" ")}
+                    onClick={() => setCreateGroupMode(option.value)}
+                  >
+                    <div className="text-sm font-medium text-[var(--color-text-primary)]">{option.title}</div>
+                    <div className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{option.description}</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div>

@@ -23,7 +23,7 @@ from ....runners import headless as headless_runner
 from ....runners import pty as pty_runner
 from ....kernel.blobs import resolve_blob_attachment_path, store_blob_bytes
 from ....kernel.headless_events import headless_events_path
-from ....kernel.group import get_group_state, load_group
+from ....kernel.group import get_group_agent_link_mode, get_group_mode, get_group_state, load_group
 from ....kernel.context import ContextStorage
 from ....kernel.query_projections import get_groups_projection
 from ....kernel.settings import build_remote_virtual_group_id, get_remote_backends_settings, get_remote_groups_settings
@@ -196,6 +196,10 @@ def _read_groups_local() -> Dict[str, Any]:
         row["state"] = str(runtime_status.get("lifecycle_state") or row.get("state") or "active")
         row["running"] = bool(runtime_status.get("runtime_running"))
         row["runtime_status"] = runtime_status
+        row["mode"] = get_group_mode(group.doc) if group is not None else str(row.get("mode") or "collaboration")
+        row["agent_link_mode"] = get_group_agent_link_mode(group.doc) if group is not None else str(
+            row.get("agent_link_mode") or ""
+        )
         out.append(row)
     remote_runtime_status = {
         "lifecycle_state": "active",
@@ -242,6 +246,8 @@ def _read_groups_local() -> Dict[str, Any]:
                     "group_id": gid,
                     "title": title or remote_group_id,
                     "topic": topic or f"remote: {base_url} ({remote_group_id})",
+                    "mode": str(remote_item.get("mode") or "collaboration"),
+                    "agent_link_mode": str(remote_item.get("agent_link_mode") or ""),
                     "state": "active",
                     "running": False,
                     "runtime_status": dict(remote_runtime_status),
@@ -268,6 +274,8 @@ def _read_groups_local() -> Dict[str, Any]:
                 "group_id": gid,
                 "title": title or gid,
                 "topic": topic or f"remote: {base_url} ({remote_group_id})",
+                "mode": str(item.get("mode") or "collaboration"),
+                "agent_link_mode": str(item.get("agent_link_mode") or ""),
                 "state": "active",
                 "running": False,
                 "runtime_status": dict(remote_runtime_status),
@@ -296,6 +304,8 @@ def _read_group_local(group_id: str) -> Dict[str, Any]:
     if group is None:
         return {"ok": False, "error": {"code": "group_not_found", "message": f"group not found: {gid}"}}
     doc = json.loads(json.dumps(group.doc))
+    doc["mode"] = get_group_mode(doc)
+    doc["agent_link_mode"] = get_group_agent_link_mode(doc)
     runtime_status = _group_runtime_status_local(group)
     doc["state"] = str(runtime_status.get("lifecycle_state") or doc.get("state") or "active")
     doc["running"] = bool(runtime_status.get("runtime_running"))
@@ -729,13 +739,19 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
 
     @global_router.post("/groups", dependencies=[Depends(require_admin)])
     async def group_create(req: CreateGroupRequest) -> Dict[str, Any]:
-        return await ctx.daemon({"op": "group_create", "args": {"title": req.title, "topic": req.topic, "by": req.by}})
+        return await ctx.daemon(
+            {
+                "op": "group_create",
+                "args": {"title": req.title, "topic": req.topic, "mode": req.mode, "by": req.by},
+            }
+        )
 
     @global_router.post("/groups/from_template", dependencies=[Depends(require_admin)])
     async def group_create_from_template(
         path: str = Form(...),
         title: str = Form("working-group"),
         topic: str = Form(""),
+        mode: str = Form("interactive"),
         by: str = Form("user"),
         file: UploadFile = File(...),
     ) -> Dict[str, Any]:
@@ -746,7 +762,7 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         return await ctx.daemon(
             {
                 "op": "group_create_from_template",
-                "args": {"path": path, "title": title, "topic": topic, "by": by, "template": template_text},
+                "args": {"path": path, "title": title, "topic": topic, "mode": mode, "by": by, "template": template_text},
             }
         )
 
@@ -1728,13 +1744,17 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         features = group.doc.get("features") if isinstance(group.doc.get("features"), dict) else {}
         from ....kernel.terminal_transcript import get_terminal_transcript_settings
         from ....kernel.messaging import get_default_send_to
+        from ....kernel.group import get_group_agent_link_mode, supports_group_default_send_to
 
         tt = get_terminal_transcript_settings(group.doc)
+        supports_default_send_to = supports_group_default_send_to(group.doc)
         return {
             "ok": True,
             "result": {
                 "settings": {
+                    "agent_link_mode": get_group_agent_link_mode(group.doc),
                     "default_send_to": get_default_send_to(group.doc),
+                    "supports_default_send_to": supports_default_send_to,
                     "nudge_after_seconds": _safe_int(automation.get("nudge_after_seconds", 300), default=300, min_value=0),
                     "reply_required_nudge_after_seconds": _safe_int(automation.get("reply_required_nudge_after_seconds", 300), default=300, min_value=0),
                     "attention_ack_nudge_after_seconds": _safe_int(automation.get("attention_ack_nudge_after_seconds", 600), default=600, min_value=0),
@@ -1776,6 +1796,8 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
     async def group_settings_update(group_id: str, req: GroupSettingsRequest) -> Dict[str, Any]:
         """Update group-scoped automation + delivery settings."""
         patch: Dict[str, Any] = {}
+        if req.agent_link_mode is not None:
+            patch["agent_link_mode"] = str(req.agent_link_mode)
         if req.default_send_to is not None:
             patch["default_send_to"] = str(req.default_send_to)
         if req.nudge_after_seconds is not None:

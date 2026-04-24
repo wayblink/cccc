@@ -10,7 +10,15 @@ from ...contracts.v1 import DaemonError, DaemonResponse
 from ..claude_app_sessions import SUPERVISOR as claude_app_supervisor
 from ..codex_app_sessions import SUPERVISOR as codex_app_supervisor
 from ...kernel.active import load_active, set_active_group_id
-from ...kernel.group import delete_group, detach_scope_from_group, load_group, set_active_scope, update_group
+from ...kernel.group import (
+    delete_group,
+    detach_scope_from_group,
+    get_group_agent_link_mode,
+    get_group_mode,
+    load_group,
+    set_active_scope,
+    update_group,
+)
 from ...kernel.ledger import append_event
 from ...kernel.permissions import require_group_permission
 from ...kernel.registry import load_registry
@@ -45,7 +53,10 @@ def handle_group_show(args: Dict[str, Any]) -> DaemonResponse:
     group = load_group(group_id)
     if group is None:
         return _error("group_not_found", f"group not found: {group_id}")
-    return DaemonResponse(ok=True, result={"group": _redact_group_doc(group.doc)})
+    doc = _redact_group_doc(group.doc)
+    doc["mode"] = get_group_mode(doc)
+    doc["agent_link_mode"] = get_group_agent_link_mode(doc)
+    return DaemonResponse(ok=True, result={"group": doc})
 
 
 def handle_group_update(args: Dict[str, Any]) -> DaemonResponse:

@@ -26,7 +26,7 @@
   "restoreGroup": "戻す",
   "deleteGroup": "削除",
   "noGroupsYet": "まだ作業グループがありません",
-  "noGroupsDescription": "作業グループは、複数の AI エージェントがプロジェクトで協働するためのスペースです。",
+  "noGroupsDescription": "作業グループは、1 つ以上の AI エージェントをインタラクティブモードまたはコラボレーションモードで動かせるプロジェクト用ワークスペースです。",
   "createFirstGroup": "最初の作業グループを作成",
   "closeMenu": "メニューを閉じる",
   "selectGroupToEnable": "操作を有効にするにはグループを選択してください。",

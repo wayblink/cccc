@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Literal
 
 from .actors import list_visible_actors
-from .group import Group
+from .group import Group, group_broadcast_delivery_enabled, group_requires_explicit_actor_recipient
 from .inbox import is_message_for_actor
 from ..util.conv import coerce_bool
 
@@ -35,6 +35,20 @@ def _enabled_actor_ids(group: Group) -> List[str]:
     return out
 
 
+def isolated_single_enabled_actor_recipient(group: Group) -> List[str]:
+    """Return the lone enabled actor for isolated/direct-send groups.
+
+    Interactive/isolated groups require explicit direct recipients, but the UX
+    can safely degrade to the only enabled actor when there is exactly one.
+    """
+    if not group_requires_explicit_actor_recipient(group.doc):
+        return []
+    enabled_ids = _enabled_actor_ids(group)
+    if len(enabled_ids) != 1:
+        return []
+    return [enabled_ids[0]]
+
+
 def _disabled_actor_ids(group: Group) -> List[str]:
     out: List[str] = []
     for a in list_visible_actors(group):
@@ -48,10 +62,10 @@ def _disabled_actor_ids(group: Group) -> List[str]:
     return out
 
 
-def targets_any_agent(to: List[str]) -> bool:
+def targets_any_agent(group: Group, to: List[str]) -> bool:
     """Return True if the to-list targets any agents (actors) vs user-only."""
     if not to:
-        return True  # broadcast (agent-side) semantics
+        return group_broadcast_delivery_enabled(group.doc)
     for tok in to:
         t = str(tok or "").strip()
         if not t:
@@ -90,6 +104,25 @@ def disabled_recipient_actor_ids(group: Group, to: List[str]) -> List[str]:
     return [aid for aid in disabled_ids if is_message_for_actor(group, actor_id=aid, event=ev)]
 
 
+def peer_recipient_actor_ids(group: Group, to: List[str], *, sender_actor_id: str = "") -> List[str]:
+    """Return recipient actor ids excluding the sender itself.
+
+    This is used to enforce isolated-mode semantics where actors can still talk to
+    the user but must not send visible chat to peer actors in the same group.
+    """
+    sender = str(sender_actor_id or "").strip()
+    recipients = enabled_recipient_actor_ids(group, to) + disabled_recipient_actor_ids(group, to)
+    out: List[str] = []
+    seen: set[str] = set()
+    for actor_id in recipients:
+        aid = str(actor_id or "").strip()
+        if not aid or aid == sender or aid in seen:
+            continue
+        seen.add(aid)
+        out.append(aid)
+    return out
+
+
 def default_reply_recipients(group: Group, *, by: str, original_event: Dict[str, Any]) -> List[str]:
     """Compute default recipients for a reply when 'to' is omitted.
 
@@ -114,5 +147,8 @@ def default_reply_recipients(group: Group, *, by: str, original_event: Dict[str,
 
     if original_to:
         return original_to
+
+    if group_requires_explicit_actor_recipient(group.doc):
+        return []
 
     return ["@foreman"] if get_default_send_to(group.doc) == "foreman" else []

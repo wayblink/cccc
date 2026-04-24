@@ -46,6 +46,7 @@ EventKind = Literal[
 class GroupCreateData(BaseModel):
     title: str
     topic: str = ""
+    mode: Optional[Literal["interactive", "collaboration"]] = None
 
     model_config = ConfigDict(extra="forbid")
 

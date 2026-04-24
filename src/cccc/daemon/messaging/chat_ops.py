@@ -10,13 +10,21 @@ from typing import Any, Callable, Dict, Optional
 
 from ...contracts.v1 import ChatMessageData, ChatStreamData, DaemonError, DaemonResponse, SystemNotifyData
 from ...kernel.actors import find_actor, list_actors, resolve_recipient_tokens
-from ...kernel.group import get_group_state, load_group, set_group_state
+from ...kernel.group import (
+    get_group_state,
+    group_requires_explicit_actor_recipient,
+    group_selector_recipients_enabled,
+    load_group,
+    set_group_state,
+)
 from ...kernel.inbox import find_event_with_chat_ack, is_message_for_actor
 from ...kernel.ledger import append_event
 from ...kernel.messaging import (
     default_reply_recipients,
     enabled_recipient_actor_ids,
     get_default_send_to,
+    isolated_single_enabled_actor_recipient,
+    peer_recipient_actor_ids,
     targets_any_agent,
 )
 from ...kernel.message_sender_snapshot import build_sender_snapshot
@@ -48,6 +56,21 @@ def _is_internal_pet_sender(group: Any, by: str) -> bool:
     if actor_id != PET_ACTOR_ID:
         return False
     return isinstance(get_pet_actor(group), dict)
+
+
+def _interactive_missing_recipient_error() -> DaemonResponse:
+    return _error(
+        "missing_recipient",
+        "This group requires explicit direct recipients. Please choose at least one agent or 'user'.",
+    )
+
+
+def _isolated_actor_peer_message_error(*, sender: str, recipients: list[str]) -> DaemonResponse:
+    return _error(
+        "peer_messaging_disabled",
+        "This group has agent_link_mode=isolated, so agents cannot send visible chat to other agents.",
+        details={"by": str(sender or "").strip(), "peer_recipients": list(recipients)},
+    )
 
 
 def _wake_group_on_human_message(
@@ -343,6 +366,8 @@ def handle_send(
     group = load_group(group_id)
     if group is None:
         return _error("group_not_found", f"group not found: {group_id}")
+    requires_explicit_recipient = group_requires_explicit_actor_recipient(group.doc)
+    selector_recipients_enabled = group_selector_recipients_enabled(group.doc)
     if _is_internal_pet_sender(group, by):
         return _error(
             "pet_visible_chat_forbidden",
@@ -362,7 +387,7 @@ def handle_send(
     except Exception as e:
         return _error("invalid_recipient", str(e))
 
-    if not to:
+    if not to and not requires_explicit_recipient:
         mention_pattern = re.compile(r"@(\w[\w-]*)")
         mentions = mention_pattern.findall(text)
         if mentions:
@@ -376,22 +401,36 @@ def handle_send(
                 except Exception:
                     pass
 
-    if not to and not to_explicitly_set and get_default_send_to(group.doc) == "foreman":
+    if not to and not requires_explicit_recipient and not to_explicitly_set and get_default_send_to(group.doc) == "foreman":
         to = ["@foreman"]
 
-    if targets_any_agent(to):
+    if requires_explicit_recipient and not to and not to_explicitly_set:
+        to = isolated_single_enabled_actor_recipient(group)
+
+    if requires_explicit_recipient and not to:
+        return _interactive_missing_recipient_error()
+
+    sender_is_actor = isinstance(find_actor(group, by), dict)
+    if sender_is_actor and requires_explicit_recipient:
+        peer_targets = peer_recipient_actor_ids(group, to, sender_actor_id=by)
+        if peer_targets:
+            return _isolated_actor_peer_message_error(sender=by, recipients=peer_targets)
+
+    if targets_any_agent(group, to):
         matched_enabled = enabled_recipient_actor_ids(group, to)
         if by and by in matched_enabled:
             matched_enabled = [actor_id for actor_id in matched_enabled if actor_id != by]
         woken = auto_wake_recipients(group, to, by)
         if not matched_enabled:
             if not woken:
-                wanted = " ".join(to) if to else "@all"
+                wanted = " ".join(to) if to else ("<none>" if requires_explicit_recipient else "@all")
                 return _error(
                     "no_enabled_recipients",
                     (
                         "No enabled recipients after excluding sender. "
-                        "Please specify 'to' explicitly, e.g. to=['user'], to=['@all'], or to=['peer-reviewer']. "
+                        "Please specify 'to' explicitly, e.g. to=['user'], to=['peer-reviewer']"
+                        + ("" if not selector_recipients_enabled else ", or to=['@all']")
+                        + ". "
                         f"Current resolved recipients: {wanted}"
                     ),
                     details={"to": list(to)},
@@ -452,7 +491,7 @@ def handle_send(
             client_id=client_id or None,
         ).model_dump(),
     )
-    effective_to = to if to else ["@all"]
+    effective_to = list(to)
     event_id = str(event.get("id") or "").strip()
     event_ts = str(event.get("ts") or "").strip()
     delivery_text = _build_delivery_text(
@@ -602,6 +641,8 @@ def handle_reply(
     group = load_group(group_id)
     if group is None:
         return _error("group_not_found", f"group not found: {group_id}")
+    requires_explicit_recipient = group_requires_explicit_actor_recipient(group.doc)
+    selector_recipients_enabled = group_selector_recipients_enabled(group.doc)
     if _is_internal_pet_sender(group, by):
         return _error(
             "pet_visible_chat_forbidden",
@@ -632,26 +673,44 @@ def handle_reply(
         else []
     )
 
+    to_explicitly_set = len(to_tokens) > 0
     if not to_tokens:
         to_tokens = default_reply_recipients(group, by=by, original_event=original)
     try:
         to = resolve_recipient_tokens(group, to_tokens)
     except Exception as e:
-        return _error("invalid_recipient", str(e))
+        if not to_explicitly_set:
+            to = []
+        else:
+            return _error("invalid_recipient", str(e))
 
-    if targets_any_agent(to):
+    if requires_explicit_recipient and not to and not to_explicitly_set:
+        to = isolated_single_enabled_actor_recipient(group)
+
+    if requires_explicit_recipient and not to:
+        return _interactive_missing_recipient_error()
+
+    sender_is_actor = isinstance(find_actor(group, by), dict)
+    if sender_is_actor and requires_explicit_recipient:
+        peer_targets = peer_recipient_actor_ids(group, to, sender_actor_id=by)
+        if peer_targets:
+            return _isolated_actor_peer_message_error(sender=by, recipients=peer_targets)
+
+    if targets_any_agent(group, to):
         matched_enabled = enabled_recipient_actor_ids(group, to)
         if by and by in matched_enabled:
             matched_enabled = [actor_id for actor_id in matched_enabled if actor_id != by]
         woken = auto_wake_recipients(group, to, by)
         if not matched_enabled:
             if not woken:
-                wanted = " ".join(to) if to else "@all"
+                wanted = " ".join(to) if to else ("<none>" if requires_explicit_recipient else "@all")
                 return _error(
                     "no_enabled_recipients",
                     (
                         "No enabled recipients after excluding sender. "
-                        "Please specify 'to' explicitly, e.g. to=['user'], to=['@all'], or to=['peer-reviewer']. "
+                        "Please specify 'to' explicitly, e.g. to=['user'], to=['peer-reviewer']"
+                        + ("" if not selector_recipients_enabled else ", or to=['@all']")
+                        + ". "
                         f"Current resolved recipients: {wanted}"
                     ),
                     details={"to": list(to)},
@@ -711,7 +770,7 @@ def handle_reply(
     except Exception:
         ack_event = None
 
-    effective_to = to if to else ["@all"]
+    effective_to = list(to)
     event_with_effective_to = dict(event)
     event_with_effective_to["data"] = dict(event.get("data") or {})
     event_with_effective_to["data"]["to"] = effective_to

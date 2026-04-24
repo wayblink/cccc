@@ -211,7 +211,28 @@ class TestWindowsSupportDiagnostics(unittest.TestCase):
 
         self.assertEqual(cmd[0], r"C:\Tools\codex.cmd")
         self.assertEqual(cmd[1:3], ["-c", "shell_environment_policy.inherit=all"])
-        self.assertEqual(cmd[3:], ["--search"])
+        self.assertEqual(cmd[3:5], ["-c", "features.multi_agent=true"])
+        self.assertEqual(cmd[5:], ["--search"])
+        self.assertNotIn("features.collab=false", cmd)
+
+    def test_codex_windows_command_rewrites_deprecated_collab_flag(self) -> None:
+        from cccc.daemon import server as daemon_server
+
+        cmd = daemon_server._normalize_runtime_command(
+            "codex",
+            [r"C:\Tools\codex.cmd", "-c", "features.collab=true", "--search"],
+        )
+
+        self.assertEqual(cmd[0], r"C:\Tools\codex.cmd")
+        self.assertEqual(cmd[1:5], [
+            "-c",
+            "shell_environment_policy.inherit=all",
+            "-c",
+            "features.multi_agent=true",
+        ])
+        self.assertEqual(cmd[5:], ["--search"])
+        self.assertNotIn("features.collab=true", cmd)
+        self.assertFalse(any(part.startswith("features.collab=") for part in cmd))
 
 
 if __name__ == "__main__":

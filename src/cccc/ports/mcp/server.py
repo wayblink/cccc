@@ -26,8 +26,13 @@ from typing import Any, Dict, List, Optional
 # Kernel/util imports needed by routing
 from ...kernel.actors import find_actor, get_effective_role, is_pet_actor
 from ...kernel.blobs import resolve_blob_attachment_path, store_blob_bytes
-from ...kernel.group import load_group
-from ...kernel.capabilities import BUILTIN_CAPABILITY_PACKS, CORE_ADMIN_TOOLS, resolve_visible_tool_names
+from ...kernel.group import group_agent_coordination_enabled, load_group
+from ...kernel.capabilities import (
+    BUILTIN_CAPABILITY_PACKS,
+    CORE_ADMIN_TOOLS,
+    prune_tool_names_for_coordination,
+    resolve_visible_tool_names,
+)
 from ...kernel.memory_guide import build_memory_guide
 from ...kernel.prompt_files import HELP_FILENAME, read_group_prompt_file
 from ...util.conv import coerce_bool
@@ -49,6 +54,7 @@ from .toolspecs import MCP_TOOLS
 # ---------------------------------------------------------------------------
 from .handlers.cccc_core import (  # noqa: F401
     _CCCC_HELP_BUILTIN,
+    _adapt_help_markdown_for_group,
     _append_runtime_help_addenda,
     _build_context_hygiene_hint,
     bootstrap,
@@ -219,7 +225,7 @@ def _handle_cccc_namespace(name: str, arguments: Dict[str, Any]) -> Optional[Dic
                     help_result = {
                         "markdown": _append_runtime_help_addenda(
                             _select_help_markdown(
-                                pf.content,
+                                _adapt_help_markdown_for_group(pf.content, group_id=gid),
                                 role=role,
                                 actor_id=aid,
                                 include_pet=bool(isinstance(actor, dict) and is_pet_actor(actor)),
@@ -234,7 +240,7 @@ def _handle_cccc_namespace(name: str, arguments: Dict[str, Any]) -> Optional[Dic
                     help_result = {
                         "markdown": _append_runtime_help_addenda(
                             _select_help_markdown(
-                                _CCCC_HELP_BUILTIN,
+                                _adapt_help_markdown_for_group(_CCCC_HELP_BUILTIN, group_id=gid),
                                 role=role,
                                 actor_id=aid,
                                 include_pet=bool(isinstance(actor, dict) and is_pet_actor(actor)),
@@ -247,7 +253,7 @@ def _handle_cccc_namespace(name: str, arguments: Dict[str, Any]) -> Optional[Dic
             else:
                 help_result = {
                     "markdown": _append_runtime_help_addenda(
-                        _select_help_markdown(_CCCC_HELP_BUILTIN, role=role, actor_id=aid),
+                        _select_help_markdown(_adapt_help_markdown_for_group(_CCCC_HELP_BUILTIN, group_id=gid), role=role, actor_id=aid),
                         group_id=gid,
                         actor_id=aid,
                     ),
@@ -256,7 +262,7 @@ def _handle_cccc_namespace(name: str, arguments: Dict[str, Any]) -> Optional[Dic
         else:
             help_result = {
                 "markdown": _append_runtime_help_addenda(
-                    _select_help_markdown(_CCCC_HELP_BUILTIN, role=role, actor_id=aid),
+                    _select_help_markdown(_adapt_help_markdown_for_group(_CCCC_HELP_BUILTIN, group_id=gid), role=role, actor_id=aid),
                     group_id=gid,
                     actor_id=aid,
                 ),
@@ -963,10 +969,12 @@ def list_tools_for_caller() -> List[Dict[str, Any]]:
     # Determine actor role for admin tool gating.
     actor_role = ""
     actor_is_pet = False
+    coordination_enabled = True
     builtin_enabled_fallback: List[str] = []
     if gid and aid and aid != "user":
         try:
             group = load_group(gid)
+            coordination_enabled = group_agent_coordination_enabled(group.doc) if group is not None else True
             actor_role = str(get_effective_role(group, aid) or "").strip().lower()
             actor = find_actor(group, aid)
             if isinstance(actor, dict):
@@ -982,19 +990,26 @@ def list_tools_for_caller() -> List[Dict[str, Any]]:
     admin_excluded = set(CORE_ADMIN_TOOLS) if actor_role == "peer" else set()
 
     if profile == "full":
-        visible = {str(spec.get("name") or "").strip() for spec in MCP_TOOLS if isinstance(spec, dict)}
+        visible = prune_tool_names_for_coordination(
+            [str(spec.get("name") or "").strip() for spec in MCP_TOOLS if isinstance(spec, dict)],
+            coordination_enabled=coordination_enabled,
+        )
         visible -= admin_excluded
     else:
         tools_raw = state.get("visible_tools") if isinstance(state, dict) else []
         if not isinstance(tools_raw, list):
             tools_raw = []
-        visible = {str(x).strip() for x in tools_raw if str(x).strip()}
+        visible = prune_tool_names_for_coordination(
+            tools_raw,
+            coordination_enabled=coordination_enabled,
+        )
         if not visible:
             visible = set(
                 resolve_visible_tool_names(
                     builtin_enabled_fallback,
                     actor_role=actor_role,
                     is_pet=actor_is_pet,
+                    coordination_enabled=coordination_enabled,
                 )
             ) - admin_excluded
 

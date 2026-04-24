@@ -1,5 +1,6 @@
 import os
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -210,6 +211,52 @@ class TestMcpBootstrapMemoryRecallGate(unittest.TestCase):
         self.assertIn("re-check shared assumptions", query)
         self.assertIn("workspace has multiple parallel edits", query)
         self.assertIn("cares about ROI and low noise", query)
+
+    def test_bootstrap_interrupt_hint_is_neutral_in_isolated_groups(self) -> None:
+        from cccc.ports.mcp import server as mcp_server
+        from cccc.ports.mcp.handlers import cccc_core, cccc_group_actor
+        from cccc.ports.mcp.handlers import context as cccc_context
+
+        fake_group = SimpleNamespace(doc={"agent_link_mode": "isolated"})
+
+        with patch.dict(os.environ, {"CCCC_GROUP_ID": "g_test", "CCCC_ACTOR_ID": "peer1"}, clear=False), patch.object(
+            cccc_group_actor,
+            "group_info",
+            return_value={"group": {"group_id": "g_test", "title": "temp_task", "active_scope_key": "s1", "scopes": []}},
+        ), patch.object(
+            cccc_group_actor,
+            "actor_list",
+            return_value={"actors": [{"id": "peer1", "role": "peer", "runner": "pty"}]},
+        ), patch.object(
+            cccc_core,
+            "project_info",
+            return_value={"found": False, "path": None},
+        ), patch.object(
+            cccc_context,
+            "context_get",
+            return_value={"agent_states": [{"id": "peer1", "hot": {}, "warm": {}}]},
+        ), patch.object(
+            cccc_core,
+            "inbox_list",
+            return_value={"messages": []},
+        ), patch.object(
+            cccc_core,
+            "_call_daemon_or_raise",
+            return_value={"hits": []},
+        ), patch.object(
+            cccc_core,
+            "load_group",
+            return_value=fake_group,
+        ), patch.object(
+            cccc_core,
+            "_load_actor_mind_context_runtime",
+            return_value={},
+        ):
+            out = mcp_server.bootstrap(group_id="g_test", actor_id="peer1")
+
+        next_calls = out["next_calls"]
+        self.assertIn("direct runtime interrupts", next_calls["interrupt_triage"])
+        self.assertNotIn("coordination interrupts", next_calls["interrupt_triage"])
 
     def test_build_bootstrap_context_preserves_mind_context_mini_under_budget_pressure(self) -> None:
         from cccc.ports.mcp.handlers.cccc_core import _build_bootstrap_context

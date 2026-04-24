@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import ntpath
+import re
 import shlex
 import shutil
 import subprocess
@@ -10,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ..util.process import find_subprocess_executable
+from ..util.process import find_subprocess_executable, resolve_subprocess_argv
 
 
 @dataclass
@@ -92,6 +94,20 @@ KNOWN_RUNTIMES: Dict[str, Dict[str, Any]] = {
 
 # First-class supported runtimes (CCCC manages startup defaults + MCP wiring)
 PRIMARY_RUNTIMES = ["claude", "codex", "droid", "amp", "auggie", "neovate", "gemini", "kimi"]
+
+_RUNTIME_PROBE_TIMEOUT_SECONDS = 6.0
+_RUNTIME_PROBE_ARGS: Dict[str, List[str]] = {
+    "amp": ["--version"],
+    "auggie": ["--version"],
+    "claude": ["--version"],
+    "codex": ["--version"],
+    "droid": ["--version"],
+    "gemini": ["--version"],
+    "kimi": ["--version"],
+    "neovate": ["--version"],
+}
+
+
 def detect_runtime(name: str) -> RuntimeInfo:
     """Detect if a specific runtime is available on the system."""
     config = KNOWN_RUNTIMES.get(name)
@@ -205,15 +221,65 @@ def get_cccc_mcp_stdio_command() -> List[str]:
     return [sys.executable, "-m", "cccc.ports.mcp.main"]
 
 
+_CODEX_REQUIRED_CONFIG_OVERRIDES: tuple[tuple[str, str], ...] = (
+    ("shell_environment_policy.inherit", "all"),
+    ("features.multi_agent", "true"),
+)
+
+
+def apply_codex_cli_overrides(command: List[str]) -> List[str]:
+    """Normalize Codex CLI config overrides on a command line.
+
+    This keeps CCCC on the current `multi_agent` feature flag while stripping
+    any deprecated `features.collab` override from the command line.
+    """
+    cmd = [str(part) for part in (command or []) if str(part).strip()]
+    if not cmd:
+        return []
+
+    try:
+        exe = os.path.splitext(ntpath.basename(str(cmd[0] or "")))[0].lower()
+    except Exception:
+        exe = str(cmd[0] or "").strip().lower()
+    if exe != "codex":
+        return cmd
+
+    override_keys = {key for key, _ in _CODEX_REQUIRED_CONFIG_OVERRIDES}
+    strip_keys = set(override_keys)
+    strip_keys.add("features.collab")
+    remainder: List[str] = []
+    index = 1
+    while index < len(cmd):
+        token = str(cmd[index] or "")
+        if token == "-c" and index + 1 < len(cmd):
+            raw_value = str(cmd[index + 1] or "").strip()
+            key = raw_value.split("=", 1)[0].strip() if raw_value else ""
+            if key in strip_keys:
+                index += 2
+                continue
+            remainder.extend([token, raw_value])
+            index += 2
+            continue
+        remainder.append(token)
+        index += 1
+
+    normalized: List[str] = [cmd[0]]
+    for key, value in _CODEX_REQUIRED_CONFIG_OVERRIDES:
+        normalized.extend(["-c", f"{key}={value}"])
+    normalized.extend(remainder)
+    return normalized
+
+
 def get_runtime_command_with_flags(name: str) -> List[str]:
     """Get the command with recommended flags for autonomous operation."""
     commands = {
         "amp": ["amp"],
         "auggie": ["auggie"],
         "claude": ["claude", "--dangerously-skip-permissions"],
-        # Codex spawns MCP servers as subprocesses; ensure it inherits actor env (CCCC_GROUP_ID/CCCC_ACTOR_ID)
-        # so MCP tools can resolve "self" context reliably.
-        "codex": ["codex", "-c", "shell_environment_policy.inherit=all", "--dangerously-bypass-approvals-and-sandbox", "--search"],
+        # Codex spawns MCP servers as subprocesses; ensure it inherits actor env
+        # (CCCC_GROUP_ID/CCCC_ACTOR_ID), and keep feature flags on the supported
+        # multi-agent path without surfacing deprecated `features.collab`.
+        "codex": apply_codex_cli_overrides(["codex", "--dangerously-bypass-approvals-and-sandbox", "--search"]),
         "droid": ["droid", "--auto", "high"],
         "gemini": ["gemini", "--yolo"],
         "kimi": ["kimi", "--yolo"],
@@ -278,6 +344,78 @@ def get_default_interactive_shell_command() -> List[str]:
     return resolved_candidates[0] if resolved_candidates else []
 
 
+def _strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;?]*[ -/]*[@-~]", "", str(text or ""))
+
+
+def _normalize_probe_output(text: str, *, limit: int = 280) -> str:
+    cleaned = " ".join(_strip_ansi(text).split())
+    if not cleaned:
+        return ""
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: max(0, limit - 3)].rstrip() + "..."
+
+
+def _runtime_probe_command(runtime: str, command: Optional[List[str]] = None) -> List[str]:
+    rt = str(runtime or "").strip()
+    info = detect_runtime(rt)
+    probe_args = list(_RUNTIME_PROBE_ARGS.get(rt) or [])
+    if not probe_args:
+        return []
+
+    executable = str(info.path or "").strip()
+    if not executable:
+        cmd = [str(part) for part in (command or []) if str(part).strip()]
+        executable = str(cmd[0] or "").strip() if cmd else ""
+    if not executable:
+        executable = str((KNOWN_RUNTIMES.get(rt) or {}).get("command") or "").strip()
+    if not executable:
+        return []
+    return [executable, *probe_args]
+
+
+def _runtime_probe_error(runtime: str, command: Optional[List[str]] = None) -> str:
+    rt = str(runtime or "").strip()
+    probe_cmd = _runtime_probe_command(rt, command)
+    if not probe_cmd:
+        return ""
+
+    label = str((KNOWN_RUNTIMES.get(rt) or {}).get("display_name") or rt or "runtime").strip() or "runtime"
+    try:
+        result = subprocess.run(
+            resolve_subprocess_argv(probe_cmd),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_RUNTIME_PROBE_TIMEOUT_SECONDS,
+        )
+    except FileNotFoundError:
+        executable = str(probe_cmd[0] or "").strip()
+        return f"runtime unavailable: {label} executable not found: {executable}"
+    except subprocess.TimeoutExpired:
+        return f"runtime unavailable: {label} startup probe timed out"
+    except Exception as e:
+        return f"runtime unavailable: {label} startup probe failed: {e}"
+
+    if int(getattr(result, "returncode", 1) or 0) == 0:
+        return ""
+
+    detail = _normalize_probe_output(
+        "\n".join(
+            part
+            for part in (
+                str(getattr(result, "stderr", "") or "").strip(),
+                str(getattr(result, "stdout", "") or "").strip(),
+            )
+            if part
+        )
+    )
+    if detail:
+        return f"runtime unavailable: {label} failed to start: {detail}"
+    return f"runtime unavailable: {label} exited with status {result.returncode} during startup probe"
+
+
 def runtime_start_preflight_error(runtime: str, command: Optional[List[str]] = None, *, runner: str = "pty") -> str:
     """Return a user-facing startup error when a runtime cannot be launched.
 
@@ -302,12 +440,12 @@ def runtime_start_preflight_error(runtime: str, command: Optional[List[str]] = N
 
     info = detect_runtime(rt)
     if info.available:
-        return ""
+        return _runtime_probe_error(rt, cmd)
 
     command_hint = list(cmd or get_runtime_command_with_flags(rt))
     executable = str(command_hint[0] or "").strip() if command_hint else ""
     if executable and find_subprocess_executable(executable):
-        return ""
+        return _runtime_probe_error(rt, cmd)
 
     label = str(info.display_name or rt or "runtime").strip() or "runtime"
     if executable and executable != rt:

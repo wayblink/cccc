@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, Optional
 
 from ...contracts.v1 import DaemonError, DaemonResponse
-from ...kernel.group import load_group
+from ...kernel.group import (
+    get_group_agent_link_mode,
+    load_group,
+    normalize_group_agent_link_mode,
+    supports_group_default_send_to,
+)
 from ...kernel.ledger import append_event
 from ...kernel.messaging import get_default_send_to
 from ...kernel.pet_actor import PET_ACTOR_ID, get_pet_actor
@@ -80,7 +85,7 @@ def handle_group_settings_update(
     if group is None:
         return _error("group_not_found", f"group not found: {group_id}")
 
-    messaging_keys = {"default_send_to"}
+    messaging_keys = {"default_send_to", "agent_link_mode"}
     delivery_keys = {"min_interval_seconds", "auto_mark_on_delivery"}
     automation_keys = {
         "nudge_after_seconds",
@@ -110,6 +115,12 @@ def handle_group_settings_update(
         return _error("invalid_patch", "invalid patch keys", details={"unknown_keys": sorted(unknown)})
     if not patch:
         return _error("invalid_patch", "empty patch")
+    if "default_send_to" in patch and not supports_group_default_send_to(group.doc):
+        return _error(
+            "invalid_patch",
+            "default_send_to is not supported when this group requires direct routing",
+            details={"default_send_to": str(patch.get("default_send_to") or ""), "group_mode": str(group.doc.get("mode") or "")},
+        )
     if "default_send_to" in patch:
         value = str(patch.get("default_send_to") or "").strip()
         if value not in ("foreman", "broadcast"):
@@ -118,6 +129,14 @@ def handle_group_settings_update(
                 "default_send_to must be 'foreman' or 'broadcast'",
                 details={"default_send_to": value},
             )
+    if "agent_link_mode" in patch:
+        value = str(patch.get("agent_link_mode") or "").strip().lower()
+        if value not in ("connected", "isolated"):
+            return _error(
+                "invalid_patch",
+                "agent_link_mode must be 'connected' or 'isolated'",
+                details={"agent_link_mode": value},
+            )
     try:
         require_group_permission(group, by=by, action="group.settings_update")
         pet_review_after_save = False
@@ -125,7 +144,13 @@ def handle_group_settings_update(
         messaging_patch = {k: v for k, v in patch.items() if k in messaging_keys}
         if messaging_patch:
             messaging = group.doc.get("messaging") if isinstance(group.doc.get("messaging"), dict) else {}
-            messaging["default_send_to"] = str(messaging_patch.get("default_send_to") or "foreman").strip()
+            if "default_send_to" in messaging_patch:
+                messaging["default_send_to"] = str(messaging_patch.get("default_send_to") or "foreman").strip()
+            if "agent_link_mode" in messaging_patch:
+                normalized_link_mode = normalize_group_agent_link_mode(messaging_patch.get("agent_link_mode"))
+                messaging["agent_link_mode"] = normalized_link_mode
+                # Keep the legacy top-level field in sync so older readers do not see stale linkage semantics.
+                group.doc["agent_link_mode"] = normalized_link_mode
             group.doc["messaging"] = messaging
 
         delivery_patch = {k: v for k, v in patch.items() if k in delivery_keys}
@@ -308,6 +333,7 @@ def handle_group_settings_update(
     features = group.doc.get("features") if isinstance(group.doc.get("features"), dict) else {}
     tt = get_terminal_transcript_settings(group.doc)
     settings = {
+        "agent_link_mode": get_group_agent_link_mode(group.doc),
         "default_send_to": get_default_send_to(group.doc),
         "nudge_after_seconds": _safe_int(automation.get("nudge_after_seconds", 300), default=300, min_value=0),
         "reply_required_nudge_after_seconds": _safe_int(

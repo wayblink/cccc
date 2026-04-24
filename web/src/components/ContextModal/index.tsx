@@ -24,10 +24,12 @@ import {
 import { reloadContextAfterWrite } from "../../features/contextModal/contextWriteback";
 import type {
   GroupContext,
+  GroupDoc,
   GroupSettings,
   ProjectMdInfo,
   Task,
 } from "../../types";
+import { groupAgentCoordinationEnabled } from "../../utils/groupMode";
 import {
   evaluateTaskWorkflow,
   getTaskDoneTransitionBlockers,
@@ -80,6 +82,7 @@ interface ContextModalProps {
   onOpenContext: () => Promise<void>;
   onSyncContext: () => Promise<void>;
   isDark: boolean;
+  groupDoc?: GroupDoc | null;
   settings?: GroupSettings | null;
   onUpdateSettings?: (settings: Partial<GroupSettings>) => Promise<boolean | void>;
 }
@@ -92,6 +95,7 @@ export function ContextModal({
   onOpenContext,
   onSyncContext,
   isDark,
+  groupDoc,
   settings,
   onUpdateSettings,
 }: ContextModalProps) {
@@ -100,6 +104,10 @@ export function ContextModal({
     String(t(key as never, { defaultValue: fallback, ...(vars || {}) } as never)), [t]);
 
   const ui = useMemo(() => createContextModalUi(isDark), [isDark]);
+  const supportsProjectNotifyAll = useMemo(
+    () => groupAgentCoordinationEnabled(groupDoc, settings),
+    [groupDoc, settings],
+  );
 
   const [activeView, setActiveView] = useState<ContextModalView>("coordination");
   const [steeringTab, setSteeringTab] = useState<SteeringTab>("summary");
@@ -127,6 +135,10 @@ export function ContextModal({
   const [projectExpanded, setProjectExpanded] = useState(false);
   const [notifyAgents, setNotifyAgents] = useState(false);
   const [notifyError, setNotifyError] = useState("");
+
+  useEffect(() => {
+    if (!supportsProjectNotifyAll) setNotifyAgents(false);
+  }, [supportsProjectNotifyAll, groupId]);
 
   const [petHelpPrompt, setPetHelpPrompt] = useState<GroupPromptInfo | null>(null);
   const [petPersonaDraft, setPetPersonaDraft] = useState("");
@@ -875,7 +887,7 @@ export function ContextModal({
       setEditingProject(false);
 
       let notice = tr("context.projectSaved", "PROJECT.md saved.");
-      if (notifyAgents) {
+      if (supportsProjectNotifyAll && notifyAgents) {
         const notifyResp = await apiJson(`/api/v1/groups/${encodeURIComponent(groupId)}/send`, {
           method: "POST",
           body: JSON.stringify({ text: notifyMessage, by: "user", to: ["@all"], path: "" }),
@@ -892,7 +904,7 @@ export function ContextModal({
     } finally {
       setProjectBusy(false);
     }
-  }, [applyContextWriteback, groupId, notifyAgents, notifyMessage, projectText, tr]);
+  }, [applyContextWriteback, groupId, notifyAgents, notifyMessage, projectText, supportsProjectNotifyAll, tr]);
 
   const handleAddCoordinationNote = useCallback(async (kind: "decision" | "handoff") => {
     if (!groupId) return;
@@ -951,6 +963,7 @@ export function ContextModal({
       editingProject={editingProject}
       projectMd={projectMd}
       projectText={projectText}
+      allowTeamNotify={supportsProjectNotifyAll}
       notifyAgents={notifyAgents}
       onExpand={() => setProjectExpanded(true)}
       onCancelEdit={() => {
@@ -1170,6 +1183,7 @@ export function ContextModal({
                     editingProject={editingProject}
                     projectMd={projectMd}
                     projectText={projectText}
+                    allowTeamNotify={supportsProjectNotifyAll}
                     notifyAgents={notifyAgents}
                     onExpand={() => {}}
                     onCancelEdit={() => {

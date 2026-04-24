@@ -154,6 +154,7 @@ export function ChatTab({
     cancelReply,
     clearQuotedPresentationRef,
     toTokens,
+    specialRecipientTokens,
     toggleRecipient,
     clearRecipients,
     appendRecipientToken,
@@ -805,6 +806,7 @@ export function ChatTab({
             quotedPresentationRef={quotedPresentationRef}
             onClearQuotedPresentationRef={clearQuotedPresentationRef}
             toTokens={toTokens}
+            specialRecipientTokens={specialRecipientTokens}
             effectiveToTokens={activeSlotActorId ? [activeSlotActorId] : undefined}
             onToggleRecipient={toggleRecipient}
             onClearRecipients={clearRecipients}

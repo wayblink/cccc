@@ -7,11 +7,11 @@ from ..paths import ensure_home
 from ..util.fs import atomic_write_json, read_json
 from .actors import get_effective_role, list_actors, list_visible_actors
 from .context import ContextStorage
-from .group import Group, load_group
+from .group import Group, get_group_agent_link_mode, get_group_mode, load_group
 from .registry import Registry, load_registry
 
 
-_GROUPS_SCHEMA = 1
+_GROUPS_SCHEMA = 2
 _ACTORS_SCHEMA = 1
 
 
@@ -110,6 +110,8 @@ def get_groups_projection() -> Dict[str, Any]:
             item["registry_health"] = "corrupt"
             continue
         item["registry_health"] = "ok"
+        item["mode"] = get_group_mode(group.doc)
+        item["agent_link_mode"] = get_group_agent_link_mode(group.doc)
         item["state"] = str(group.doc.get("state") or "active")
         out.append(item)
 

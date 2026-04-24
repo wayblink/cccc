@@ -5,8 +5,8 @@ from typing import Any, Dict, List
 
 from ..util.conv import coerce_bool
 from .actors import get_effective_role, is_pet_actor, list_visible_actors
-from .group import Group
-from .prompt_files import DEFAULT_PREAMBLE_BODY, PREAMBLE_FILENAME, read_group_prompt_file
+from .group import Group, get_group_agent_link_mode, get_group_mode, group_agent_coordination_enabled
+from .prompt_files import PREAMBLE_FILENAME, get_default_preamble_body, read_group_prompt_file
 
 
 def render_role_system_prompt(
@@ -30,6 +30,9 @@ def render_role_system_prompt(
 
     title = str(group.doc.get("title") or group_id)
     topic = str(group.doc.get("topic") or "").strip()
+    group_mode = get_group_mode(group.doc)
+    agent_link_mode = get_group_agent_link_mode(group.doc)
+    coordination_enabled = group_agent_coordination_enabled(group.doc)
 
     # Count actors
     actors = list_visible_actors(group)
@@ -95,6 +98,8 @@ def render_role_system_prompt(
     lines = [
         f"[CCCC] You are {actor_id} ({role}) in group '{title}'",
         f"group_id: {group_id}",
+        f"group_mode: {group_mode}",
+        f"agent_link_mode: {agent_link_mode}",
     ]
     runtime_label = str(runtime_name or "").strip()
     if runtime_label:
@@ -111,8 +116,10 @@ def render_role_system_prompt(
         show_ids = enabled_actor_ids[:8]
         suffix = "..." if len(enabled_actor_ids) > 8 else ""
         lines.append(f"team: {actor_count} actors ({', '.join(show_ids)}{suffix})")
-        if foremen:
+        if foremen and coordination_enabled:
             lines.append(f"foreman: {', '.join(foremen)}")
+        if not coordination_enabled:
+            lines.append("interaction: agents may coexist, but they do not coordinate with each other")
     
     # Runner mode
     if runner == "headless":
@@ -130,29 +137,49 @@ def render_role_system_prompt(
     # Keep this stable and short. Long-lived playbook details belong in cccc_help.
     visible_reply_line = "- Visible replies must go through MCP: cccc_message_send / cccc_message_reply."
 
-    core_lines = [
-        "Working Style:",
-        "- Work like a sharp teammate, not a customer-service script.",
-        "- Prefer silence over low-signal chatter; speak for real changes, not filler or routine @all updates.",
-        "- For simple exchanges, use normal sentences and keep them brief unless structure helps.",
-        "- Skip empty ceremony; say the actual state, risk, or next move.",
-        "",
-        "Platform Invariants:",
-        "- No fabrication. Verify before claiming done.",
-        visible_reply_line,
-        "- Terminal output is not delivery.",
-        "- A status message, plan, or promise is not task progress; for action requests, either start the work now or state the exact blocker.",
-        "- Cold start or resume: call cccc_bootstrap first, then cccc_help.",
-        "- At key transitions, sync shared control-plane state and your cccc_agent_state.",
-        "- Once scope is approved, finish it end-to-end; do not ask to continue on obvious next steps.",
-        "- For strategy or scope discussion, align first; implement only after explicit action intent.",
-    ]
+    if not coordination_enabled:
+        core_lines = [
+            "Working Style:",
+            "- Work like a sharp teammate, not a customer-service script.",
+            "- Keep replies direct and useful; skip filler and coordination theater.",
+            "- For simple exchanges, use normal sentences and keep them brief unless structure helps.",
+            "- Skip empty ceremony; say the actual state, risk, or next move.",
+            "",
+            "Platform Invariants:",
+            "- No fabrication. Verify before claiming done.",
+            visible_reply_line,
+            "- Terminal output is not delivery.",
+            "- Treat this as direct user interaction, not a multi-agent coordination workflow.",
+            "- Other agents may exist in the same group, but you do not message, route to, or synchronize with them.",
+            "- Once scope is approved, finish it end-to-end; do not ask to continue on obvious next steps.",
+            "- For strategy or scope discussion, align first; implement only after explicit action intent.",
+        ]
+    else:
+        core_lines = [
+            "Working Style:",
+            "- Work like a sharp teammate, not a customer-service script.",
+            "- Prefer silence over low-signal chatter; speak for real changes, not filler or routine @all updates.",
+            "- For simple exchanges, use normal sentences and keep them brief unless structure helps.",
+            "- Skip empty ceremony; say the actual state, risk, or next move.",
+            "",
+            "Platform Invariants:",
+            "- No fabrication. Verify before claiming done.",
+            visible_reply_line,
+            "- Terminal output is not delivery.",
+            "- A status message, plan, or promise is not task progress; for action requests, either start the work now or state the exact blocker.",
+            "- Cold start or resume: call cccc_bootstrap first, then cccc_help.",
+            "- At key transitions, sync shared control-plane state and your cccc_agent_state.",
+            "- Once scope is approved, finish it end-to-end; do not ask to continue on obvious next steps.",
+            "- For strategy or scope discussion, align first; implement only after explicit action intent.",
+        ]
 
     # Group override: CCCC_PREAMBLE.md under CCCC_HOME.
     pf = read_group_prompt_file(group, PREAMBLE_FILENAME)
     custom_body = str(pf.content or "").strip() if pf.found else ""
 
-    body = custom_body if custom_body else str(DEFAULT_PREAMBLE_BODY or "").strip()
+    body = custom_body if custom_body else str(
+        get_default_preamble_body(coordination_enabled=coordination_enabled) or ""
+    ).strip()
 
     parts = [
         "\n".join(lines).rstrip(),

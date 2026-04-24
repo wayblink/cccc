@@ -5,7 +5,7 @@ from __future__ import annotations
 from .task_types import TASK_TYPE_IDS
 
 _CCCC_HELP_DESCRIPTION = (
-    "Load the effective collaboration playbook for this group "
+    "Load the effective working playbook for this group "
     "(role-aware, on-demand, with runtime quick-use hints). "
     "Use when workflow or capability-routing details are unclear."
 )
@@ -40,7 +40,7 @@ MCP_TOOLS = [
         "name": "cccc_bootstrap",
         "description": (
             "Cold-start bootstrap: session + recovery + inbox_preview + context_hygiene + memory_recall_gate + next_calls. "
-            "Use it first on cold start or resume; usually follow with cccc_help once, then pull "
+            "Use it first on cold start or resume; follow with cccc_help when workflow is unclear, then pull "
             "cccc_project_info / cccc_context_get only when colder detail is needed."
         ),
         "inputSchema": _obj(

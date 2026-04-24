@@ -9,7 +9,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 import yaml  # type: ignore
 
@@ -20,7 +20,7 @@ from .ledger_segments import ensure_ledger_layout
 from .registry import Registry
 from .scope import ScopeIdentity
 
-_DEFAULT_AUTOMATION_STANDUP_SNIPPET = """{{interval_minutes}} minutes have passed. Stand-up checkpoint (foreman only).
+_COLLABORATION_AUTOMATION_STANDUP_SNIPPET = """{{interval_minutes}} minutes have passed. Stand-up checkpoint (foreman only).
 
 Use MCP chat for any visible update. Keep this short.
 
@@ -35,8 +35,15 @@ Only update shared state if the checkpoint changed shared truth.
 
 LOGGER = logging.getLogger(__name__)
 
-_DEFAULT_AUTOMATION_BUILTIN_SNIPPETS = {
-    "standup": _DEFAULT_AUTOMATION_STANDUP_SNIPPET,
+GroupMode = Literal["interactive", "collaboration"]
+GroupAgentLinkMode = Literal["connected", "isolated"]
+GROUP_MODE_INTERACTIVE: GroupMode = "interactive"
+GROUP_MODE_COLLABORATION: GroupMode = "collaboration"
+GROUP_AGENT_LINK_MODE_CONNECTED: GroupAgentLinkMode = "connected"
+GROUP_AGENT_LINK_MODE_ISOLATED: GroupAgentLinkMode = "isolated"
+
+_COLLABORATION_AUTOMATION_BUILTIN_SNIPPETS = {
+    "standup": _COLLABORATION_AUTOMATION_STANDUP_SNIPPET,
 }
 
 
@@ -54,12 +61,49 @@ def _normalize_automation_snippet_map(raw: Any) -> Dict[str, str]:
     return out
 
 
-def default_automation_builtin_snippets() -> Dict[str, str]:
-    return copy.deepcopy(_DEFAULT_AUTOMATION_BUILTIN_SNIPPETS)
+def automation_coordination_enabled(
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> bool:
+    if isinstance(group_doc, dict):
+        return group_agent_coordination_enabled(group_doc)
+    if agent_link_mode is not None:
+        return normalize_group_agent_link_mode(
+            agent_link_mode,
+            default=GROUP_AGENT_LINK_MODE_CONNECTED,
+        ) == GROUP_AGENT_LINK_MODE_CONNECTED
+    return normalize_group_mode(group_mode, default=GROUP_MODE_COLLABORATION) == GROUP_MODE_COLLABORATION
 
 
-def split_automation_snippets_for_storage(snippets: Any) -> tuple[Dict[str, str], Dict[str, str]]:
-    built_in = default_automation_builtin_snippets()
+def default_automation_builtin_snippets(
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> Dict[str, str]:
+    if not automation_coordination_enabled(
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    ):
+        return {}
+    return copy.deepcopy(_COLLABORATION_AUTOMATION_BUILTIN_SNIPPETS)
+
+
+def split_automation_snippets_for_storage(
+    snippets: Any,
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> tuple[Dict[str, str], Dict[str, str]]:
+    built_in = default_automation_builtin_snippets(
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    )
     normalized = _normalize_automation_snippet_map(snippets)
     custom: Dict[str, str] = {}
     built_in_overrides: Dict[str, str] = {}
@@ -72,8 +116,18 @@ def split_automation_snippets_for_storage(snippets: Any) -> tuple[Dict[str, str]
     return custom, built_in_overrides
 
 
-def normalize_automation_snippet_storage(automation: Any) -> tuple[Dict[str, str], Dict[str, str]]:
-    built_in = default_automation_builtin_snippets()
+def normalize_automation_snippet_storage(
+    automation: Any,
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> tuple[Dict[str, str], Dict[str, str]]:
+    built_in = default_automation_builtin_snippets(
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    )
     raw_custom = _normalize_automation_snippet_map(automation.get("snippets") if isinstance(automation, dict) else {})
     raw_overrides = _normalize_automation_snippet_map(
         automation.get("snippet_overrides") if isinstance(automation, dict) else {}
@@ -100,61 +154,127 @@ def normalize_automation_snippet_storage(automation: Any) -> tuple[Dict[str, str
     return custom, built_in_overrides
 
 
-def stored_automation_snippets(automation: Any) -> Dict[str, str]:
-    custom, built_in_overrides = normalize_automation_snippet_storage(automation)
+def stored_automation_snippets(
+    automation: Any,
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> Dict[str, str]:
+    custom, built_in_overrides = normalize_automation_snippet_storage(
+        automation,
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    )
     out = dict(custom)
     out.update(built_in_overrides)
     return out
 
 
-def effective_automation_snippets(automation: Any) -> Dict[str, str]:
-    built_in = default_automation_builtin_snippets()
-    custom, built_in_overrides = normalize_automation_snippet_storage(automation)
+def effective_automation_snippets(
+    automation: Any,
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> Dict[str, str]:
+    built_in = default_automation_builtin_snippets(
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    )
+    custom, built_in_overrides = normalize_automation_snippet_storage(
+        automation,
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    )
     out = dict(built_in)
     out.update(built_in_overrides)
     out.update(custom)
     return out
 
 
-def automation_snippet_catalog(automation: Any) -> Dict[str, Dict[str, str]]:
-    custom, built_in_overrides = normalize_automation_snippet_storage(automation)
+def automation_snippet_catalog(
+    automation: Any,
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> Dict[str, Dict[str, str]]:
+    custom, built_in_overrides = normalize_automation_snippet_storage(
+        automation,
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    )
     return {
-        "built_in": default_automation_builtin_snippets(),
+        "built_in": default_automation_builtin_snippets(
+            group_doc=group_doc,
+            group_mode=group_mode,
+            agent_link_mode=agent_link_mode,
+        ),
         "built_in_overrides": built_in_overrides,
         "custom": custom,
     }
 
 
-def _default_automation_ruleset() -> Dict[str, Any]:
+def _default_automation_ruleset(
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> Dict[str, Any]:
     # Stored in group.yaml; must not share mutable objects across groups.
+    coordination_enabled = automation_coordination_enabled(
+        group_doc=group_doc,
+        group_mode=group_mode,
+        agent_link_mode=agent_link_mode,
+    )
     return {
         "version": 1,
-        "rules": [
-            {
-                "id": "standup",
-                "enabled": False,
-                "scope": "group",
-                "owner_actor_id": None,
-                "to": ["@foreman"],
-                "trigger": {"kind": "interval", "every_seconds": 900},
-                "action": {
-                    "kind": "notify",
-                    "priority": "normal",
-                    "requires_ack": False,
-                    "title": "Stand-up reminder",
-                    "snippet_ref": "standup",
-                    "message": "",
-                },
-            }
-        ],
+        "rules": (
+            [
+                {
+                    "id": "standup",
+                    "enabled": False,
+                    "scope": "group",
+                    "owner_actor_id": None,
+                    "to": ["@foreman"],
+                    "trigger": {"kind": "interval", "every_seconds": 900},
+                    "action": {
+                        "kind": "notify",
+                        "priority": "normal",
+                        "requires_ack": False,
+                        "title": "Stand-up reminder",
+                        "snippet_ref": "standup",
+                        "message": "",
+                    },
+                }
+            ]
+            if coordination_enabled
+            else []
+        ),
         "snippets": {},
         "snippet_overrides": {},
     }
 
 
-def default_automation_ruleset_doc() -> Dict[str, Any]:
+def default_automation_ruleset_doc(
+    *,
+    group_doc: Optional[Dict[str, Any]] = None,
+    group_mode: Any = GROUP_MODE_COLLABORATION,
+    agent_link_mode: Any = None,
+) -> Dict[str, Any]:
     """Return a fresh default automation ruleset document."""
-    return copy.deepcopy(_default_automation_ruleset())
+    return copy.deepcopy(
+        _default_automation_ruleset(
+            group_doc=group_doc,
+            group_mode=group_mode,
+            agent_link_mode=agent_link_mode,
+        )
+    )
 
 
 def _new_group_id(seed: str) -> str:
@@ -164,6 +284,89 @@ def _new_group_id(seed: str) -> str:
 
 def _random_group_id() -> str:
     return "g_" + uuid.uuid4().hex[:12]
+
+
+def normalize_group_mode(raw: Any, *, default: GroupMode = GROUP_MODE_COLLABORATION) -> GroupMode:
+    value = str(raw or "").strip().lower()
+    if value == GROUP_MODE_INTERACTIVE:
+        return GROUP_MODE_INTERACTIVE
+    if value == GROUP_MODE_COLLABORATION:
+        return GROUP_MODE_COLLABORATION
+    return default
+
+
+def get_group_mode(group_doc: Dict[str, Any]) -> GroupMode:
+    if not isinstance(group_doc, dict):
+        return GROUP_MODE_COLLABORATION
+    return normalize_group_mode(group_doc.get("mode"), default=GROUP_MODE_COLLABORATION)
+
+
+def normalize_group_agent_link_mode(
+    raw: Any,
+    *,
+    default: GroupAgentLinkMode = GROUP_AGENT_LINK_MODE_CONNECTED,
+) -> GroupAgentLinkMode:
+    value = str(raw or "").strip().lower()
+    if value == GROUP_AGENT_LINK_MODE_ISOLATED:
+        return GROUP_AGENT_LINK_MODE_ISOLATED
+    if value == GROUP_AGENT_LINK_MODE_CONNECTED:
+        return GROUP_AGENT_LINK_MODE_CONNECTED
+    return default
+
+
+def get_group_agent_link_mode(group_doc: Dict[str, Any]) -> GroupAgentLinkMode:
+    if not isinstance(group_doc, dict):
+        return GROUP_AGENT_LINK_MODE_CONNECTED
+
+    messaging = group_doc.get("messaging")
+    if isinstance(messaging, dict):
+        for key in ("agent_link_mode", "link_mode"):
+            if key in messaging:
+                return normalize_group_agent_link_mode(
+                    messaging.get(key),
+                    default=GROUP_AGENT_LINK_MODE_CONNECTED,
+                )
+
+    for key in ("agent_link_mode", "link_mode"):
+        if key in group_doc:
+            return normalize_group_agent_link_mode(
+                group_doc.get(key),
+                default=GROUP_AGENT_LINK_MODE_CONNECTED,
+            )
+
+    return (
+        GROUP_AGENT_LINK_MODE_ISOLATED
+        if get_group_mode(group_doc) == GROUP_MODE_INTERACTIVE
+        else GROUP_AGENT_LINK_MODE_CONNECTED
+    )
+
+
+def group_agent_coordination_enabled(group_doc: Dict[str, Any]) -> bool:
+    return get_group_agent_link_mode(group_doc) == GROUP_AGENT_LINK_MODE_CONNECTED
+
+
+def group_selector_recipients_enabled(group_doc: Dict[str, Any]) -> bool:
+    return group_agent_coordination_enabled(group_doc)
+
+
+def group_requires_explicit_actor_recipient(group_doc: Dict[str, Any]) -> bool:
+    return not group_agent_coordination_enabled(group_doc)
+
+
+def group_broadcast_delivery_enabled(group_doc: Dict[str, Any]) -> bool:
+    return group_agent_coordination_enabled(group_doc)
+
+
+def group_heavy_mcp_enabled(group_doc: Dict[str, Any]) -> bool:
+    return group_agent_coordination_enabled(group_doc)
+
+
+def is_interactive_group_doc(group_doc: Dict[str, Any]) -> bool:
+    return get_group_mode(group_doc) == GROUP_MODE_INTERACTIVE
+
+
+def supports_group_default_send_to(group_doc: Dict[str, Any]) -> bool:
+    return group_agent_coordination_enabled(group_doc)
 
 
 @dataclass
@@ -193,13 +396,21 @@ def load_group(group_id: str) -> Optional[Group]:
         doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
         if not isinstance(doc, dict):
             return None
+        doc["mode"] = get_group_mode(doc)
+        doc["agent_link_mode"] = get_group_agent_link_mode(doc)
         ensure_ledger_layout(gp)
         return Group(group_id=group_id, path=gp, doc=doc)
     except Exception:
         return None
 
 
-def create_group(reg: Registry, *, title: str, topic: str = "") -> Group:
+def create_group(
+    reg: Registry,
+    *,
+    title: str,
+    topic: str = "",
+    mode: GroupMode = GROUP_MODE_INTERACTIVE,
+) -> Group:
     home = ensure_home()
     groups_dir = home / "groups"
     groups_dir.mkdir(parents=True, exist_ok=True)
@@ -216,6 +427,10 @@ def create_group(reg: Registry, *, title: str, topic: str = "") -> Group:
     group_doc: Dict[str, Any] = {
         "v": 1,
         "group_id": group_id,
+        "mode": normalize_group_mode(mode, default=GROUP_MODE_INTERACTIVE),
+        "agent_link_mode": normalize_group_agent_link_mode(
+            GROUP_AGENT_LINK_MODE_ISOLATED if normalize_group_mode(mode, default=GROUP_MODE_INTERACTIVE) == GROUP_MODE_INTERACTIVE else GROUP_AGENT_LINK_MODE_CONNECTED
+        ),
         "title": title.strip() if title.strip() else "working-group",
         "topic": topic.strip(),
         "created_at": now,
@@ -226,13 +441,22 @@ def create_group(reg: Registry, *, title: str, topic: str = "") -> Group:
         "scopes": [],
         "actors": [],
         # Single-layer storage: automation rules/snippets live in group.yaml under CCCC_HOME.
-        "automation": default_automation_ruleset_doc(),
+        "automation": default_automation_ruleset_doc(
+            group_mode=mode,
+            agent_link_mode=(
+                GROUP_AGENT_LINK_MODE_ISOLATED
+                if normalize_group_mode(mode, default=GROUP_MODE_INTERACTIVE) == GROUP_MODE_INTERACTIVE
+                else GROUP_AGENT_LINK_MODE_CONNECTED
+            ),
+        ),
     }
     atomic_write_text(gp / "group.yaml", yaml.safe_dump(group_doc, allow_unicode=True, sort_keys=False))
 
     reg.groups[group_id] = {
         "group_id": group_id,
         "title": group_doc["title"],
+        "mode": group_doc["mode"],
+        "agent_link_mode": group_doc["agent_link_mode"],
         "topic": group_doc["topic"],
         "path": str(gp),
         "default_scope_key": "",
@@ -243,7 +467,15 @@ def create_group(reg: Registry, *, title: str, topic: str = "") -> Group:
 
     # Publish event for SSE subscribers
     from .events import publish_event
-    publish_event("group.created", {"group_id": group_id, "title": group_doc["title"]})
+    publish_event(
+        "group.created",
+        {
+            "group_id": group_id,
+            "title": group_doc["title"],
+            "mode": group_doc["mode"],
+            "agent_link_mode": group_doc["agent_link_mode"],
+        },
+    )
 
     return Group(group_id=group_id, path=gp, doc=group_doc)
 
@@ -363,6 +595,8 @@ def ensure_group_for_scope(reg: Registry, scope: ScopeIdentity) -> Group:
     group_doc: Dict[str, Any] = {
         "v": 1,
         "group_id": group_id,
+        "mode": GROUP_MODE_COLLABORATION,
+        "agent_link_mode": GROUP_AGENT_LINK_MODE_CONNECTED,
         "title": scope.label,
         "topic": "",
         "created_at": now,
@@ -373,13 +607,18 @@ def ensure_group_for_scope(reg: Registry, scope: ScopeIdentity) -> Group:
         "scopes": [],
         "actors": [],
         # Keep deterministic defaults consistent with create_group().
-        "automation": default_automation_ruleset_doc(),
+        "automation": default_automation_ruleset_doc(
+            group_mode=GROUP_MODE_COLLABORATION,
+            agent_link_mode=GROUP_AGENT_LINK_MODE_CONNECTED,
+        ),
     }
     atomic_write_text(gp / "group.yaml", yaml.safe_dump(group_doc, allow_unicode=True, sort_keys=False))
 
     reg.groups[group_id] = {
         "group_id": group_id,
         "title": scope.label,
+        "mode": group_doc["mode"],
+        "agent_link_mode": group_doc["agent_link_mode"],
         "topic": "",
         "path": str(gp),
         "default_scope_key": "",
@@ -406,6 +645,8 @@ def update_group(reg: Registry, group: Group, *, patch: Dict[str, Any]) -> Group
     meta = reg.groups.get(group.group_id)
     if isinstance(meta, dict):
         meta["title"] = str(group.doc.get("title") or meta.get("title") or "")
+        meta["mode"] = get_group_mode(group.doc)
+        meta["agent_link_mode"] = get_group_agent_link_mode(group.doc)
         meta["topic"] = str(group.doc.get("topic") or "")
         meta["updated_at"] = str(group.doc.get("updated_at") or utc_now_iso())
     reg.save()
@@ -417,6 +658,8 @@ def update_group(reg: Registry, group: Group, *, patch: Dict[str, Any]) -> Group
         {
             "group_id": group.group_id,
             "title": str(group.doc.get("title") or ""),
+            "mode": get_group_mode(group.doc),
+            "agent_link_mode": get_group_agent_link_mode(group.doc),
             "topic": str(group.doc.get("topic") or ""),
         },
     )

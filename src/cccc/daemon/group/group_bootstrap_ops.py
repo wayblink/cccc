@@ -51,18 +51,28 @@ def handle_group_create(args: Dict[str, Any]) -> DaemonResponse:
     reg = load_registry()
     title = str(args.get("title") or "working-group")
     topic = str(args.get("topic") or "")
-    group = create_group(reg, title=title, topic=topic)
+    mode = str(args.get("mode") or "").strip()
+    group = create_group(reg, title=title, topic=topic, mode=mode or "interactive")
     event = append_event(
         group.ledger_path,
         kind="group.create",
         group_id=group.group_id,
         scope_key="",
         by=str(args.get("by") or "cli"),
-        data={"title": group.doc.get("title", ""), "topic": group.doc.get("topic", "")},
+        data={
+            "title": group.doc.get("title", ""),
+            "topic": group.doc.get("topic", ""),
+            "mode": group.doc.get("mode", "collaboration"),
+        },
     )
     return DaemonResponse(
         ok=True,
-        result={"group_id": group.group_id, "title": group.doc.get("title"), "event": event},
+        result={
+            "group_id": group.group_id,
+            "title": group.doc.get("title"),
+            "mode": group.doc.get("mode", "collaboration"),
+            "event": event,
+        },
     )
 
 

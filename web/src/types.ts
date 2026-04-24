@@ -33,8 +33,12 @@ export type GroupRuntimeStatus = {
   has_running_foreman: boolean;
 };
 
+export type GroupAgentLinkMode = "connected" | "isolated";
+
 export type GroupMeta = {
   group_id: string;
+  mode?: "interactive" | "collaboration";
+  agent_link_mode?: GroupAgentLinkMode;
   title?: string;
   topic?: string;
   updated_at?: string;
@@ -46,6 +50,8 @@ export type GroupMeta = {
 
 export type GroupDoc = {
   group_id: string;
+  mode?: "interactive" | "collaboration";
+  agent_link_mode?: GroupAgentLinkMode;
   title?: string;
   topic?: string;
   active_scope_key?: string;
@@ -669,7 +675,9 @@ export type ProjectMdInfo = {
 };
 
 export type GroupSettings = {
+  agent_link_mode: GroupAgentLinkMode;
   default_send_to: "foreman" | "broadcast";
+  supports_default_send_to?: boolean;
   nudge_after_seconds: number;
   reply_required_nudge_after_seconds: number;
   attention_ack_nudge_after_seconds: number;

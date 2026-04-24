@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ....kernel.agent_state_hygiene import build_mind_context_mini, evaluate_agent_state_hygiene
-from ....kernel.group import load_group
+from ....kernel.group import group_agent_coordination_enabled, load_group
 from ....kernel.group_space import get_group_space_prompt_state
 from ....kernel.prompt_files import load_builtin_help_markdown as _load_builtin_help_markdown
 from ....util.fs import read_json
@@ -22,6 +22,56 @@ _RUNTIME_HELP_SECTION_HEADERS = {
     "## Active Skills (Runtime)",
     "## Group Space (Runtime)",
 }
+
+_ISOLATED_HELP_INTRO_OLD = "Run `cccc_help` to refresh this playbook; rerun when reminded."
+_ISOLATED_HELP_INTRO_NEW = (
+    "Run `cccc_help` to refresh this playbook when workflow or tool routing is unclear."
+)
+_ISOLATED_HELP_CORE_ROUTES_OLD = (
+    "- At key transitions, sync `cccc_coordination` / `cccc_task` and refresh `cccc_agent_state`."
+)
+_ISOLATED_HELP_CORE_ROUTES_NEW = (
+    "- At key transitions, refresh `cccc_agent_state`; shared coordination/task tools are unavailable while "
+    "`agent_link_mode=isolated`."
+)
+_ISOLATED_HELP_CHAT_OLD = """### Chat
+
+- Visible coordination belongs in `cccc_message_send` / `cccc_message_reply`.
+- Targets: `@all`, `@foreman`, `@peers`, `user`, or one actor.
+- Use `@all` only when the whole group needs the message; routine status, acknowledgements, and narrow coordination should target the relevant person or subset.
+"""
+_ISOLATED_HELP_CHAT_NEW = """### Chat
+
+- Visible replies belong in `cccc_message_send` / `cccc_message_reply`.
+- Primary target is `user`; do not use peer targets or selector fanout in isolated groups.
+- Keep messages local and purposeful; do not simulate group-wide coordination when agents are disconnected.
+"""
+_ISOLATED_HELP_COORDINATION_OLD = """### Coordination
+
+- Shared truth lives in `coordination.brief` plus task cards.
+- Read the current snapshot with `cccc_context_get`.
+- Update the brief with `cccc_coordination(action="update_brief"|...)`.
+- Add decisions and handoffs with `cccc_coordination(action="add_decision"|"add_handoff", ...)`.
+- Use `cccc_task` for shared work units; runtime todo stays private.
+- If a task needs a built-in work kind, set `type` on `cccc_task` (`free`, `standard`, or `optimization`). `type` is the durable task category; `notes` and `checklist` stay ordinary editable task content.
+- When a peer creates a task through `cccc_task(action="create")` and omits `assignee`, the wrapper defaults it to self. Pass `assignee=""` if you intentionally want an unassigned backlog card.
+- For task lifecycle changes, use `cccc_task(action="move", ...)` as the canonical path. `update` is for task fields; if `status` is included with `update`, the MCP wrapper also applies the matching move.
+- If you need to close a task with `outcome`, `notes`, `checklist`, or `type`, use `cccc_task(action="update", status=..., ...)` rather than `move`; `move` is status-only.
+"""
+_ISOLATED_HELP_COORDINATION_NEW = """### Coordination
+
+- Shared coordination and task tools are unavailable while `agent_link_mode=isolated`.
+- Use `cccc_context_get` for local group context only; do not expect brief/task synchronization between agents.
+- Keep your own execution state current with `cccc_agent_state`; treat runtime todo as local unless the user explicitly asks you to surface something.
+"""
+_ISOLATED_HELP_INTERRUPT_OLD = (
+    "- `standup` and `help_nudge` are coordination interrupts, not task switches. Reply, then resume work "
+    "unless priority changed. Do not overwrite `active_task_id`, `focus`, or `next_action` with the interrupt."
+)
+_ISOLATED_HELP_INTERRUPT_NEW = (
+    "- If a runtime interrupt arrives, handle it directly, then resume your local task unless priority changed. "
+    "Do not overwrite `active_task_id`, `focus`, or `next_action` just because an interrupt appeared."
+)
 
 def _trim_text(value: Any, *, max_chars: int) -> str:
     text = str(value or "").strip()
@@ -86,6 +136,33 @@ def _strip_reserved_runtime_help_sections(markdown: str) -> str:
     if keep_trailing_newline:
         result += "\n"
     return result
+
+
+def _group_coordination_enabled(group_id: str) -> bool:
+    gid = str(group_id or "").strip()
+    if not gid:
+        return True
+    group = load_group(gid)
+    if group is None:
+        return True
+    return group_agent_coordination_enabled(group.doc)
+
+
+def _adapt_help_markdown_for_group(markdown: str, *, group_id: str) -> str:
+    text = str(markdown or "")
+    if not text or _group_coordination_enabled(group_id):
+        return text
+
+    replacements = (
+        (_ISOLATED_HELP_INTRO_OLD, _ISOLATED_HELP_INTRO_NEW),
+        (_ISOLATED_HELP_CORE_ROUTES_OLD, _ISOLATED_HELP_CORE_ROUTES_NEW),
+        (_ISOLATED_HELP_CHAT_OLD, _ISOLATED_HELP_CHAT_NEW),
+        (_ISOLATED_HELP_COORDINATION_OLD, _ISOLATED_HELP_COORDINATION_NEW),
+        (_ISOLATED_HELP_INTERRUPT_OLD, _ISOLATED_HELP_INTERRUPT_NEW),
+    )
+    for old, new in replacements:
+        text = text.replace(old, new)
+    return text
 
 
 def _find_actor_state(*, context: Dict[str, Any], actor_id: str) -> Optional[Dict[str, Any]]:
@@ -711,6 +788,7 @@ def bootstrap(
     )
     preview_limit = max(1, int(inbox_limit or 50))
     inbox = inbox_list(group_id=group_id, actor_id=actor_id, limit=preview_limit + 1, kind_filter=inbox_kind_filter)
+    coordination_enabled = _group_coordination_enabled(group_id)
 
     memory_recall_gate = _build_memory_recall_gate(
         group_id=group_id,
@@ -743,6 +821,9 @@ def bootstrap(
             "interrupt_triage": (
                 'If inbox_preview messages have signal_family="interrupt", treat them as coordination interrupts: '
                 'refresh or reply, then resume the current task unless priority changed.'
+                if coordination_enabled
+                else 'If inbox_preview messages have signal_family="interrupt", treat them as direct runtime '
+                'interrupts: reply or clear what needs attention, then resume the current task unless priority changed.'
             ),
         },
     }

@@ -26,7 +26,7 @@
   "restoreGroup": "Restore",
   "deleteGroup": "Delete",
   "noGroupsYet": "No working groups yet",
-  "noGroupsDescription": "A working group is a collaboration space where multiple AI agents work together on a project.",
+  "noGroupsDescription": "A working group is a project workspace where one or more AI agents can run in interactive or collaboration mode.",
   "createFirstGroup": "Create Your First Group",
   "closeMenu": "Close menu",
   "selectGroupToEnable": "Select a group to enable actions.",

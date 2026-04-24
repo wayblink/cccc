@@ -26,7 +26,7 @@
   "restoreGroup": "恢复",
   "deleteGroup": "删除",
   "noGroupsYet": "还没有工作组",
-  "noGroupsDescription": "工作组是一个协作空间，多个 AI 智能体可以在这里共同完成项目。",
+  "noGroupsDescription": "工作组是一个项目工作空间，可让一个或多个 AI 智能体以交互模式或协作模式运行。",
   "createFirstGroup": "创建第一个工作组",
   "closeMenu": "关闭菜单",
   "selectGroupToEnable": "请选择一个工作组以启用操作。",

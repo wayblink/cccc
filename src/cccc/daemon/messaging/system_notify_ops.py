@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, Optional
 
 from ...contracts.v1 import DaemonError, DaemonResponse, SystemNotifyData
-from ...kernel.group import load_group
+from ...kernel.actors import find_actor
+from ...kernel.group import group_requires_explicit_actor_recipient, load_group
 from ...kernel.inbox import find_event
 from ...kernel.ledger import append_event
 from .delivery import emit_system_notify
@@ -14,6 +15,22 @@ from ..pet.review_scheduler import request_pet_review
 
 def _error(code: str, message: str, *, details: Optional[Dict[str, Any]] = None) -> DaemonResponse:
     return DaemonResponse(ok=False, error=DaemonError(code=code, message=message, details=(details or {})))
+
+
+def _isolated_actor_peer_notify_error(*, sender: str, target_actor_id: str) -> DaemonResponse:
+    return _error(
+        "peer_messaging_disabled",
+        "This group has agent_link_mode=isolated, so agents cannot send system notifications to other agents.",
+        details={"by": str(sender or "").strip(), "target_actor_id": str(target_actor_id or "").strip()},
+    )
+
+
+def _isolated_broadcast_notify_error(*, sender: str) -> DaemonResponse:
+    return _error(
+        "explicit_recipient_required",
+        "This group has agent_link_mode=isolated, so system notifications must target exactly one actor.",
+        details={"by": str(sender or "").strip()},
+    )
 
 
 def handle_system_notify(
@@ -36,6 +53,17 @@ def handle_system_notify(
     group = load_group(group_id)
     if group is None:
         return _error("group_not_found", f"group not found: {group_id}")
+    if group_requires_explicit_actor_recipient(group.doc) and not target_actor_id:
+        return _isolated_broadcast_notify_error(sender=by)
+    sender_is_actor = isinstance(find_actor(group, by), dict)
+    target_is_actor = bool(target_actor_id) and isinstance(find_actor(group, str(target_actor_id)), dict)
+    if (
+        sender_is_actor
+        and target_is_actor
+        and str(target_actor_id or "").strip() != by
+        and group_requires_explicit_actor_recipient(group.doc)
+    ):
+        return _isolated_actor_peer_notify_error(sender=by, target_actor_id=str(target_actor_id))
 
     valid_kinds = {"nudge", "keepalive", "help_nudge", "actor_idle", "silence_check", "auto_idle", "automation", "status_change", "error", "info"}
     valid_priorities = {"low", "normal", "high", "urgent"}

@@ -19,7 +19,7 @@ from ...runners import headless as headless_runner
 from ...runners import pty as pty_runner
 from ...util.conv import coerce_bool
 from ..actors.actor_profile_runtime import resolve_linked_actor_before_start
-from ..actors.actor_runtime_ops import resolve_actor_launch_spec
+from ..actors.actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
 from ..pet.pet_runtime_ops import capture_pet_actor_state, restore_pet_actor_state, sync_pet_actor_from_foreman
 from ..pet.review_scheduler import cancel_pet_review, request_pet_review
 from ..pet.profile_refresh import maybe_request_pet_profile_refresh
@@ -187,30 +187,30 @@ def handle_group_start(
             runner_effective = str(launch_spec["effective_runner"])
             update_actor(group, aid, {"enabled": True})
             effective_env = dict(launch_spec["merged_env"])
+            runtime_error = runtime_start_preflight_error(runtime, launch_spec["effective_command"], runner=runner_effective)
+            if runtime_error:
+                return _error(
+                    "runtime_unavailable",
+                    runtime_error,
+                    details={
+                        "group_id": group.group_id,
+                        "actor_id": aid,
+                        "runtime": runtime,
+                    },
+                )
             if runner_effective != "headless":
-                try:
-                    mcp_ready = bool(
-                        ensure_mcp_installed(
-                            runtime,
-                            cwd,
-                            env={str(k): str(v) for k, v in effective_env.items() if isinstance(k, str)},
-                        )
-                    )
-                except Exception as e:
-                    raise RuntimeError(f"failed to install MCP for actor {aid}: {e}") from e
+                mcp_ready, mcp_error = ensure_actor_mcp_ready(
+                    group,
+                    aid,
+                    runtime=runtime,
+                    cwd=cwd,
+                    effective_env=effective_env,
+                    effective_runner=runner_effective,
+                    ensure_mcp_installed=ensure_mcp_installed,
+                )
                 if not mcp_ready:
-                    raise RuntimeError(f"failed to install MCP for actor {aid} (runtime={runtime})")
-                runtime_error = runtime_start_preflight_error(runtime, launch_spec["effective_command"], runner=runner_effective)
-                if runtime_error:
-                    return _error(
-                        "runtime_unavailable",
-                        runtime_error,
-                        details={
-                            "group_id": group.group_id,
-                            "actor_id": aid,
-                            "runtime": runtime,
-                        },
-                    )
+                    detail = mcp_error or f"failed to install MCP for runtime: {runtime}"
+                    raise RuntimeError(f"failed to install MCP for actor {aid}: {detail}")
 
             if runtime == "codex" and runner_effective == "headless":
                 codex_app_supervisor.start_actor(

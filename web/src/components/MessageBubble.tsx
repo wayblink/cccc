@@ -226,7 +226,9 @@ function MessageBubbleBody({
 
             {hasDestination ? (() => {
                 const dstLabel = String(groupLabelById?.[dstGroupId] || "").trim() || dstGroupId;
-                const dstToLabel = dstTo.length > 0 ? dstTo.join(", ") : "@all";
+                const dstToLabel = dstTo.length > 0
+                  ? dstTo.join(", ")
+                  : t("noRecipients", { defaultValue: "(no recipients)" });
                 return (
                     <div
                         className={classNames(

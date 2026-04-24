@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Actor, ChatMessageData, GroupMeta, LedgerEvent } from "../../types";
 import { classNames } from "../../utils/classNames";
+import { getGroupAgentLinkMode, getSpecialRecipientTokens } from "../../utils/groupMode";
 import * as api from "../../services/api";
 import { useModalA11y } from "../../hooks/useModalA11y";
 
@@ -39,7 +40,7 @@ export function RelayMessageModal({
   const [dstActors, setDstActors] = useState<Actor[]>([]);
   const [dstActorsLoadingFor, setDstActorsLoadingFor] = useState(() => defaultDstGroupId);
   const [note, setNote] = useState("");
-  const [toTokens, setToTokens] = useState<string[]>(["@all"]);
+  const [toTokens, setToTokens] = useState<string[]>([]);
   const actorsRequestEpochRef = useRef(0);
 
   const srcEventId = srcEvent?.id ? String(srcEvent.id) : "";
@@ -82,13 +83,30 @@ export function RelayMessageModal({
   }, [dstGroupId, isOpen]);
 
   const dstActorsBusy = !!dstGroupId && dstActorsLoadingFor === dstGroupId;
+  const dstGroupAgentLinkMode = useMemo(() => {
+    const group = (groups || []).find((item) => String(item.group_id || "") === dstGroupId) || null;
+    return getGroupAgentLinkMode(group);
+  }, [dstGroupId, groups]);
+  const specialRecipientTokens = useMemo(
+    () => getSpecialRecipientTokens(dstGroupAgentLinkMode),
+    [dstGroupAgentLinkMode],
+  );
 
   const availableTokens = useMemo(() => {
-    const base = ["@all", "@foreman", "@peers"];
     const actorIds = (dstActors || []).map((a) => String(a.id || "")).filter((id) => id);
     actorIds.sort();
-    return [...base, ...actorIds];
-  }, [dstActors]);
+    return [...specialRecipientTokens, ...actorIds];
+  }, [dstActors, specialRecipientTokens]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const validTokens = new Set(availableTokens);
+    setToTokens((prev) => {
+      const next = prev.filter((token) => validTokens.has(token));
+      if (next.length > 0) return next;
+      return dstGroupAgentLinkMode === "connected" ? ["@all"] : [];
+    });
+  }, [availableTokens, dstGroupAgentLinkMode, isOpen]);
 
   const toggleToken = (token: string) => {
     const t = token.trim();
@@ -216,7 +234,11 @@ export function RelayMessageModal({
                   })}
                 </div>
                 <div className="mt-2 text-xs text-[var(--color-text-muted)]">
-                  {toTokens.length ? t("relay.selectedTokens", { tokens: toTokens.join(", ") }) : t("relay.selectedBroadcast")}
+                  {toTokens.length
+                    ? t("relay.selectedTokens", { tokens: toTokens.join(", ") })
+                    : dstGroupAgentLinkMode === "connected"
+                      ? t("relay.selectedBroadcast")
+                      : t("relay.selectedExplicit", { defaultValue: "Selected: (choose recipients)" })}
                 </div>
               </div>
 

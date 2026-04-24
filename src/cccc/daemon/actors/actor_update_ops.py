@@ -17,7 +17,7 @@ from ...runners import headless as headless_runner
 from ...runners import pty as pty_runner
 from ...runners.platform_support import pty_support_error_message
 from ...util.conv import coerce_bool
-from .actor_runtime_ops import resolve_actor_launch_spec
+from .actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
 from .actor_profile_runtime import (
     PROFILE_CONTROLLED_FIELDS,
     actor_profile_id,
@@ -281,24 +281,23 @@ def handle_actor_update(
                 runner_effective = str(launch_spec["effective_runner"])
                 runtime = str(launch_spec["runtime"])
                 effective_env = dict(launch_spec["merged_env"])
+                runtime_error = runtime_start_preflight_error(runtime, launch_spec["effective_command"], runner=runner_effective)
+                if runtime_error:
+                    return _error("runtime_unavailable", runtime_error)
                 if runner_effective != "headless":
                     if not bool(getattr(pty_runner, "PTY_SUPPORTED", False)):
                         return _error("actor_update_failed", pty_support_error_message() or "PTY runner is not supported in this environment.")
-                    try:
-                        mcp_ready = bool(
-                            ensure_mcp_installed(
-                                runtime,
-                                cwd,
-                                env={str(k): str(v) for k, v in effective_env.items() if isinstance(k, str)},
-                            )
-                        )
-                    except Exception as e:
-                        return _error("actor_update_failed", f"failed to install MCP: {e}")
+                    mcp_ready, mcp_error = ensure_actor_mcp_ready(
+                        group,
+                        actor_id,
+                        runtime=runtime,
+                        cwd=cwd,
+                        effective_env=effective_env,
+                        effective_runner=runner_effective,
+                        ensure_mcp_installed=ensure_mcp_installed,
+                    )
                     if not mcp_ready:
-                        return _error("actor_update_failed", f"failed to install MCP for runtime: {runtime}")
-                    runtime_error = runtime_start_preflight_error(runtime, launch_spec["effective_command"], runner=runner_effective)
-                    if runtime_error:
-                        return _error("runtime_unavailable", runtime_error)
+                        return _error("actor_update_failed", mcp_error or f"failed to install MCP for runtime: {runtime}")
 
                 if runner_effective == "headless":
                     if runtime == "codex":

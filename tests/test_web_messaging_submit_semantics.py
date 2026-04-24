@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -78,6 +79,106 @@ class TestWebMessagingSubmitSemantics(unittest.TestCase):
             self.assertEqual(str(((body.get("error") or {}).get("code")) or ""), "event_not_found")
         finally:
             cleanup_mode()
+            cleanup_home()
+
+    def test_reply_upload_falls_back_to_single_enabled_actor_after_toggle_to_isolated(self) -> None:
+        from cccc.contracts.v1 import DaemonRequest
+        from cccc.daemon.server import handle_request
+
+        _, cleanup_home = self._with_home()
+        try:
+            create_resp, _ = handle_request(
+                DaemonRequest.model_validate(
+                    {"op": "group_create", "args": {"title": "reply-upload-isolated", "topic": "", "mode": "collaboration", "by": "user"}}
+                )
+            )
+            self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
+            group_id = str((create_resp.result or {}).get("group_id") or "")
+
+            with tempfile.TemporaryDirectory(prefix="cccc_reply_upload_scope_") as scope_dir_raw:
+                scope_dir = Path(scope_dir_raw)
+                attach_resp, _ = handle_request(
+                    DaemonRequest.model_validate(
+                        {"op": "attach", "args": {"group_id": group_id, "path": str(scope_dir), "by": "user"}}
+                    )
+                )
+                self.assertTrue(attach_resp.ok, getattr(attach_resp, "error", None))
+
+                use_resp, _ = handle_request(
+                    DaemonRequest.model_validate(
+                        {"op": "group_use", "args": {"group_id": group_id, "path": str(scope_dir), "by": "user"}}
+                    )
+                )
+                self.assertTrue(use_resp.ok, getattr(use_resp, "error", None))
+
+                add_resp, _ = handle_request(
+                    DaemonRequest.model_validate(
+                        {
+                            "op": "actor_add",
+                            "args": {
+                                "group_id": group_id,
+                                "actor_id": "peer1",
+                                "title": "peer1",
+                                "runtime": "codex",
+                                "runner": "headless",
+                                "by": "user",
+                            },
+                        }
+                    )
+                )
+                self.assertTrue(add_resp.ok, getattr(add_resp, "error", None))
+
+                send_resp, _ = handle_request(
+                    DaemonRequest.model_validate(
+                        {"op": "send", "args": {"group_id": group_id, "by": "user", "to": ["@all"], "text": "hello"}}
+                    )
+                )
+                self.assertTrue(send_resp.ok, getattr(send_resp, "error", None))
+                reply_to = str((((send_resp.result or {}).get("event")) or {}).get("id") or "")
+                self.assertTrue(reply_to)
+
+                toggle_resp, _ = handle_request(
+                    DaemonRequest.model_validate(
+                        {
+                            "op": "group_settings_update",
+                            "args": {"group_id": group_id, "by": "user", "patch": {"agent_link_mode": "isolated"}},
+                        }
+                    )
+                )
+                self.assertTrue(toggle_resp.ok, getattr(toggle_resp, "error", None))
+
+                def fake_call_daemon(req: dict) -> dict:
+                    self.assertEqual(str(req.get("op") or ""), "reply")
+                    args = req.get("args") if isinstance(req.get("args"), dict) else {}
+                    self.assertEqual(list((args or {}).get("to") or []), ["peer1"])
+                    return {
+                        "ok": True,
+                        "result": {
+                            "event": {
+                                "id": "evt_reply_upload",
+                                "kind": "chat.message",
+                                "data": {
+                                    "to": ["peer1"],
+                                    "text": "reply after toggle",
+                                },
+                            }
+                        },
+                    }
+
+                with patch("cccc.ports.web.app.call_daemon", side_effect=fake_call_daemon):
+                    client = self._client()
+                    resp = client.post(
+                        f"/api/v1/groups/{group_id}/reply_upload",
+                        data={"by": "user", "reply_to": reply_to, "text": "reply after toggle"},
+                    )
+
+                self.assertEqual(resp.status_code, 200)
+                body = resp.json()
+                self.assertTrue(bool(body.get("ok")))
+                event = ((body.get("result") or {}).get("event")) if isinstance(body, dict) else {}
+                data = event.get("data") if isinstance(event, dict) else {}
+                self.assertEqual(list((data or {}).get("to") or []), ["peer1"])
+        finally:
             cleanup_home()
 
 

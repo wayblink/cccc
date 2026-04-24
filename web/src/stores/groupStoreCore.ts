@@ -915,6 +915,8 @@ export function buildShellGroupDoc(groupId: string, groups: GroupMeta[], cached:
   if (!meta) return null;
   return {
     group_id: gid,
+    mode: meta.mode,
+    agent_link_mode: meta.agent_link_mode,
     title: meta.title,
     topic: meta.topic,
     running: meta.running,

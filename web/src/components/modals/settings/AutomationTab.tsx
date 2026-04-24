@@ -5,17 +5,20 @@ import { useTranslation } from "react-i18next";
 import * as api from "../../../services/api";
 import type {
   Actor,
+  GroupAgentLinkMode,
   AutomationRule,
   AutomationRuleAction,
   AutomationRuleSet,
   AutomationRuleStatus,
   AutomationSnippetCatalog,
 } from "../../../types";
+import { getSpecialRecipientTokens, normalizeGroupAgentLinkMode } from "../../../utils/groupMode";
 import {
   Section,
   SparkIcon,
   actionKind,
   clampInt,
+  defaultNotifyRecipients,
   defaultNotifyAction,
   isValidId,
   nowId,
@@ -29,6 +32,8 @@ import { cardClass, dangerButtonClass, primaryButtonClass, secondaryButtonClass 
 interface AutomationTabProps {
   isDark: boolean;
   groupId?: string;
+  groupMode?: "interactive" | "collaboration";
+  groupAgentLinkMode?: GroupAgentLinkMode;
   devActors: Actor[];
   busy: boolean;
 
@@ -72,21 +77,21 @@ function cloneRule(rule: AutomationRule): AutomationRule {
   return JSON.parse(JSON.stringify(rule)) as AutomationRule;
 }
 
-function createRuleDraft(seed?: Partial<AutomationRule>): AutomationRule {
+function createRuleDraft(seed?: Partial<AutomationRule>, agentLinkMode?: unknown): AutomationRule {
   const id = String(seed?.id || nowId("rule")).trim();
   return {
     id,
     enabled: seed?.enabled ?? true,
     scope: seed?.scope ?? "group",
     owner_actor_id: seed?.owner_actor_id ?? null,
-    to: seed?.to ?? ["@foreman"],
+    to: seed?.to ?? defaultNotifyRecipients(agentLinkMode),
     trigger: seed?.trigger ?? { kind: "interval", every_seconds: 900 },
     action: seed?.action ?? defaultNotifyAction(),
   };
 }
 
 export function AutomationTab(props: AutomationTabProps) {
-  const { isDark } = props;
+  const { isDark, groupMode } = props;
   const { t } = useTranslation("settings");
 
   const [rulesBusy, setRulesBusy] = useState(false);
@@ -167,19 +172,24 @@ export function AutomationTab(props: AutomationTabProps) {
     const customIds = Array.from(all).filter((id) => builtinSnippetDefaults[id] === undefined).sort();
     return [...builtInIds, ...customIds];
   }, [builtinSnippetDefaults, snippetDrafts]);
+  const groupAgentLinkMode = useMemo(
+    () => normalizeGroupAgentLinkMode(props.groupAgentLinkMode, props.groupMode),
+    [props.groupAgentLinkMode, props.groupMode],
+  );
+  const coordinationEnabled = groupAgentLinkMode === "connected";
+  const specialRecipientTokens = useMemo(() => getSpecialRecipientTokens(groupAgentLinkMode), [groupAgentLinkMode]);
 
   const actorTargetOptions = useMemo(() => {
-    const out: Array<{ value: string; label: string }> = [
-      { value: "@foreman", label: "@foreman" },
-      { value: "@peers", label: "@peers" },
-      { value: "@all", label: "@all" },
-    ];
+    const out: Array<{ value: string; label: string }> = specialRecipientTokens.map((token) => ({
+      value: token,
+      label: token,
+    }));
     for (const actor of props.devActors || []) {
       if (!actor || !actor.id || actor.id === "user") continue;
       out.push({ value: actor.id, label: actor.title ? `${actor.id} (${actor.title})` : actor.id });
     }
     return out;
-  }, [props.devActors]);
+  }, [props.devActors, specialRecipientTokens]);
 
   const completedOneTimeRuleIds = useMemo(() => {
     return draft.rules
@@ -242,7 +252,7 @@ export function AutomationTab(props: AutomationTabProps) {
   };
 
   const openNewRule = () => {
-    openRuleEditor(createRuleDraft(), { sourceId: null, isNew: true });
+    openRuleEditor(createRuleDraft(undefined, groupAgentLinkMode), { sourceId: null, isNew: true });
   };
 
   const openExistingRule = (ruleId: string) => {
@@ -553,6 +563,9 @@ export function AutomationTab(props: AutomationTabProps) {
           {t("automation.description")}{" "}
           <span className="font-mono break-all">{configPath || t("automation.configPathFallback")}</span>.
         </p>
+        {!coordinationEnabled ? (
+          <p className="text-xs mt-2 text-[var(--color-text-muted)]">{t("automation.isolatedRecipientHint")}</p>
+        ) : null}
       </div>
 
       <AutomationPoliciesSection
@@ -668,6 +681,7 @@ export function AutomationTab(props: AutomationTabProps) {
         errorMessage={rulesErr}
         saveBusy={rulesBusy}
         snippetIds={snippetIds}
+        agentLinkMode={groupAgentLinkMode}
         actorTargetOptions={actorTargetOptions}
         oneShotMode={editingOneShotMode}
         oneShotAfterMinutes={editingOneShotAfterMinutes}

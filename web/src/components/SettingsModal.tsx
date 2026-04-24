@@ -5,6 +5,7 @@ import { Actor, GroupDoc, GroupSettings, IMStatus, IMPlatform, WebAccessSession,
 import * as api from "../services/api";
 import { useObservabilityStore } from "../stores";
 import type { RuntimeVisibilityMode } from "../utils/runtimeVisibility";
+import { getGroupAgentLinkMode, supportsGroupDefaultSendTo } from "../utils/groupMode";
 import {
   SettingsScope,
   GroupTabId,
@@ -89,6 +90,7 @@ export function SettingsModal({
   const [autoMarkOnDelivery, setAutoMarkOnDelivery] = useState(false);
 
   // Messaging policy
+  const [agentLinkMode, setAgentLinkMode] = useState<"connected" | "isolated">("connected");
   const [defaultSendTo, setDefaultSendTo] = useState<"foreman" | "broadcast">("foreman");
 
   // Terminal transcript (group-scoped policy)
@@ -164,6 +166,11 @@ export function SettingsModal({
   const [registryErr, setRegistryErr] = useState("");
   const [registryResult, setRegistryResult] = useState<api.RegistryReconcileResult | null>(null);
 
+  const canConfigureDefaultSendTo = useMemo(
+    () => supportsGroupDefaultSendTo(groupDoc, { ...settings, agent_link_mode: agentLinkMode }),
+    [agentLinkMode, groupDoc, settings],
+  );
+
   // ============ Effects ============
 
   useEffect(() => {
@@ -182,12 +189,13 @@ export function SettingsModal({
       setHelpNudgeIntervalSeconds(settings.help_nudge_interval_seconds ?? 600);
       setHelpNudgeMinMessages(settings.help_nudge_min_messages ?? 10);
       setAutoMarkOnDelivery(Boolean(settings.auto_mark_on_delivery));
+      setAgentLinkMode(getGroupAgentLinkMode(groupDoc, settings));
       setDefaultSendTo(settings.default_send_to || "foreman");
       setTerminalVisibility(settings.terminal_transcript_visibility || "foreman");
       setTerminalNotifyTail(Boolean(settings.terminal_transcript_notify_tail));
       setTerminalNotifyLines(Number(settings.terminal_transcript_notify_lines || 20));
     }
-  }, [isOpen, settings]);
+  }, [groupDoc, isOpen, settings]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -474,7 +482,8 @@ export function SettingsModal({
 
   const handleSaveMessagingSettings = async () => {
     await onUpdateSettings({
-      default_send_to: defaultSendTo,
+      agent_link_mode: agentLinkMode,
+      ...(canConfigureDefaultSendTo ? { default_send_to: defaultSendTo } : {}),
     });
   };
 
@@ -1036,6 +1045,8 @@ export function SettingsModal({
                 <AutomationTab
                   isDark={isDark}
                   groupId={groupId}
+                  groupMode={groupDoc?.mode}
+                  groupAgentLinkMode={agentLinkMode}
                   devActors={devActors}
                   busy={busy}
                   nudgeSeconds={nudgeSeconds}
@@ -1083,6 +1094,9 @@ export function SettingsModal({
                 <MessagingTab
                   isDark={isDark}
                   busy={busy}
+                  agentLinkMode={agentLinkMode}
+                  setAgentLinkMode={setAgentLinkMode}
+                  supportsDefaultSendTo={canConfigureDefaultSendTo}
                   defaultSendTo={defaultSendTo}
                   setDefaultSendTo={setDefaultSendTo}
                   onSave={handleSaveMessagingSettings}
