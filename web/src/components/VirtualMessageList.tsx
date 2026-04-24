@@ -64,6 +64,8 @@ export interface VirtualMessageListProps {
   isLoadingHistory?: boolean;
   hasMoreHistory?: boolean;
   onLoadMore?: () => void;
+  emptyStateTitle?: string;
+  emptyStateDescription?: string;
 }
 
 type VirtualMessageListInnerProps = VirtualMessageListProps & {
@@ -194,6 +196,8 @@ const VirtualMessageListInner = function VirtualMessageListInner({
   isLoadingHistory = false,
   hasMoreHistory = true,
   onLoadMore,
+  emptyStateTitle,
+  emptyStateDescription,
   resetKey,
 }: VirtualMessageListInnerProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -819,10 +823,10 @@ const VirtualMessageListInner = function VirtualMessageListInner({
           <div className="flex flex-col items-center justify-center h-full text-center pb-20 opacity-50">
             <div className="text-4xl mb-4 grayscale">💬</div>
             <p className={`text-sm font-medium ${isDark ? "text-slate-400" : "text-gray-500"}`}>
-              No messages yet
+              {emptyStateTitle || "No messages yet"}
             </p>
             <p className={`text-xs mt-1 ${isDark ? "text-slate-600" : "text-gray-400"}`}>
-              Start the conversation with your AI team.
+              {emptyStateDescription || "Start the conversation with your AI team."}
             </p>
           </div>
         )

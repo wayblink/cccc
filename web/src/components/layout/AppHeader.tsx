@@ -10,6 +10,7 @@ import {
 } from "../../types";
 import { getGroupStatusFromSource } from "../../utils/groupStatus";
 import { getGroupControlVisual, getLaunchControlMode, resolveGroupControls } from "../../utils/groupControls";
+import { getGroupAgentLinkMode, getGroupMode } from "../../utils/groupMode";
 import { classNames } from "../../utils/classNames";
 import { ChatNotificationSoundSwitcher } from "../ChatNotificationSoundSwitcher";
 import { TextScaleSwitcher } from "../TextScaleSwitcher";
@@ -138,6 +139,23 @@ export function AppHeader({
     onStopGroup();
   };
   const title = titleOverride || groupDoc?.title || (selectedGroupId ? selectedGroupId : t('selectGroup'));
+  const hasGroupModeMetadata = !!groupDoc;
+  const groupMode = getGroupMode(groupDoc);
+  const groupAgentLinkMode = getGroupAgentLinkMode(groupDoc);
+  const modeBadgeClass = groupMode === "interactive"
+    ? isDark
+      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+      : "border-cyan-500/20 bg-cyan-500/10 text-cyan-700"
+    : isDark
+      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+      : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700";
+  const linkBadgeClass = groupAgentLinkMode === "connected"
+    ? isDark
+      ? "border-sky-400/20 bg-sky-400/10 text-sky-200"
+      : "border-sky-500/20 bg-sky-500/10 text-sky-700"
+    : isDark
+      ? "border-slate-400/20 bg-slate-400/10 text-slate-200"
+      : "border-slate-500/20 bg-slate-500/10 text-slate-700";
   return (
     <header
       className="z-20 flex h-14 flex-shrink-0 items-center justify-between gap-3 px-4 pt-1 glass-header md:px-5"
@@ -156,8 +174,8 @@ export function AppHeader({
           <MenuIcon size={18} />
         </button>
 
-        <div className="min-w-0 flex flex-col">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex flex-col justify-center">
+          <div className="flex min-w-0 items-center gap-2">
             <h1 className="truncate text-base font-semibold leading-tight text-[var(--color-text-primary)] md:text-[1.125rem]">
               {title}
             </h1>
@@ -180,6 +198,28 @@ export function AppHeader({
               />
             )}
           </div>
+          {!hideGroupControls && selectedGroupId && hasGroupModeMetadata ? (
+            <div className="mt-1 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+              <span
+                className={classNames(
+                  "inline-flex flex-shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                  modeBadgeClass,
+                )}
+                title={t(groupMode === "interactive" ? 'groupModeInteractive' : 'groupModeCollaboration')}
+              >
+                {t(groupMode === "interactive" ? 'groupModeInteractive' : 'groupModeCollaboration')}
+              </span>
+              <span
+                className={classNames(
+                  "inline-flex flex-shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                  linkBadgeClass,
+                )}
+                title={t(groupAgentLinkMode === "connected" ? 'groupLinkModeConnected' : 'groupLinkModeIsolated')}
+              >
+                {t(groupAgentLinkMode === "connected" ? 'groupLinkModeConnected' : 'groupLinkModeIsolated')}
+              </span>
+            </div>
+          ) : null}
         </div>
 
         {!hideGroupControls && selectedGroupId && !webReadOnly && onOpenGroupEdit && (

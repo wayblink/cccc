@@ -9,6 +9,10 @@ export function normalizeGroupMode(mode: unknown): FrontendGroupMode {
   return mode === "interactive" ? "interactive" : "collaboration";
 }
 
+export function isInteractiveGroupMode(mode: unknown): boolean {
+  return normalizeGroupMode(mode) === "interactive";
+}
+
 export function getGroupMode(group: Pick<GroupDoc, "mode"> | Pick<GroupMeta, "mode"> | null | undefined): FrontendGroupMode {
   return normalizeGroupMode(group?.mode);
 }
@@ -20,6 +24,10 @@ export function normalizeGroupAgentLinkMode(
   if (linkMode === "isolated") return "isolated";
   if (linkMode === "connected") return "connected";
   return normalizeGroupMode(groupMode) === "interactive" ? "isolated" : "connected";
+}
+
+export function isConnectedGroupAgentLinkMode(linkMode: unknown, groupMode?: unknown): boolean {
+  return normalizeGroupAgentLinkMode(linkMode, groupMode) === "connected";
 }
 
 type GroupLinkAware =

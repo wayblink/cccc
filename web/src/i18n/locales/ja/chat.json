@@ -1,6 +1,9 @@
 {
   "nextSteps": "次のステップ",
   "noMessagesYet": "まだメッセージはありません。",
+  "collaborationEmptyHint": "AI グループとの会話を始めましょう。",
+  "interactiveConnectedEmptyHint": "どの agent から始めても構いません。メッセージはグループ内で連動します。",
+  "interactiveIsolatedEmptyHint": "現在の agent との会話から始めましょう。agent 同士は分離されており、あなたが明示的に送った相手だけが受け取ります。",
   "viewingMessage": "メッセージを表示中",
   "loadingContext": "コンテキストを読み込み中…",
   "contextTruncated": "コンテキストが省略されています。",

@@ -1,6 +1,9 @@
 {
   "nextSteps": "下一步",
   "noMessagesYet": "还没有消息。",
+  "collaborationEmptyHint": "开始和你的 AI 工作组对话。",
+  "interactiveConnectedEmptyHint": "从任一 agent 开始都可以，消息会在工作组内保持连通。",
+  "interactiveIsolatedEmptyHint": "从当前 agent 开始对话。各 agent 彼此隔离，只有你显式发送时才会收到消息。",
   "viewingMessage": "正在查看消息",
   "loadingContext": "加载上下文中…",
   "contextTruncated": "上下文已截断。",

@@ -19,6 +19,7 @@ import { clearPresentationSlot } from "../../services/api";
 import { clampPresentationSplitWidth } from "../../utils/presentationSplitLayout";
 import type { StreamingReplySession } from "../../stores/chatStreamingSessions";
 import { buildLiveWorkCards } from "./liveWorkCards";
+import { getGroupAgentLinkMode, getGroupMode } from "../../utils/groupMode";
 
 const PresentationRail = lazy(() =>
   import("../../components/presentation/PresentationRail").then((module) => ({ default: module.PresentationRail }))
@@ -219,6 +220,10 @@ export function ChatTab({
   const setQuotedPresentationRef = useComposerStore((state) => state.setQuotedPresentationRef);
   const setComposerDestGroupId = useComposerStore((state) => state.setDestGroupId);
   const liveWorkBucket = useGroupStore((state) => state.chatByGroup[String(selectedGroupId || "").trim()]);
+  const selectedGroupMeta = useMemo(
+    () => groups.find((group) => String(group.group_id || "").trim() === String(selectedGroupId || "").trim()) || null,
+    [groups, selectedGroupId],
+  );
   const presentationAttention = useModalStore((state) =>
     selectedGroupId ? (state.presentationAttention[selectedGroupId] || EMPTY_PRESENTATION_ATTENTION) : EMPTY_PRESENTATION_ATTENTION
   );
@@ -255,6 +260,21 @@ export function ChatTab({
   );
 
   const preferredPresentationSurface = !isSmallScreen && presentationDisplayMode === "split" ? "split" : "modal";
+  const selectedGroupMode = getGroupMode(selectedGroupMeta);
+  const selectedGroupAgentLinkMode = getGroupAgentLinkMode(selectedGroupMeta);
+  const emptyStateDescription = selectedGroupAgentLinkMode === "connected"
+    ? t(
+        selectedGroupMode === "interactive" ? "interactiveConnectedEmptyHint" : "collaborationEmptyHint",
+        {
+          defaultValue:
+            selectedGroupMode === "interactive"
+              ? "Start with any agent. Messages can still flow across the group."
+              : "Start the conversation with your AI group.",
+        },
+      )
+    : t("interactiveIsolatedEmptyHint", {
+        defaultValue: "Start with the current agent. Agents stay isolated until you message them directly.",
+      });
   const splitPresentationViewer =
     !isSmallScreen &&
     presentationViewer?.groupId === selectedGroupId &&
@@ -663,6 +683,8 @@ export function ChatTab({
                   isLoadingHistory={listIsLoadingHistory}
                   hasMoreHistory={listHasMoreHistory}
                   onLoadMore={loadMoreHistory}
+                  emptyStateTitle={t('noMessagesYet')}
+                  emptyStateDescription={emptyStateDescription}
                 />
               )}
 
