@@ -17,17 +17,17 @@ export function getGroupMode(group: Pick<GroupDoc, "mode"> | Pick<GroupMeta, "mo
   return normalizeGroupMode(group?.mode);
 }
 
+export function deriveGroupAgentLinkMode(groupMode: unknown): FrontendGroupAgentLinkMode {
+  return normalizeGroupMode(groupMode) === "interactive" ? "isolated" : "connected";
+}
+
 export function normalizeGroupAgentLinkMode(
   linkMode: unknown,
   groupMode?: unknown,
 ): FrontendGroupAgentLinkMode {
   if (linkMode === "isolated") return "isolated";
   if (linkMode === "connected") return "connected";
-  return normalizeGroupMode(groupMode) === "interactive" ? "isolated" : "connected";
-}
-
-export function isConnectedGroupAgentLinkMode(linkMode: unknown, groupMode?: unknown): boolean {
-  return normalizeGroupAgentLinkMode(linkMode, groupMode) === "connected";
+  return deriveGroupAgentLinkMode(groupMode);
 }
 
 type GroupLinkAware =
@@ -40,12 +40,9 @@ type SettingsLinkAware = Pick<GroupSettings, "agent_link_mode" | "supports_defau
 
 export function getGroupAgentLinkMode(
   group: GroupLinkAware,
-  settings?: SettingsLinkAware,
+  _settings?: SettingsLinkAware,
 ): FrontendGroupAgentLinkMode {
-  if (settings?.agent_link_mode) {
-    return normalizeGroupAgentLinkMode(settings.agent_link_mode, group?.mode);
-  }
-  return normalizeGroupAgentLinkMode(group?.agent_link_mode, group?.mode);
+  return deriveGroupAgentLinkMode(group?.mode);
 }
 
 export function groupAgentCoordinationEnabled(
@@ -57,15 +54,9 @@ export function groupAgentCoordinationEnabled(
 
 export function supportsGroupDefaultSendTo(
   group: GroupLinkAware,
-  settings?: SettingsLinkAware,
+  _settings?: SettingsLinkAware,
 ): boolean {
-  if (settings?.agent_link_mode) {
-    return normalizeGroupAgentLinkMode(settings.agent_link_mode, group?.mode) === "connected";
-  }
-  if (typeof settings?.supports_default_send_to === "boolean") {
-    return settings.supports_default_send_to;
-  }
-  return groupAgentCoordinationEnabled(group, settings);
+  return groupAgentCoordinationEnabled(group);
 }
 
 export function getSpecialRecipientTokens(agentLinkMode: unknown): string[] {

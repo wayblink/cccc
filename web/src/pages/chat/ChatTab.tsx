@@ -19,7 +19,7 @@ import { clearPresentationSlot } from "../../services/api";
 import { clampPresentationSplitWidth } from "../../utils/presentationSplitLayout";
 import type { StreamingReplySession } from "../../stores/chatStreamingSessions";
 import { buildLiveWorkCards } from "./liveWorkCards";
-import { getGroupAgentLinkMode, getGroupMode } from "../../utils/groupMode";
+import { getGroupMode } from "../../utils/groupMode";
 
 const PresentationRail = lazy(() =>
   import("../../components/presentation/PresentationRail").then((module) => ({ default: module.PresentationRail }))
@@ -261,19 +261,12 @@ export function ChatTab({
 
   const preferredPresentationSurface = !isSmallScreen && presentationDisplayMode === "split" ? "split" : "modal";
   const selectedGroupMode = getGroupMode(selectedGroupMeta);
-  const selectedGroupAgentLinkMode = getGroupAgentLinkMode(selectedGroupMeta);
-  const emptyStateDescription = selectedGroupAgentLinkMode === "connected"
-    ? t(
-        selectedGroupMode === "interactive" ? "interactiveConnectedEmptyHint" : "collaborationEmptyHint",
-        {
-          defaultValue:
-            selectedGroupMode === "interactive"
-              ? "Start with any agent. Messages can still flow across the group."
-              : "Start the conversation with your AI group.",
-        },
-      )
-    : t("interactiveIsolatedEmptyHint", {
-        defaultValue: "Start with the current agent. Agents stay isolated until you message them directly.",
+  const emptyStateDescription = selectedGroupMode === "interactive"
+    ? t("interactiveEmptyHint", {
+        defaultValue: "Start with the current agent. Each agent stays separate until you message it directly.",
+      })
+    : t("collaborationEmptyHint", {
+        defaultValue: "Start the conversation with your AI group.",
       });
   const splitPresentationViewer =
     !isSmallScreen &&

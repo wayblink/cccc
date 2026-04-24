@@ -176,7 +176,7 @@ export function AutomationTab(props: AutomationTabProps) {
     () => normalizeGroupAgentLinkMode(props.groupAgentLinkMode, props.groupMode),
     [props.groupAgentLinkMode, props.groupMode],
   );
-  const coordinationEnabled = groupAgentLinkMode === "connected";
+  const coordinationEnabled = groupMode !== "interactive";
   const specialRecipientTokens = useMemo(() => getSpecialRecipientTokens(groupAgentLinkMode), [groupAgentLinkMode]);
 
   const actorTargetOptions = useMemo(() => {
@@ -564,7 +564,7 @@ export function AutomationTab(props: AutomationTabProps) {
           <span className="font-mono break-all">{configPath || t("automation.configPathFallback")}</span>.
         </p>
         {!coordinationEnabled ? (
-          <p className="text-xs mt-2 text-[var(--color-text-muted)]">{t("automation.isolatedRecipientHint")}</p>
+          <p className="text-xs mt-2 text-[var(--color-text-muted)]">{t("automation.interactiveRecipientHint")}</p>
         ) : null}
       </div>
 

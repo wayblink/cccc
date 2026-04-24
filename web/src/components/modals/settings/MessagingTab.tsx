@@ -6,8 +6,7 @@ import { cardClass, inputClass, labelClass, primaryButtonClass } from "./types";
 interface MessagingTabProps {
   isDark: boolean;
   busy: boolean;
-  agentLinkMode: "connected" | "isolated";
-  setAgentLinkMode: (v: "connected" | "isolated") => void;
+  groupMode: "interactive" | "collaboration";
   supportsDefaultSendTo?: boolean;
   defaultSendTo: "foreman" | "broadcast";
   setDefaultSendTo: (v: "foreman" | "broadcast") => void;
@@ -35,8 +34,7 @@ export function MessagingTab(props: MessagingTabProps) {
   const {
     isDark,
     busy,
-    agentLinkMode,
-    setAgentLinkMode,
+    groupMode,
     supportsDefaultSendTo = true,
     defaultSendTo,
     setDefaultSendTo,
@@ -58,35 +56,21 @@ export function MessagingTab(props: MessagingTabProps) {
           <div className="p-1.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
             <MessageSquareIcon className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t("messaging.linkModeTitle")}</h3>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t("messaging.modeTitle")}</h3>
         </div>
         <p className="text-xs ml-9 mb-4 text-[var(--color-text-muted)]">
-          {t("messaging.linkModeDescription")}
+          {t("messaging.modeDescription")}
         </p>
 
-        <div className="ml-1 grid gap-2 sm:grid-cols-2">
-          {(["connected", "isolated"] as const).map((mode) => {
-            const selected = agentLinkMode === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setAgentLinkMode(mode)}
-                className={`rounded-xl border px-4 py-3 text-left transition ${
-                  selected
-                    ? "border-emerald-400/60 bg-emerald-500/10 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]"
-                    : "border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] hover:bg-[var(--glass-panel-bg-hover)]"
-                }`}
-              >
-                <div className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {mode === "connected" ? t("messaging.linkModeConnected") : t("messaging.linkModeIsolated")}
-                </div>
-                <div className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
-                  {mode === "connected" ? t("messaging.linkModeConnectedHint") : t("messaging.linkModeIsolatedHint")}
-                </div>
-              </button>
-            );
-          })}
+        <div className="ml-1 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] px-4 py-3">
+          <div className="text-sm font-medium text-[var(--color-text-primary)]">
+            {groupMode === "interactive" ? t("messaging.modeInteractive") : t("messaging.modeCollaboration")}
+          </div>
+          <div className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
+            {groupMode === "interactive"
+              ? t("messaging.modeInteractiveHint")
+              : t("messaging.modeCollaborationHint")}
+          </div>
         </div>
       </div>
 
@@ -120,23 +104,25 @@ export function MessagingTab(props: MessagingTabProps) {
           </>
         ) : (
           <div className="ml-9 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] px-3 py-3 text-xs leading-5 text-[var(--color-text-muted)]">
-            {t("messaging.isolatedHint", {
-              defaultValue: "Isolated groups do not auto-route empty recipients. Choose one or more agents explicitly when sending messages.",
+            {t("messaging.interactiveHint", {
+              defaultValue: "Interactive mode does not auto-route empty recipients. Choose one or more agents explicitly when sending messages.",
             })}
           </div>
         )}
       </div>
 
       <div className="pt-2">
-        <button onClick={onSave} disabled={busy} className={primaryButtonClass(busy)}>
-          {busy ? (
-            t("common:saving")
-          ) : (
-            <span className="flex items-center gap-2">
-              <MessageSquareIcon className="w-4 h-4" /> {t("messaging.saveMessaging")}
-            </span>
-          )}
-        </button>
+        {!supportsDefaultSendTo ? null : (
+          <button onClick={onSave} disabled={busy} className={primaryButtonClass(busy)}>
+            {busy ? (
+              t("common:saving")
+            ) : (
+              <span className="flex items-center gap-2">
+                <MessageSquareIcon className="w-4 h-4" /> {t("messaging.saveMessaging")}
+              </span>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -394,7 +394,7 @@
     "failedToClearTranscript": "ターミナルログのクリアに失敗しました",
     "resetGuidanceConfirm": "{{kind}}をリセットしますか？これにより、CCCC_HOME の下の {{filename}} オーバーライドが削除されます。これを元に戻すことはできません。",
     "removeRegistryConfirm": "欠損しているグループエントリを {{count}} 件レジストリから削除しますか？",
-    "isolatedRecipientHint": "この Group は Isolated 接続方式のため、ここでは明示的な Actor 宛先のみ選べます。チーム向け selector token は利用できません。"
+    "interactiveRecipientHint": "この Group は対話モードのため、ここでは明示的な Actor 宛先のみ選べます。チーム向け selector token は利用できません。"
   },
   "policies": {
     "title": "組み込み自動化",
@@ -535,13 +535,13 @@
     "broadcastAll": "有効なすべてのエージェントにブロードキャストする",
     "tip": "ヒント： 明確なルーティングには、明示的な受信者を使用します。",
     "saveMessaging": "メッセージルーティング設定を保存",
-    "linkModeTitle": "Agent 接続方式",
-    "linkModeDescription": "同じ Group 内の複数 agent を連携させるか、同期や既定ルーティングを切り離すかを選択します。",
-    "linkModeConnected": "Connected",
-    "linkModeConnectedHint": "従来の協調パスを維持し、@all / @foreman / @peers と既定ルーティングを利用できます。",
-    "linkModeIsolated": "Isolated",
-    "linkModeIsolatedHint": "同じ Group に複数 agent を置けますが、自動通信やチーム向け既定ルーティングは行いません。",
-    "isolatedHint": "Isolated モードでは、宛先未指定時の自動ルーティングは行いません。送信時に 1 つ以上の agent を明示的に選択してください。"
+    "modeTitle": "Group モード",
+    "modeDescription": "メッセージの挙動は現在の Group モードに従います。ここで別のルーティング切り替えは行いません。",
+    "modeInteractive": "対話モード",
+    "modeInteractiveHint": "複数 agent を並行で置けますが、互いに独立します。送信時は宛先を明示してください。",
+    "modeCollaboration": "協調モード",
+    "modeCollaborationHint": "従来の協調パスを維持し、既定のチーム向けルーティングや @all / @foreman / @peers を利用できます。",
+    "interactiveHint": "対話モードでは、宛先未指定時の自動ルーティングは行いません。送信時に 1 つ以上の agent を明示的に選択してください。"
   },
   "imBridge": {
     "title": "IMブリッジ",
