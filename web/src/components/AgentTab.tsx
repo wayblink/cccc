@@ -12,8 +12,8 @@ import { classNames } from "../utils/classNames";
 import { formatFullTime, formatTime } from "../utils/time";
 import { useGroupStore, useObservabilityStore, useTerminalSignalsStore } from "../stores";
 import { withAuthToken, fetchTerminalTail } from "../services/api";
-import { HeadlessLiveTrace } from "./headless/HeadlessLiveTrace";
-import { StopIcon, RefreshIcon, InboxIcon, TrashIcon, PlayIcon, EditIcon, RocketIcon, TerminalIcon } from "./Icons";
+import { HeadlessRuntimePanel } from "./headless/HeadlessRuntimePanel";
+import { StopIcon, RefreshIcon, InboxIcon, TrashIcon, PlayIcon, EditIcon, TerminalIcon } from "./Icons";
 import { ScrollFade } from "./ScrollFade";
 import { getTerminalSignalFromChunk } from "../utils/terminalWorkingState";
 import { getRuntimeIndicatorState } from "../utils/statusIndicators";
@@ -223,9 +223,12 @@ export function AgentTab({
     if (workingState === "working") return t("working");
     return t("running");
   })();
-  const latestHeadlessPreview = headlessPreviewSessions.length > 0
-    ? headlessPreviewSessions[headlessPreviewSessions.length - 1]
-    : null;
+  const primaryActionButtonClass =
+    "inline-flex items-center gap-1.5 rounded-xl border border-[rgb(35,36,37)] bg-[rgb(35,36,37)] px-3.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed dark:border-white dark:bg-white dark:text-[rgb(35,36,37)] dark:hover:bg-white/92";
+  const secondaryActionButtonClass =
+    "inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--glass-tab-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed";
+  const ghostActionButtonClass =
+    "inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--color-text-tertiary)] transition-colors hover:border-[var(--glass-border-subtle)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-50 disabled:cursor-not-allowed";
 
   // Send interrupt (Ctrl+C)
   const sendInterrupt = () => {
@@ -832,38 +835,19 @@ export function AgentTab({
       {/* contain: layout prevents terminal content changes from triggering parent layout recalculation */}
       <div className={classNames("flex-1 min-h-0 relative", "bg-[var(--color-bg-secondary)]")} style={{ contain: 'layout', overflow: 'hidden' }}>
         {isHeadless ? (
-          <div className={classNames("flex h-full min-h-0 flex-col items-center p-8", "text-[var(--color-text-tertiary)]")}>
-            <div className="mb-4"><RocketIcon size={48} /></div>
-            <div className="text-lg font-medium mb-2">{t('headlessAgent')}</div>
-            <div className="text-sm text-center max-w-md">
-              {supportsStandardWebHeadlessRuntime(String(actor.runtime || "").trim())
-                ? t('headlessStreamDescription', { defaultValue: '该智能体以无终端模式运行。过程输出会显示在 Chat 里，正式回复需要通过消息工具发送。' })
-                : t('headlessDescription')}
-            </div>
-            {isRunning && (
-              <div className={classNames("mt-4 px-3 py-1.5 rounded text-sm", statusTone.badgeClass)}>
-                {t("statusWithValue", { value: runtimeStatusText })}
+          <div className="flex h-full min-h-0 flex-col px-5 pb-5 pt-3 sm:px-7 sm:pb-6 sm:pt-3">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 min-h-0 flex-1">
+              <div className="min-h-0 flex-1">
+                <HeadlessRuntimePanel
+                  actorId={actor.id}
+                  previewSessions={headlessPreviewSessions}
+                  fallbackText={latestHeadlessText}
+                  fallbackActivities={latestHeadlessActivities}
+                  rawEvents={rawHeadlessEvents}
+                  emptyLabel={t('noStreamingOutputYet', { defaultValue: '当前还没有可显示的流式输出。' })}
+                  isDark={isDark}
+                />
               </div>
-            )}
-            <div className="mt-6 flex w-full max-w-3xl min-h-0 flex-1 flex-col">
-              <HeadlessLiveTrace
-                previewSessions={headlessPreviewSessions}
-                fallbackText={latestHeadlessText}
-                fallbackActivities={latestHeadlessActivities}
-                fallbackUpdatedAt={String(latestHeadlessPreview?.updatedAt || "").trim()}
-                fallbackPendingEventId={String(latestHeadlessPreview?.pendingEventId || `preview:${actor.id}`).trim()}
-                fallbackStreamId={String(latestHeadlessPreview?.currentStreamId || "").trim()}
-                fallbackStreamPhase={String(latestHeadlessPreview?.streamPhase || "").trim().toLowerCase()}
-                fallbackPhase={String(latestHeadlessPreview?.phase || "").trim().toLowerCase()}
-                emptyLabel={t('noStreamingOutputYet', { defaultValue: '当前还没有可显示的流式输出。' })}
-                recentLabel="Recent"
-                isDark={isDark}
-                density="expanded"
-                className={classNames(
-                  "min-h-[220px] flex-1 overflow-y-auto rounded-lg border border-[var(--glass-border-subtle)] bg-[var(--color-bg-primary)] px-3.5 py-3 text-left",
-                  "text-[var(--color-text-secondary)]"
-                )}
-              />
             </div>
           </div>
         ) : isRunning ? (
