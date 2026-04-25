@@ -3,7 +3,7 @@ import type { WebBranding } from "../types";
 export const DEFAULT_PRODUCT_NAME = "CCCC";
 export const DEFAULT_LOGO_ICON_URL = "/ui/logo.svg";
 export const DEFAULT_FAVICON_URL = "/ui/logo.svg";
-export const DEFAULT_DOCUMENT_TITLE = "CCCC - AI Agent Collaboration";
+export const DEFAULT_DOCUMENT_TITLE = "CCCC - AI Agent Workspace";
 
 export const DEFAULT_WEB_BRANDING: WebBranding = {
   product_name: DEFAULT_PRODUCT_NAME,
@@ -51,4 +51,3 @@ export function applyBrandingToDocument(value: Partial<WebBranding> | null | und
   ensureLink("apple-touch-icon").href = iconHref;
   return branding;
 }
-
