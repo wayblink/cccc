@@ -31,6 +31,7 @@ export interface ChatComposerProps {
 
   // Recipients
   toTokens: string[];
+  specialRecipientTokens?: string[];
   effectiveToTokens?: string[];
   onToggleRecipient: (token: string) => void;
   onClearRecipients: () => void;
@@ -81,6 +82,7 @@ export function ChatComposer({
   quotedPresentationRef,
   onClearQuotedPresentationRef,
   toTokens,
+  specialRecipientTokens = [],
   effectiveToTokens,
   onToggleRecipient,
   onClearRecipients,
@@ -592,7 +594,7 @@ export function ChatComposer({
                   recipientActorsBusy ? "opacity-50 pointer-events-none" : ""
                 )}>
                   {/* Special tokens */}
-                  {["@all", "@foreman", "@peers"].map((tok) => {
+                  {specialRecipientTokens.map((tok) => {
                     const active = displayedToTokens.includes(tok);
                     return (
                       <button

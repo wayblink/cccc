@@ -29,8 +29,8 @@ class TestSystemPromptMemory(unittest.TestCase):
 
         return handle_request(DaemonRequest.model_validate({"op": op, "args": args}))
 
-    def _create_group_with_actor(self, *, title: str) -> tuple[str, str]:
-        create, _ = self._call("group_create", {"title": title, "topic": "", "by": "user"})
+    def _create_group_with_actor(self, *, title: str, mode: str = "interactive") -> tuple[str, str]:
+        create, _ = self._call("group_create", {"title": title, "topic": "", "mode": mode, "by": "user"})
         self.assertTrue(create.ok, getattr(create, "error", None))
         gid = str((create.result or {}).get("group_id") or "").strip()
         self.assertTrue(gid)
@@ -54,7 +54,7 @@ class TestSystemPromptMemory(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            gid, aid = self._create_group_with_actor(title="prompt-memory")
+            gid, aid = self._create_group_with_actor(title="prompt-memory", mode="collaboration")
             group = load_group(gid)
             self.assertIsNotNone(group)
             assert group is not None
@@ -81,6 +81,32 @@ class TestSystemPromptMemory(unittest.TestCase):
             self.assertNotIn("Planning gate (6D)", prompt)
             self.assertNotIn("Todo discipline:", prompt)
             self.assertNotIn("Gap policy:", prompt)
+        finally:
+            cleanup()
+
+    def test_isolated_prompt_uses_direct_interaction_wording(self) -> None:
+        from cccc.kernel.actors import find_actor
+        from cccc.kernel.group import load_group
+        from cccc.kernel.system_prompt import render_system_prompt
+
+        _, cleanup = self._with_home()
+        try:
+            gid, aid = self._create_group_with_actor(title="prompt-isolated", mode="interactive")
+            group = load_group(gid)
+            self.assertIsNotNone(group)
+            assert group is not None
+            actor = find_actor(group, aid)
+            self.assertIsNotNone(actor)
+            prompt = render_system_prompt(group=group, actor=actor or {})
+
+            self.assertIn("Treat this as direct user interaction, not a multi-agent coordination workflow.", prompt)
+            self.assertIn(
+                "Other agents may exist in the same group, but you do not message, route to, or synchronize with them.",
+                prompt,
+            )
+            self.assertIn("Open `cccc_help` when workflow or tool routing is unclear.", prompt)
+            self.assertNotIn("Cold start or resume: call cccc_bootstrap first, then cccc_help.", prompt)
+            self.assertNotIn("At key transitions, sync shared control-plane state and your cccc_agent_state.", prompt)
         finally:
             cleanup()
 

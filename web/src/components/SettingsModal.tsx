@@ -5,6 +5,7 @@ import { Actor, GroupDoc, GroupSettings, IMStatus, IMPlatform, WebAccessSession,
 import * as api from "../services/api";
 import { useObservabilityStore } from "../stores";
 import type { RuntimeVisibilityMode } from "../utils/runtimeVisibility";
+import { getGroupAgentLinkMode, getGroupMode, supportsGroupDefaultSendTo } from "../utils/groupMode";
 import {
   SettingsScope,
   GroupTabId,
@@ -164,6 +165,10 @@ export function SettingsModal({
   const [registryErr, setRegistryErr] = useState("");
   const [registryResult, setRegistryResult] = useState<api.RegistryReconcileResult | null>(null);
 
+  const groupMode = useMemo(() => getGroupMode(groupDoc), [groupDoc]);
+  const groupAgentLinkMode = useMemo(() => getGroupAgentLinkMode(groupDoc, settings), [groupDoc, settings]);
+  const canConfigureDefaultSendTo = useMemo(() => supportsGroupDefaultSendTo(groupDoc, settings), [groupDoc, settings]);
+
   // ============ Effects ============
 
   useEffect(() => {
@@ -187,7 +192,7 @@ export function SettingsModal({
       setTerminalNotifyTail(Boolean(settings.terminal_transcript_notify_tail));
       setTerminalNotifyLines(Number(settings.terminal_transcript_notify_lines || 20));
     }
-  }, [isOpen, settings]);
+  }, [groupDoc, isOpen, settings]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -473,6 +478,7 @@ export function SettingsModal({
   };
 
   const handleSaveMessagingSettings = async () => {
+    if (!canConfigureDefaultSendTo) return;
     await onUpdateSettings({
       default_send_to: defaultSendTo,
     });
@@ -1036,6 +1042,8 @@ export function SettingsModal({
                 <AutomationTab
                   isDark={isDark}
                   groupId={groupId}
+                  groupMode={groupMode}
+                  groupAgentLinkMode={groupAgentLinkMode}
                   devActors={devActors}
                   busy={busy}
                   nudgeSeconds={nudgeSeconds}
@@ -1083,6 +1091,8 @@ export function SettingsModal({
                 <MessagingTab
                   isDark={isDark}
                   busy={busy}
+                  groupMode={groupMode}
+                  supportsDefaultSendTo={canConfigureDefaultSendTo}
                   defaultSendTo={defaultSendTo}
                   setDefaultSendTo={setDefaultSendTo}
                   onSave={handleSaveMessagingSettings}

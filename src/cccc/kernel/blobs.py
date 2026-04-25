@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import mimetypes
 import re
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -10,6 +11,63 @@ from .group import Group
 
 
 _SAFE_NAME_RE = re.compile(r"[^a-zA-Z0-9._-]+")
+MAX_TEXT_ATTACHMENT_BYTES = 1024 * 1024
+_TEXT_ATTACHMENT_EXTENSIONS = {
+    ".txt",
+    ".md",
+    ".markdown",
+    ".json",
+    ".jsonl",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".conf",
+    ".log",
+    ".csv",
+    ".tsv",
+    ".xml",
+    ".html",
+    ".htm",
+    ".css",
+    ".scss",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".tsx",
+    ".py",
+    ".rb",
+    ".go",
+    ".rs",
+    ".java",
+    ".kt",
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".fish",
+    ".env",
+    ".sql",
+}
+_TEXT_ATTACHMENT_MIME_TYPES = {
+    "text/plain",
+    "text/markdown",
+    "text/x-markdown",
+    "application/json",
+    "application/ld+json",
+    "application/xml",
+    "application/yaml",
+    "application/x-yaml",
+    "application/toml",
+    "application/x-sh",
+    "application/javascript",
+    "application/x-javascript",
+    "application/typescript",
+    "application/x-typescript",
+}
+_TEXT_ATTACHMENT_MIME_SUFFIXES = ("+json", "+xml", "+yaml")
 
 
 def blobs_dir(group: Group) -> Path:
@@ -54,6 +112,39 @@ def _detect_kind(mime_type: str, filename: str) -> str:
         return "image"
     _ = filename
     return "file"
+
+
+def normalize_text_attachment_mime_type(filename: str, mime_type: str = "") -> str:
+    normalized = str(mime_type or "").strip().lower()
+    if normalized:
+        return normalized
+    guessed, _ = mimetypes.guess_type(str(filename or "").strip())
+    return str(guessed or "").strip().lower()
+
+
+def is_text_attachment_metadata(*, filename: str, mime_type: str = "") -> bool:
+    normalized_mime_type = normalize_text_attachment_mime_type(filename, mime_type)
+    if normalized_mime_type.startswith("text/"):
+        return True
+    if normalized_mime_type in _TEXT_ATTACHMENT_MIME_TYPES:
+        return True
+    if any(normalized_mime_type.endswith(suffix) for suffix in _TEXT_ATTACHMENT_MIME_SUFFIXES):
+        return True
+    return Path(str(filename or "").strip()).suffix.lower() in _TEXT_ATTACHMENT_EXTENSIONS
+
+
+def decode_text_attachment_bytes(*, data: bytes, filename: str, mime_type: str = "") -> str:
+    raw = data or b""
+    if len(raw) > MAX_TEXT_ATTACHMENT_BYTES:
+        raise ValueError("attachment_too_large")
+    if b"\x00" in raw:
+        raise ValueError("unsupported_attachment")
+    if not is_text_attachment_metadata(filename=filename, mime_type=mime_type):
+        raise ValueError("unsupported_attachment")
+    try:
+        return raw.decode("utf-8", errors="replace")
+    except Exception as exc:
+        raise ValueError("unsupported_attachment") from exc
 
 
 def store_blob_bytes(

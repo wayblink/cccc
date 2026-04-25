@@ -241,6 +241,7 @@ export function AppModals({
     resetAddActorForm,
     createGroupPath,
     createGroupName,
+    createGroupMode,
     createGroupTemplateFile,
     dirItems,
     dirSuggestions,
@@ -249,6 +250,7 @@ export function AppModals({
     showDirBrowser,
     setCreateGroupPath,
     setCreateGroupName,
+    setCreateGroupMode,
     setCreateGroupTemplateFile,
     setDirItems,
     setCurrentDir,
@@ -438,7 +440,7 @@ export function AppModals({
     const toTokensList = toRaw
       .map((x) => String(x || "").trim())
       .filter((s) => s.length > 0);
-    const toLabel = toTokensList.length > 0 ? toTokensList.join(", ") : "@all";
+    const toLabel = toTokensList.length > 0 ? toTokensList.join(", ") : "(no recipients)";
 
     const msgData = messageMetaEvent.data as ChatMessageData | undefined;
     const os =
@@ -945,7 +947,7 @@ export function AppModals({
       let groupId = "";
 
       if (createGroupTemplateFile) {
-        const resp = await api.createGroupFromTemplate(path, title, "", createGroupTemplateFile);
+        const resp = await api.createGroupFromTemplate(path, title, "", createGroupMode, createGroupTemplateFile);
         if (!resp.ok) {
           if (resp.error?.code === "scope_already_attached") {
             const existing = getErrorDetailGroupId(resp.error);
@@ -966,7 +968,7 @@ export function AppModals({
         }
         groupId = resp.result.group_id;
       } else {
-        const resp = await api.createGroup(title);
+        const resp = await api.createGroup(title, "", createGroupMode);
         if (!resp.ok) {
           showError(`${resp.error.code}: ${resp.error.message}`);
           return;
@@ -1572,6 +1574,7 @@ export function AppModals({
             onOpenContext={() => openContextModalData(fetchContext, selectedGroupId)}
             onSyncContext={() => syncContextModalData(fetchContext, selectedGroupId)}
             isDark={isDark}
+            groupDoc={groupDoc}
             settings={groupSettings}
             onUpdateSettings={handleUpdateSettings}
           />
@@ -1685,6 +1688,8 @@ export function AppModals({
         setCreateGroupPath={setCreateGroupPath}
         createGroupName={createGroupName}
         setCreateGroupName={setCreateGroupName}
+        createGroupMode={createGroupMode}
+        setCreateGroupMode={setCreateGroupMode}
         createGroupTemplateFile={createGroupTemplateFile}
         templatePreview={createTemplatePreview}
         templateError={createTemplateError}

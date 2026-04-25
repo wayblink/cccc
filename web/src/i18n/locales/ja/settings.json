@@ -187,8 +187,8 @@
     "operationFailedReason": "操作は反映されませんでした（{{reason}}）。",
     "enableScope": {
       "session": "セッション",
-        "actor": "アクター",
-        "group": "グループ"
+      "actor": "アクター",
+      "group": "グループ"
     },
     "failedSafetyMode": "外部 capability 安全モードの更新に失敗しました。",
     "safetyModeTitle": "外部能力ポリシー",
@@ -393,11 +393,12 @@
     "failedToLoadTranscript": "ターミナルログの読み込みに失敗しました",
     "failedToClearTranscript": "ターミナルログのクリアに失敗しました",
     "resetGuidanceConfirm": "{{kind}}をリセットしますか？これにより、CCCC_HOME の下の {{filename}} オーバーライドが削除されます。これを元に戻すことはできません。",
-    "removeRegistryConfirm": "欠損しているグループエントリを {{count}} 件レジストリから削除しますか？"
+    "removeRegistryConfirm": "欠損しているグループエントリを {{count}} 件レジストリから削除しますか？",
+    "interactiveRecipientHint": "この Group は対話モードのため、ここでは明示的な Actor 宛先のみ選べます。チーム向け selector token は利用できません。"
   },
   "policies": {
     "title": "組み込み自動化",
-    "description": "システム管理のフォローアップと協調ヘルスループです。値を調整して保存します。",
+    "description": "システム管理のフォローアップとグループ健全性ループです。値を調整して保存します。",
     "unreadFollowup": "未読のフォローアップ (秒)",
     "unreadFollowupHelp": "未読メッセージが長時間放置されている場合は、メンバーに通知します。",
     "needReplyFollowup": "返信のフォローアップが必要 (秒)",
@@ -533,7 +534,14 @@
     "foremanOnly": "Foreman にのみ送信",
     "broadcastAll": "有効なすべてのエージェントにブロードキャストする",
     "tip": "ヒント： 明確なルーティングには、明示的な受信者を使用します。",
-    "saveMessaging": "メッセージルーティング設定を保存"
+    "saveMessaging": "メッセージルーティング設定を保存",
+    "modeTitle": "Group モード",
+    "modeDescription": "メッセージの挙動は現在の Group モードに従います。ここで別のルーティング切り替えは行いません。",
+    "modeInteractive": "対話モード",
+    "modeInteractiveHint": "複数 agent を並行で置けますが、互いに独立します。送信時は宛先を明示してください。",
+    "modeCollaboration": "協調モード",
+    "modeCollaborationHint": "従来の協調パスを維持し、既定のチーム向けルーティングや @all / @foreman / @peers を利用できます。",
+    "interactiveHint": "対話モードでは、宛先未指定時の自動ルーティングは行いません。送信時に 1 つ以上の agent を明示的に選択してください。"
   },
   "imBridge": {
     "title": "IMブリッジ",

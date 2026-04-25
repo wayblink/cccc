@@ -373,4 +373,257 @@ describe("useChatTab integration", () => {
     });
     expect(useComposerStore.getState().drafts[buildComposerDraftKey("g-1", "agent:coder")]).toBeUndefined();
   });
+
+  it("splits isolated @all sends into one direct message per agent after confirmation", async () => {
+    const {
+      api,
+      render,
+      useGroupStore,
+      useUIStore,
+      useComposerStore,
+      useChatOutboxStore,
+      getLatest,
+    } = await setupHarness();
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const sendMessageSpy = vi.spyOn(api, "sendMessage").mockResolvedValue({
+      ok: true,
+      result: { event: null },
+    } as Awaited<ReturnType<typeof api.sendMessage>>);
+
+    const actors = [
+      { id: "coder", runtime: "codex", role: "peer", enabled: true },
+      { id: "reviewer", runtime: "codex", role: "peer", enabled: true },
+    ];
+    useGroupStore.setState({
+      selectedGroupId: "g-1",
+      groupDoc: {
+        group_id: "g-1",
+        mode: "interactive",
+        agent_link_mode: "isolated",
+        active_scope_key: "scope-1",
+        scopes: [{ scope_key: "scope-1", url: "/repo" }],
+      },
+      groupContext: { agent_states: [] },
+      groupSettings: { default_send_to: "foreman", agent_link_mode: "isolated" },
+      chatByGroup: { "g-1": makeChatBucket([]) },
+    });
+    useUIStore.setState({ chatSessions: {} });
+    useComposerStore.setState({
+      activeGroupId: "g-1",
+      activeSlotId: "all",
+      composerText: "Broadcast ping",
+      composerFiles: [],
+      toText: "@all",
+      replyTarget: null,
+      quotedPresentationRef: null,
+      priority: "normal",
+      replyRequired: false,
+      destGroupId: "g-1",
+    });
+    useChatOutboxStore.setState({ entriesByGroup: {} });
+
+    render({
+      selectedGroupId: "g-1",
+      selectedGroupRunning: true,
+      actors,
+      recipientActors: actors,
+      composerRef: { current: null },
+      fileInputRef: { current: document.createElement("input") },
+      chatAtBottomRef: { current: true },
+    });
+
+    await act(async () => {
+      await getLatest()?.sendMessage();
+    });
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(sendMessageSpy).toHaveBeenCalledTimes(2);
+    expect(sendMessageSpy).toHaveBeenNthCalledWith(
+      1,
+      "g-1",
+      "Broadcast ping",
+      ["coder"],
+      undefined,
+      "normal",
+      false,
+      expect.stringContaining(":coder"),
+      [],
+    );
+    expect(sendMessageSpy).toHaveBeenNthCalledWith(
+      2,
+      "g-1",
+      "Broadcast ping",
+      ["reviewer"],
+      undefined,
+      "normal",
+      false,
+      expect.stringContaining(":reviewer"),
+      [],
+    );
+  });
+
+  it("splits isolated @all replies into one direct reply per agent after confirmation", async () => {
+    const {
+      api,
+      render,
+      useGroupStore,
+      useUIStore,
+      useComposerStore,
+      useChatOutboxStore,
+      getLatest,
+    } = await setupHarness();
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const replyMessageSpy = vi.spyOn(api, "replyMessage").mockResolvedValue({
+      ok: true,
+      result: { event: null },
+    } as Awaited<ReturnType<typeof api.replyMessage>>);
+
+    const actors = [
+      { id: "coder", runtime: "codex", role: "peer", enabled: true },
+      { id: "reviewer", runtime: "codex", role: "peer", enabled: true },
+    ];
+    useGroupStore.setState({
+      selectedGroupId: "g-1",
+      groupDoc: {
+        group_id: "g-1",
+        mode: "interactive",
+        agent_link_mode: "isolated",
+        active_scope_key: "scope-1",
+        scopes: [{ scope_key: "scope-1", url: "/repo" }],
+      },
+      groupContext: { agent_states: [] },
+      groupSettings: { default_send_to: "foreman", agent_link_mode: "isolated" },
+      chatByGroup: { "g-1": makeChatBucket([]) },
+    });
+    useUIStore.setState({ chatSessions: {} });
+    useComposerStore.setState({
+      activeGroupId: "g-1",
+      activeSlotId: "all",
+      composerText: "Broadcast reply",
+      composerFiles: [],
+      toText: "@all",
+      replyTarget: {
+        eventId: "evt-1",
+        by: "user",
+        text: "quoted",
+      },
+      quotedPresentationRef: null,
+      priority: "normal",
+      replyRequired: false,
+      destGroupId: "g-1",
+    });
+    useChatOutboxStore.setState({ entriesByGroup: {} });
+
+    render({
+      selectedGroupId: "g-1",
+      selectedGroupRunning: true,
+      actors,
+      recipientActors: actors,
+      composerRef: { current: null },
+      fileInputRef: { current: document.createElement("input") },
+      chatAtBottomRef: { current: true },
+    });
+
+    await act(async () => {
+      await getLatest()?.sendMessage();
+    });
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(replyMessageSpy).toHaveBeenCalledTimes(2);
+    expect(replyMessageSpy).toHaveBeenNthCalledWith(
+      1,
+      "g-1",
+      "Broadcast reply",
+      ["coder"],
+      "evt-1",
+      undefined,
+      "normal",
+      false,
+      expect.stringContaining(":coder"),
+      [],
+    );
+    expect(replyMessageSpy).toHaveBeenNthCalledWith(
+      2,
+      "g-1",
+      "Broadcast reply",
+      ["reviewer"],
+      "evt-1",
+      undefined,
+      "normal",
+      false,
+      expect.stringContaining(":reviewer"),
+      [],
+    );
+  });
+
+  it("keeps the composer untouched when isolated @all broadcast confirmation is cancelled", async () => {
+    const {
+      api,
+      render,
+      useGroupStore,
+      useUIStore,
+      useComposerStore,
+      useChatOutboxStore,
+      getLatest,
+    } = await setupHarness();
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const sendMessageSpy = vi.spyOn(api, "sendMessage").mockResolvedValue({
+      ok: true,
+      result: { event: null },
+    } as Awaited<ReturnType<typeof api.sendMessage>>);
+
+    const actors = [
+      { id: "coder", runtime: "codex", role: "peer", enabled: true },
+      { id: "reviewer", runtime: "codex", role: "peer", enabled: true },
+    ];
+    useGroupStore.setState({
+      selectedGroupId: "g-1",
+      groupDoc: {
+        group_id: "g-1",
+        mode: "interactive",
+        agent_link_mode: "isolated",
+        active_scope_key: "scope-1",
+        scopes: [{ scope_key: "scope-1", url: "/repo" }],
+      },
+      groupContext: { agent_states: [] },
+      groupSettings: { default_send_to: "foreman", agent_link_mode: "isolated" },
+      chatByGroup: { "g-1": makeChatBucket([]) },
+    });
+    useUIStore.setState({ chatSessions: {} });
+    useComposerStore.setState({
+      activeGroupId: "g-1",
+      activeSlotId: "all",
+      composerText: "Stay here",
+      composerFiles: [],
+      toText: "@all",
+      replyTarget: null,
+      quotedPresentationRef: null,
+      priority: "normal",
+      replyRequired: false,
+      destGroupId: "g-1",
+    });
+    useChatOutboxStore.setState({ entriesByGroup: {} });
+
+    render({
+      selectedGroupId: "g-1",
+      selectedGroupRunning: true,
+      actors,
+      recipientActors: actors,
+      composerRef: { current: null },
+      fileInputRef: { current: document.createElement("input") },
+      chatAtBottomRef: { current: true },
+    });
+
+    await act(async () => {
+      await getLatest()?.sendMessage();
+    });
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(sendMessageSpy).not.toHaveBeenCalled();
+    expect(useComposerStore.getState().composerText).toBe("Stay here");
+    expect(useComposerStore.getState().toText).toBe("@all");
+  });
 });

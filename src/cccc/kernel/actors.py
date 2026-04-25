@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from ..contracts.v1 import Actor, ActorRole, ActorSubmit, RunnerKind, AgentRuntime
 from ..util.time import utc_now_iso
 from ..util.conv import coerce_bool
-from .group import Group
+from .group import Group, group_selector_recipients_enabled
 from .runtime import get_runtime_command_with_flags
 
 # Actor ID naming rules:
@@ -407,6 +407,7 @@ def update_actor(group: Group, actor_id: str, patch: Dict[str, Any]) -> Dict[str
 
 
 def resolve_recipient_tokens(group: Group, tokens: List[str]) -> List[str]:
+    selector_recipients_enabled = group_selector_recipients_enabled(group.doc)
     raw: List[str] = []
     for t in tokens:
         if not isinstance(t, str):
@@ -447,6 +448,8 @@ def resolve_recipient_tokens(group: Group, tokens: List[str]) -> List[str]:
                 return ""
 
         if t in ("@all", "@peers", "@foreman"):
+            if not selector_recipients_enabled:
+                raise ValueError(f"this group does not support selector recipients: {t}")
             return t
         if t in ("user", "@user"):
             return "user"

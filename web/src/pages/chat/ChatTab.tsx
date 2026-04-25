@@ -19,6 +19,7 @@ import { clearPresentationSlot } from "../../services/api";
 import { clampPresentationSplitWidth } from "../../utils/presentationSplitLayout";
 import type { StreamingReplySession } from "../../stores/chatStreamingSessions";
 import { buildLiveWorkCards } from "./liveWorkCards";
+import { getGroupMode } from "../../utils/groupMode";
 
 const PresentationRail = lazy(() =>
   import("../../components/presentation/PresentationRail").then((module) => ({ default: module.PresentationRail }))
@@ -154,6 +155,7 @@ export function ChatTab({
     cancelReply,
     clearQuotedPresentationRef,
     toTokens,
+    specialRecipientTokens,
     toggleRecipient,
     clearRecipients,
     appendRecipientToken,
@@ -218,6 +220,10 @@ export function ChatTab({
   const setQuotedPresentationRef = useComposerStore((state) => state.setQuotedPresentationRef);
   const setComposerDestGroupId = useComposerStore((state) => state.setDestGroupId);
   const liveWorkBucket = useGroupStore((state) => state.chatByGroup[String(selectedGroupId || "").trim()]);
+  const selectedGroupMeta = useMemo(
+    () => groups.find((group) => String(group.group_id || "").trim() === String(selectedGroupId || "").trim()) || null,
+    [groups, selectedGroupId],
+  );
   const presentationAttention = useModalStore((state) =>
     selectedGroupId ? (state.presentationAttention[selectedGroupId] || EMPTY_PRESENTATION_ATTENTION) : EMPTY_PRESENTATION_ATTENTION
   );
@@ -254,6 +260,14 @@ export function ChatTab({
   );
 
   const preferredPresentationSurface = !isSmallScreen && presentationDisplayMode === "split" ? "split" : "modal";
+  const selectedGroupMode = getGroupMode(selectedGroupMeta);
+  const emptyStateDescription = selectedGroupMode === "interactive"
+    ? t("interactiveEmptyHint", {
+        defaultValue: "Start with the current agent. Each agent stays separate until you message it directly.",
+      })
+    : t("collaborationEmptyHint", {
+        defaultValue: "Start the conversation with your AI group.",
+      });
   const splitPresentationViewer =
     !isSmallScreen &&
     presentationViewer?.groupId === selectedGroupId &&
@@ -662,6 +676,8 @@ export function ChatTab({
                   isLoadingHistory={listIsLoadingHistory}
                   hasMoreHistory={listHasMoreHistory}
                   onLoadMore={loadMoreHistory}
+                  emptyStateTitle={t('noMessagesYet')}
+                  emptyStateDescription={emptyStateDescription}
                 />
               )}
 
@@ -805,6 +821,7 @@ export function ChatTab({
             quotedPresentationRef={quotedPresentationRef}
             onClearQuotedPresentationRef={clearQuotedPresentationRef}
             toTokens={toTokens}
+            specialRecipientTokens={specialRecipientTokens}
             effectiveToTokens={activeSlotActorId ? [activeSlotActorId] : undefined}
             onToggleRecipient={toggleRecipient}
             onClearRecipients={clearRecipients}

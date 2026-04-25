@@ -21,6 +21,15 @@ from ..kernel.working_state import derive_pty_terminal_override
 
 PTY_SUPPORTED = True
 TERMINAL_SIGNAL_BUFFER_CHARS = 4096
+_BAD_TERM_VALUES = {"", "dumb", "unknown"}
+
+
+def _normalize_pty_env(env: Dict[str, str]) -> Dict[str, str]:
+    normalized = dict(env)
+    term = str(normalized.get("TERM") or "").strip().lower()
+    if term in _BAD_TERM_VALUES:
+        normalized["TERM"] = "xterm-256color"
+    return normalized
 
 
 def _set_winsize(fd: int, *, cols: int, rows: int) -> None:
@@ -105,9 +114,8 @@ class PtySession:
         if not cmd:
             cmd = ["bash"] if Path("/bin/bash").exists() else ["sh"]
 
-        proc_env = os.environ.copy()
-        proc_env.update({k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str)})
-        proc_env.setdefault("TERM", "xterm-256color")
+        proc_env = _normalize_pty_env(os.environ.copy())
+        proc_env.update(_normalize_pty_env({k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str)}))
 
         def _preexec() -> None:
             try:

@@ -34,6 +34,7 @@ import {
 import { useChatOutboxStore } from "./stores/chatOutboxStore";
 import type { ChatMessageData, LedgerEvent } from "./types";
 import { isFixedAppTab } from "./utils/appTabs";
+import { getGroupAgentLinkMode, getReplyDefaultRecipients } from "./utils/groupMode";
 import { filterVisibleRuntimeActors } from "./utils/runtimeVisibility";
 
 // ============ Main App Component ============
@@ -241,18 +242,16 @@ export default function App() {
       }
 
       const by = String(ev.by || "").trim();
-      const authorIsActor = by && by !== "user" && actors.some((a) => String(a.id || "") === by);
       const originalTo = Array.isArray(data?.to)
         ? data.to.map((token) => String(token || "").trim()).filter((token) => token)
         : [];
-      const policy = groupSettings?.default_send_to || "foreman";
-      const defaultTo = authorIsActor
-        ? [by]
-        : originalTo.length > 0
-          ? originalTo
-          : policy === "foreman"
-            ? ["@foreman"]
-            : [];
+      const defaultTo = getReplyDefaultRecipients({
+        authorId: by,
+        actors,
+        agentLinkMode: getGroupAgentLinkMode(groupDoc, groupSettings),
+        defaultSendTo: groupSettings?.default_send_to,
+        originalTo,
+      });
       setToText(defaultTo.join(", "));
 
       setReplyTarget({
@@ -262,7 +261,7 @@ export default function App() {
       });
       requestAnimationFrame(() => composerRef.current?.focus());
     },
-    [selectedGroupId, actors, composerRef, groupSettings, setDestGroupId, setReplyTarget, setToText]
+    [selectedGroupId, actors, composerRef, groupDoc, groupSettings, setDestGroupId, setReplyTarget, setToText]
   );
 
   const { parseUrlDeepLink } = useDeepLink({

@@ -31,6 +31,12 @@ CORE_BASIC_TOOLS: Tuple[str, ...] = (
     "cccc_memory",
 )
 
+CONNECTED_ONLY_CORE_TOOLS: Tuple[str, ...] = (
+    "cccc_coordination",
+    "cccc_task",
+    "cccc_context_sync",
+)
+
 CORE_ADMIN_TOOLS: Tuple[str, ...] = (
     "cccc_capability_enable",
     "cccc_capability_block",
@@ -186,17 +192,30 @@ def all_pack_tool_name_set() -> Set[str]:
     return names
 
 
+def prune_tool_names_for_coordination(
+    tool_names: Iterable[str],
+    *,
+    coordination_enabled: bool = True,
+) -> Set[str]:
+    visible = {str(name).strip() for name in tool_names if str(name).strip()}
+    if not coordination_enabled:
+        visible -= set(CONNECTED_ONLY_CORE_TOOLS)
+    return visible
+
+
 def resolve_core_tool_names(
     *,
     actor_role: str = "",
     is_pet: bool = False,
+    coordination_enabled: bool = True,
 ) -> Set[str]:
     if bool(is_pet):
         return set(PET_CORE_TOOLS)
     role = str(actor_role or "").strip().lower()
-    if role == "peer":
-        return set(CORE_BASIC_TOOLS)
-    return set(CORE_TOOL_NAMES)
+    return prune_tool_names_for_coordination(
+        CORE_BASIC_TOOLS if role == "peer" else CORE_TOOL_NAMES,
+        coordination_enabled=coordination_enabled,
+    )
 
 
 def resolve_visible_tool_names(
@@ -204,8 +223,13 @@ def resolve_visible_tool_names(
     *,
     actor_role: str = "",
     is_pet: bool = False,
+    coordination_enabled: bool = True,
 ) -> Set[str]:
-    visible = resolve_core_tool_names(actor_role=actor_role, is_pet=is_pet)
+    visible = resolve_core_tool_names(
+        actor_role=actor_role,
+        is_pet=is_pet,
+        coordination_enabled=coordination_enabled,
+    )
     for cap_id in enabled_capability_ids:
         cap = BUILTIN_CAPABILITY_PACKS.get(str(cap_id))
         if not isinstance(cap, dict):

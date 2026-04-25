@@ -1,4 +1,5 @@
-import type { Actor, ChatMessageData, GroupSettings, LedgerEvent, ReplyTarget } from "../types";
+import type { Actor, ChatMessageData, GroupSettings, GroupAgentLinkMode, LedgerEvent, ReplyTarget } from "../types";
+import { getReplyDefaultRecipients } from "./groupMode";
 
 type ReplyComposerState = {
   destGroupId: string;
@@ -37,7 +38,8 @@ export function buildReplyComposerState(
   event: LedgerEvent,
   selectedGroupId: string,
   actors: Actor[],
-  groupSettings: GroupSettings | null | undefined
+  groupSettings: GroupSettings | null | undefined,
+  groupAgentLinkMode?: GroupAgentLinkMode | null,
 ): ReplyComposerState | null {
   const replyEventId = getReplyEventId(event);
   if (!replyEventId) return null;
@@ -47,19 +49,16 @@ export function buildReplyComposerState(
   const messageText = data && typeof data.text === "string" ? String(data.text) : "";
   const text = quoteText || messageText;
   const by = String(event.by || "").trim();
-  const authorIsActor = by && by !== "user" && actors.some((actor) => String(actor.id || "") === by);
   const originalTo = Array.isArray(data?.to)
     ? data.to.map((token: string) => String(token || "").trim()).filter(Boolean)
     : [];
-  const policy = groupSettings?.default_send_to || "foreman";
-  const defaultTo =
-    authorIsActor
-      ? [by]
-      : originalTo.length > 0
-        ? originalTo
-        : policy === "foreman"
-          ? ["@foreman"]
-          : [];
+  const defaultTo = getReplyDefaultRecipients({
+    authorId: by,
+    actors,
+    agentLinkMode: groupAgentLinkMode,
+    defaultSendTo: groupSettings?.default_send_to,
+    originalTo,
+  });
 
   return {
     destGroupId: String(selectedGroupId || "").trim(),

@@ -7,7 +7,7 @@ import { formatFullTime, formatMessageTimestamp, formatTime } from "../utils/tim
 import { classNames } from "../utils/classNames";
 import { getReplyEventId } from "../utils/chatReply";
 import { getPresentationMessageRefs, getPresentationRefChipLabel } from "../utils/presentationRefs";
-import { isRedundantWecomImagePlaceholder } from "../utils/messageAttachments";
+import { extractTextDocumentReferenceMatches, isRedundantWecomImagePlaceholder } from "../utils/messageAttachments";
 import { selectStreamingReplySession, useGroupStore } from "../stores";
 import { MessageAttachments } from "./messageBubble/MessageAttachments";
 import { MessageFooter, MessageMetadataHeader } from "./messageBubble/MessageBubbleChrome";
@@ -20,9 +20,11 @@ import {
     getSenderDisplayName,
 } from "./messageBubble/model";
 import { ActorAvatar } from "./ActorAvatar";
+import { TextDocumentViewerModal } from "./messageBubble/TextDocumentViewerModal";
 import {
     StreamingMessageBody,
 } from "./messageBubble/StreamingMessageBody";
+import { InlineDocumentText } from "./messageBubble/InlineDocumentText";
 import {
     formatEventLine,
     getMessageBubbleMotionClass,
@@ -61,21 +63,16 @@ function buildSenderAvatarUrl(groupId: string, senderAvatarPath?: string): strin
 
 function PlainMessageText({
     text,
+    documentMatches,
+    onOpenDocument,
     className,
 }: {
     text: string;
+    documentMatches?: ReturnType<typeof extractTextDocumentReferenceMatches>;
+    onOpenDocument?: (attachment: MessageAttachment) => void;
     className?: string;
 }) {
-    return (
-        <div
-            className={classNames(
-                "break-words whitespace-pre-wrap [overflow-wrap:anywhere]",
-                className
-            )}
-        >
-            {text}
-        </div>
-    );
+    return <InlineDocumentText text={text} matches={documentMatches} onOpenDocument={onOpenDocument} className={className} />;
 }
 
 async function copyText(value: string): Promise<boolean> {
@@ -229,7 +226,9 @@ function MessageBubbleBody({
 
             {hasDestination ? (() => {
                 const dstLabel = String(groupLabelById?.[dstGroupId] || "").trim() || dstGroupId;
-                const dstToLabel = dstTo.length > 0 ? dstTo.join(", ") : "@all";
+                const dstToLabel = dstTo.length > 0
+                  ? dstTo.join(", ")
+                  : t("noRecipients", { defaultValue: "(no recipients)" });
                 return (
                     <div
                         className={classNames(
@@ -288,6 +287,8 @@ function MessageBubbleBody({
                 shouldRenderMarkdown={shouldRenderMarkdown}
                 isDark={isDark}
                 isUserMessage={isUserMessage}
+                attachments={blobAttachments}
+                blobGroupId={blobGroupId}
             />
 
             <MessageAttachments
@@ -315,6 +316,8 @@ function MessageContent({
     shouldRenderMarkdown,
     isDark,
     isUserMessage,
+    attachments,
+    blobGroupId,
 }: {
     isStreaming: boolean;
     groupId: string;
@@ -328,7 +331,19 @@ function MessageContent({
     shouldRenderMarkdown: boolean;
     isDark: boolean;
     isUserMessage: boolean;
+    attachments: MessageAttachment[];
+    blobGroupId: string;
 }) {
+    const documentMatches = useMemo(
+        () => extractTextDocumentReferenceMatches(fallbackText, attachments),
+        [attachments, fallbackText],
+    );
+    const [activeDocumentPath, setActiveDocumentPath] = useState("");
+    const activeDocument = useMemo(
+        () => documentMatches.find((match) => String(match.attachment.path || "").trim() === activeDocumentPath)?.attachment || null,
+        [activeDocumentPath, documentMatches],
+    );
+
     if (isStreaming) {
         return (
             <StreamingMessageBody
@@ -346,29 +361,57 @@ function MessageContent({
 
     if (shouldRenderMarkdown) {
         return (
-            <Suspense
-                fallback={
-                    <PlainMessageText
-                        text={fallbackText}
-                        className="max-w-full"
+            <>
+                <Suspense
+                    fallback={
+                        <PlainMessageText
+                            text={fallbackText}
+                            documentMatches={documentMatches}
+                            onOpenDocument={(attachment) => setActiveDocumentPath(String(attachment.path || ""))}
+                            className="max-w-full"
+                        />
+                    }
+                >
+                    <LazyMarkdownRenderer
+                        content={fallbackText}
+                        isDark={isDark}
+                        invertText={isUserMessage}
+                        textDocumentMatches={documentMatches}
+                        onTextDocumentClick={(attachment) => setActiveDocumentPath(String(attachment.path || ""))}
+                        className="break-words [overflow-wrap:anywhere] max-w-full"
                     />
-                }
-            >
-                <LazyMarkdownRenderer
-                    content={fallbackText}
-                    isDark={isDark}
-                    invertText={isUserMessage}
-                    className="break-words [overflow-wrap:anywhere] max-w-full"
-                />
-            </Suspense>
+                </Suspense>
+                {activeDocument && blobGroupId ? (
+                    <TextDocumentViewerModal
+                        key={String(activeDocument.path || activeDocument.title || "document")}
+                        attachment={activeDocument}
+                        blobGroupId={blobGroupId}
+                        isDark={isDark}
+                        onClose={() => setActiveDocumentPath("")}
+                    />
+                ) : null}
+            </>
         );
     }
 
     return (
-        <PlainMessageText
-            text={fallbackText}
-            className="max-w-full"
-        />
+        <>
+            <PlainMessageText
+                text={fallbackText}
+                documentMatches={documentMatches}
+                onOpenDocument={(attachment) => setActiveDocumentPath(String(attachment.path || ""))}
+                className="max-w-full"
+            />
+            {activeDocument && blobGroupId ? (
+                <TextDocumentViewerModal
+                    key={String(activeDocument.path || activeDocument.title || "document")}
+                    attachment={activeDocument}
+                    blobGroupId={blobGroupId}
+                    isDark={isDark}
+                    onClose={() => setActiveDocumentPath("")}
+                />
+            ) : null}
+        </>
     );
 }
 

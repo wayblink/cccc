@@ -183,6 +183,42 @@ class TestSystemNotifyOps(unittest.TestCase):
         finally:
             cleanup()
 
+    def test_isolated_group_requires_explicit_notify_target(self) -> None:
+        _, cleanup = self._with_home()
+        try:
+            create, _ = self._call("group_create", {"title": "isolated-notify", "topic": "", "mode": "interactive", "by": "user"})
+            self.assertTrue(create.ok, getattr(create, "error", None))
+            group_id = str((create.result or {}).get("group_id") or "").strip()
+            self.assertTrue(group_id)
+
+            add, _ = self._call(
+                "actor_add",
+                {
+                    "group_id": group_id,
+                    "actor_id": "peer1",
+                    "title": "Peer 1",
+                    "runtime": "codex",
+                    "runner": "headless",
+                    "by": "user",
+                },
+            )
+            self.assertTrue(add.ok, getattr(add, "error", None))
+
+            notify, _ = self._call(
+                "system_notify",
+                {
+                    "group_id": group_id,
+                    "by": "peer1",
+                    "kind": "info",
+                    "title": "notify",
+                    "message": "broadcast should fail",
+                },
+            )
+            self.assertFalse(notify.ok)
+            self.assertEqual(getattr(notify.error, "code", ""), "explicit_recipient_required")
+        finally:
+            cleanup()
+
 
 if __name__ == "__main__":
     unittest.main()

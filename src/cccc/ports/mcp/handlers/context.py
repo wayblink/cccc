@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List, Optional
 
 from ....kernel.actors import get_effective_role, list_actors
-from ....kernel.group import load_group
+from ....kernel.group import group_agent_coordination_enabled, load_group
 from ....kernel.prompt_files import (
     HELP_FILENAME,
     delete_group_prompt_file,
@@ -34,6 +34,25 @@ def _resolve_task_create_assignee(
     if role == "peer":
         return actor
     return None
+
+
+def _group_coordination_enabled(group_id: str) -> bool:
+    group = load_group(group_id)
+    if group is None:
+        return True
+    return group_agent_coordination_enabled(group.doc)
+
+
+def _raise_if_coordination_disabled(*, group_id: str, tool_name: str) -> None:
+    if _group_coordination_enabled(group_id):
+        return
+    raise MCPError(
+        code="tool_unavailable",
+        message=(
+            f"{tool_name} is unavailable when agent_link_mode=isolated; "
+            "switch the group to connected to enable shared coordination"
+        ),
+    )
 
 
 def context_get(*, group_id: str, include_archived: bool = False) -> Dict[str, Any]:
@@ -569,6 +588,7 @@ def _handle_context_namespace(
 
     if name == "cccc_context_sync":
         gid = resolve_group_id(arguments)
+        _raise_if_coordination_disabled(group_id=gid, tool_name=name)
         by = resolve_self_actor_id(arguments)
         ops_raw = arguments.get("ops")
         if_version = arguments.get("if_version")
@@ -582,6 +602,7 @@ def _handle_context_namespace(
 
     if name == "cccc_coordination":
         gid = resolve_group_id(arguments)
+        _raise_if_coordination_disabled(group_id=gid, tool_name=name)
         by = resolve_self_actor_id(arguments)
         action = str(arguments.get("action") or "get").strip().lower()
         if action == "get":
@@ -610,6 +631,7 @@ def _handle_context_namespace(
 
     if name == "cccc_task":
         gid = resolve_group_id(arguments)
+        _raise_if_coordination_disabled(group_id=gid, tool_name=name)
         by = resolve_self_actor_id(arguments)
         action = str(arguments.get("action") or "list").strip().lower()
         if action == "list":

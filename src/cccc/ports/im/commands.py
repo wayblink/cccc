@@ -153,11 +153,38 @@ def _map_command(cmd_name: str) -> CommandType:
     return mapping.get(cmd_name, CommandType.MESSAGE)
 
 
-def format_help(platform: str = "telegram") -> str:
+def format_help(platform: str = "telegram", *, interactive: bool = False) -> str:
     """Generate help text for IM commands."""
     platform = (platform or "").strip().lower()
 
-    base = """CCCC Commands:
+    if interactive:
+        base = """CCCC Commands:
+
+📬 Subscription:
+  /subscribe - start receiving messages
+  /unsubscribe - stop receiving messages
+
+📨 Messages:
+  /send @<agent> <message> - send to a specific agent
+  /send user <message> - send back to the human side
+
+👁 Display:
+  /verbose - toggle verbose mode (show agent-to-agent messages)
+
+📊 Status:
+  /status - show group and agents status
+  /context - show project coordination (brief/tasks/agents)
+
+🎮 Control:
+  /pause - pause message delivery
+  /resume - resume message delivery
+  /launch - start all agents
+  /quit - stop all agents
+
+❓ Help:
+  /help - show this help"""
+    else:
+        base = """CCCC Commands:
 
 📬 Subscription:
   /subscribe - start receiving messages
@@ -186,26 +213,32 @@ def format_help(platform: str = "telegram") -> str:
   /help - show this help"""
 
     if platform == "telegram":
-        return (
-            base
-            + """
+        suffix = (
+            "  - In direct chat, choose recipients explicitly when this group requires direct routing.\n"
+            "  - Use /send @<agent> ... for directed delivery."
+            if interactive
+            else "  - In direct chat, plain text is sent to foreman by default.\n"
+            "  - Use /send when you need explicit recipients (e.g. @all, @peers)."
+        )
+        return base + """
 
 Telegram notes:
   - In groups, @mention the bot to route your message.
-  - In direct chat, plain text is sent to foreman by default.
-  - Use /send when you need explicit recipients (e.g. @all, @peers)."""
-        )
+""" + suffix
 
     if platform in ("slack", "discord"):
-        return (
-            base
-            + f"""
+        suffix = (
+            "  - After mention, choose recipients explicitly when this group requires direct routing.\n"
+            "  - Use /send @<agent> ... for directed delivery."
+            if interactive
+            else "  - After mention, plain text is sent to foreman by default.\n"
+            "  - Use /send for explicit recipients (e.g. @all, @peers)."
+        )
+        return base + f"""
 
 {platform.title()} notes:
   - In channels, @mention the bot to route your message.
-  - After mention, plain text is sent to foreman by default.
-  - Use /send for explicit recipients (e.g. @all, @peers)."""
-        )
+""" + suffix
 
     return base
 

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypedDict
 
 from ...kernel.actors import find_actor
 from ...kernel.context import ContextStorage
+from ...kernel.group import group_heavy_mcp_enabled
 from ...kernel.ledger import append_event
 from ...kernel.runtime import runtime_start_preflight_error
 from ..claude_app_sessions import SUPERVISOR as claude_app_supervisor
@@ -15,6 +17,8 @@ from ...runners import headless as headless_runner
 from ...runners import pty as pty_runner
 from ...runners.platform_support import pty_support_error_message
 from ..pet.review_scheduler import request_pet_review
+
+logger = logging.getLogger(__name__)
 
 
 class ActorLaunchConfig(TypedDict):
@@ -34,6 +38,52 @@ class ActorLaunchSpec(ActorLaunchConfig):
     scope_key: str
     cwd: Path
     effective_command: List[str]
+
+
+def ensure_actor_mcp_ready(
+    group: Any,
+    actor_id: str,
+    *,
+    runtime: str,
+    cwd: Path,
+    effective_env: Dict[str, Any],
+    effective_runner: str,
+    ensure_mcp_installed: Callable[..., bool],
+) -> tuple[bool, Optional[str]]:
+    if effective_runner == "headless":
+        return True, None
+
+    try:
+        mcp_ready = bool(
+            ensure_mcp_installed(
+                runtime,
+                cwd,
+                env={str(k): str(v) for k, v in effective_env.items() if isinstance(k, str)},
+            )
+        )
+    except Exception as e:
+        if not group_heavy_mcp_enabled(group.doc):
+            logger.warning(
+                "MCP install skipped for isolated group %s/%s (runtime=%s): %s",
+                group.group_id,
+                actor_id,
+                runtime,
+                e,
+            )
+            return True, None
+        return False, f"failed to install MCP: {e}"
+
+    if mcp_ready:
+        return True, None
+    if not group_heavy_mcp_enabled(group.doc):
+        logger.warning(
+            "MCP server 'cccc' is not installed for isolated group %s/%s (runtime=%s); actor will start but tools may not work.",
+            group.group_id,
+            actor_id,
+            runtime,
+        )
+        return True, None
+    return False, f"failed to install MCP for runtime: {runtime}"
 
 
 def _coerce_string_env(raw: Any) -> Dict[str, str]:
@@ -225,26 +275,25 @@ def start_actor_process(
     runtime = launch_spec["runtime"]
     runner = launch_spec["runner"]
 
+    runtime_error = runtime_start_preflight_error(runtime, effective_cmd, runner=effective_runner)
+    if runtime_error:
+        return {"success": False, "error": runtime_error}
+
     if effective_runner != "headless":
         if not bool(getattr(pty_runner, "PTY_SUPPORTED", False)):
             error_message = pty_support_error_message() or "PTY runner is not supported in this environment."
             return {"success": False, "error": error_message}
-        try:
-            mcp_ready = bool(
-                ensure_mcp_installed(
-                    runtime,
-                    cwd,
-                    env={str(k): str(v) for k, v in effective_env.items() if isinstance(k, str)},
-                )
-            )
-        except Exception as e:
-            return {"success": False, "error": f"failed to install MCP: {e}"}
+        mcp_ready, mcp_error = ensure_actor_mcp_ready(
+            group,
+            actor_id,
+            runtime=runtime,
+            cwd=cwd,
+            effective_env=effective_env,
+            effective_runner=effective_runner,
+            ensure_mcp_installed=ensure_mcp_installed,
+        )
         if not mcp_ready:
-            return {"success": False, "error": f"failed to install MCP for runtime: {runtime}"}
-
-    runtime_error = runtime_start_preflight_error(runtime, effective_cmd, runner=effective_runner)
-    if runtime_error:
-        return {"success": False, "error": runtime_error}
+            return {"success": False, "error": mcp_error or f"failed to install MCP for runtime: {runtime}"}
 
     try:
         if runtime == "codex" and effective_runner == "headless":

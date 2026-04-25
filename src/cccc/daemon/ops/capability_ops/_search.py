@@ -19,7 +19,7 @@ from ....kernel.capabilities import (
     resolve_visible_tool_names,
 )
 from ....kernel.context import ContextStorage
-from ....kernel.group import load_group
+from ....kernel.group import group_agent_coordination_enabled, load_group
 from ....util.time import parse_utc_iso, utc_now_iso
 
 from ._common import (
@@ -1148,6 +1148,7 @@ def handle_capability_state(args: Dict[str, Any]) -> DaemonResponse:
         actor_role = _resolve_actor_role(group, actor_id)
         actor = find_actor(group, actor_id) if actor_id and actor_id != "user" else None
         actor_is_pet = isinstance(actor, dict) and is_pet_actor(actor)
+        coordination_enabled = group_agent_coordination_enabled(group.doc)
         policy = _allowlist_policy()
         max_dynamic_tools_visible = _quota_limit(
             "CCCC_CAPABILITY_MAX_DYNAMIC_TOOLS_VISIBLE",
@@ -1249,7 +1250,14 @@ def handle_capability_state(args: Dict[str, Any]) -> DaemonResponse:
             dynamic_tools = dynamic_tools[:max_dynamic_tools_visible]
 
         visible_tools = sorted(
-            set(resolve_visible_tool_names(builtin_enabled, actor_role=actor_role, is_pet=actor_is_pet))
+            set(
+                resolve_visible_tool_names(
+                    builtin_enabled,
+                    actor_role=actor_role,
+                    is_pet=actor_is_pet,
+                    coordination_enabled=coordination_enabled,
+                )
+            )
             | {str(x.get("name") or "").strip() for x in dynamic_tools if isinstance(x, dict)}
         )
 
@@ -1578,7 +1586,13 @@ def handle_capability_state(args: Dict[str, Any]) -> DaemonResponse:
                 "group_id": group_id,
                 "actor_id": actor_id,
                 "default_profile": "core",
-                "core_tool_count": len(resolve_core_tool_names(actor_role=actor_role, is_pet=actor_is_pet)),
+                "core_tool_count": len(
+                    resolve_core_tool_names(
+                        actor_role=actor_role,
+                        is_pet=actor_is_pet,
+                        coordination_enabled=coordination_enabled,
+                    )
+                ),
                 "visible_tool_count": len(visible_tools),
                 "visible_tools": visible_tools,
                 "dynamic_tools": dynamic_tools,

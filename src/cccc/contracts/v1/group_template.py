@@ -10,6 +10,7 @@ from .automation import AutomationRuleSet
 
 TerminalTranscriptVisibility = Literal["off", "foreman", "all"]
 DefaultSendTo = Literal["foreman", "broadcast"]
+GroupAgentLinkMode = Literal["connected", "isolated"]
 
 
 class GroupTemplateActor(BaseModel):
@@ -35,7 +36,8 @@ class GroupTemplateActor(BaseModel):
 class GroupTemplateSettings(BaseModel):
     """Group-scoped settings that are safe to carry across projects."""
 
-    default_send_to: DefaultSendTo = "foreman"
+    agent_link_mode: Optional[GroupAgentLinkMode] = None
+    default_send_to: Optional[DefaultSendTo] = None
     nudge_after_seconds: int = 300
     reply_required_nudge_after_seconds: int = 300
     attention_ack_nudge_after_seconds: int = 600

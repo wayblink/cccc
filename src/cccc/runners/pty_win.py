@@ -20,6 +20,15 @@ _WINPTY_PROCESS = load_winpty_process_class()
 
 PTY_SUPPORTED = bool(os.name == "nt" and _WINPTY_PROCESS is not None)
 TERMINAL_SIGNAL_BUFFER_CHARS = 4096
+_BAD_TERM_VALUES = {"", "dumb", "unknown"}
+
+
+def _normalize_pty_env(env: Dict[str, str]) -> Dict[str, str]:
+    normalized = dict(env)
+    term = str(normalized.get("TERM") or "").strip().lower()
+    if term in _BAD_TERM_VALUES:
+        normalized["TERM"] = "xterm-256color"
+    return normalized
 
 
 def _coerce_bytes(data: object) -> bytes:
@@ -104,9 +113,8 @@ class PtySession:
             cmd = ["cmd.exe"]
         cmdline = subprocess.list2cmdline(cmd)
 
-        proc_env = os.environ.copy()
-        proc_env.update({k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str)})
-        proc_env.setdefault("TERM", "xterm-256color")
+        proc_env = _normalize_pty_env(os.environ.copy())
+        proc_env.update(_normalize_pty_env({k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str)}))
 
         spawn_err: Optional[Exception] = None
         proc = None

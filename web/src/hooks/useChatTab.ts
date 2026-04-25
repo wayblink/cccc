@@ -25,6 +25,11 @@ import { useChatOutboxStore, selectOutboxEntries } from "../stores/chatOutboxSto
 import type { Actor, LedgerEvent, ChatMessageData, MessageRef, OptimisticAttachment, RuntimeInfo } from "../types";
 import * as api from "../services/api";
 import { buildReplyComposerState, getReplyEventId } from "../utils/chatReply";
+import {
+  getChatSpecialRecipientTokens,
+  getGroupAgentLinkMode,
+  getImplicitRecipientTokens,
+} from "../utils/groupMode";
 import { hasRenderableChatMessageContent } from "../utils/ledgerEventHandlers";
 
 export function supportsChatStreamingPlaceholder(actor: Pick<Actor, "runtime" | "runner" | "runner_effective">): boolean {
@@ -136,6 +141,7 @@ export function buildChatViewKey(
 export function getEffectiveChatMentionSuggestions(
   slotId: ChatSlotId | string | null | undefined,
   recipientActors: Array<Pick<Actor, "id"> | { id: string }>,
+  specialRecipientTokens: string[] = [],
 ): string[] {
   const actorId = parseChatSlotActorId(sanitizeChatSlotId(slotId));
   if (actorId) return [actorId];
@@ -143,7 +149,7 @@ export function getEffectiveChatMentionSuggestions(
   const actorIds = recipientActors
     .map((actor) => String(actor.id || "").trim())
     .filter((id) => id.length > 0);
-  return ["@all", "@foreman", "@peers", ...actorIds];
+  return [...specialRecipientTokens, ...actorIds];
 }
 
 export function getEffectiveChatSendGroupId(
@@ -903,11 +909,18 @@ export function useChatTab({
 
   // ============ Computed Values ============
 
+  const groupAgentLinkMode = getGroupAgentLinkMode(groupDoc, groupSettings);
+  const specialRecipientTokens = useMemo(
+    () => getChatSpecialRecipientTokens(groupAgentLinkMode),
+    [groupAgentLinkMode],
+  );
+
   const resolveAssistantTargets = useCallback((tokens: string[]): Actor[] => {
     const normalized = tokens.map((token) => String(token || "").trim()).filter((token) => token);
     const resolved = new Map<string, Actor>();
-    const policy = groupSettings?.default_send_to || "foreman";
-    const effectiveTokens = normalized.length > 0 ? normalized : (policy === "foreman" ? ["@foreman"] : ["@all"]);
+    const effectiveTokens = normalized.length > 0
+      ? normalized
+      : getImplicitRecipientTokens(groupAgentLinkMode, groupSettings?.default_send_to);
     const allActors = actors.filter((actor) => {
       const actorId = String(actor.id || "").trim();
       const internalKind = String(actor.internal_kind || "").trim();
@@ -942,17 +955,32 @@ export function useChatTab({
     }
 
     return Array.from(resolved.values()).filter((actor) => String(actor.runtime || "").trim() === "codex");
-  }, [actors, groupSettings?.default_send_to]);
+  }, [actors, groupAgentLinkMode, groupSettings?.default_send_to]);
 
   // Valid recipient tokens
   const validRecipientSet = useMemo(() => {
-    const out = new Set<string>(["@all", "@foreman", "@peers"]);
+    const out = new Set<string>(specialRecipientTokens);
     for (const a of recipientActors) {
       const id = String(a.id || "").trim();
       if (id) out.add(id);
     }
     return out;
-  }, [recipientActors]);
+  }, [recipientActors, specialRecipientTokens]);
+
+  const isolatedBroadcastRecipientIds = useMemo(() => {
+    if (groupAgentLinkMode !== "isolated") return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const actor of recipientActors) {
+      const actorId = String(actor.id || "").trim();
+      if (!actorId || actorId === "user" || actor.enabled === false) continue;
+      if (String(actor.internal_kind || "").trim()) continue;
+      if (seen.has(actorId)) continue;
+      seen.add(actorId);
+      out.push(actorId);
+    }
+    return out;
+  }, [groupAgentLinkMode, recipientActors]);
 
   // Parse toText into validated tokens
   const toTokens = useMemo(() => {
@@ -974,8 +1002,8 @@ export function useChatTab({
 
   // Mention suggestions
   const mentionSuggestions = useMemo(() => {
-    return getEffectiveChatMentionSuggestions(effectiveSlotId, recipientActors);
-  }, [effectiveSlotId, recipientActors]);
+    return getEffectiveChatMentionSuggestions(effectiveSlotId, recipientActors, specialRecipientTokens);
+  }, [effectiveSlotId, recipientActors, specialRecipientTokens]);
 
   // Send group ID (respects cross-group destination)
   const sendGroupId = useMemo(() => {
@@ -1278,7 +1306,14 @@ export function useChatTab({
     const prioritySnapshot = priority;
     const replyRequiredSnapshot = replyRequired;
     const toTextSnapshot = toText;
-    const assistantTargets = !isCrossGroup ? resolveAssistantTargets(effectiveToTokens) : [];
+    const wantsIsolatedBroadcast = !isCrossGroup
+      && groupAgentLinkMode === "isolated"
+      && effectiveToTokens.includes("@all");
+    const isolatedBroadcastTargets = wantsIsolatedBroadcast ? isolatedBroadcastRecipientIds : [];
+    const directToTokens = wantsIsolatedBroadcast && isolatedBroadcastTargets.length === 1
+      ? [isolatedBroadcastTargets[0]]
+      : effectiveToTokens;
+    const assistantTargets = !isCrossGroup ? resolveAssistantTargets(directToTokens) : [];
 
     // Generate a local ID for outbox tracking
     const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1343,6 +1378,25 @@ export function useChatTab({
       }
     };
 
+    const finalizeSuccessfulSend = () => {
+      setDestGroupId(selectedGroupId);
+      clearDraft(selectedGroupId, effectiveSlotId);
+      if (fileInputRef?.current) fileInputRef.current.value = "";
+      if (inChatWindow) {
+        closeChatWindow();
+        const url = new URL(window.location.href);
+        url.searchParams.delete("event");
+        url.searchParams.delete("tab");
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+      }
+      if (selectedGroupId) {
+        setChatUnreadCount(selectedGroupId, 0);
+        setChatFilter(selectedGroupId, "all");
+        setChatMobileSurface(selectedGroupId, "messages");
+      }
+      onMessageSent?.();
+    };
+
     // Local validations that must pass before clearing the composer
     if (replyTargetSnapshot && isCrossGroup) {
       showError("Cross-group send does not support replies.");
@@ -1357,6 +1411,77 @@ export function useChatTab({
     if (!replyTargetSnapshot && isCrossGroup && composerFilesSnapshot.length > 0) {
       showError("Cross-group send does not support attachments yet.");
       return;
+    }
+    if (wantsIsolatedBroadcast && isolatedBroadcastTargets.length === 0) {
+      showError(t("chat:noBroadcastRecipients", { defaultValue: "No available agents to send to." }));
+      return;
+    }
+
+    if (wantsIsolatedBroadcast && isolatedBroadcastTargets.length > 1) {
+      const confirmed = window.confirm(
+        t("chat:confirmBroadcastRecipients", {
+          count: isolatedBroadcastTargets.length,
+          defaultValue: `Broadcast this message to ${isolatedBroadcastTargets.length} agents? This will create one direct message per agent.`,
+        }),
+      );
+      if (!confirmed) return;
+
+      applyImmediateComposerFeedback();
+      sendInFlightRef.current = true;
+      try {
+        const failedActorIds: string[] = [];
+        for (const actorId of isolatedBroadcastTargets) {
+          const splitClientId = `${localId}:${actorId}`;
+          const resp = replyTargetSnapshot
+            ? await api.replyMessage(
+              selectedGroupId,
+              txt,
+              [actorId],
+              replyTargetSnapshot.eventId,
+              composerFilesSnapshot.length > 0 ? composerFilesSnapshot : undefined,
+              prio,
+              replyRequired,
+              splitClientId,
+              refsSnapshot,
+            )
+            : await api.sendMessage(
+              selectedGroupId,
+              txt,
+              [actorId],
+              composerFilesSnapshot.length > 0 ? composerFilesSnapshot : undefined,
+              prio,
+              replyRequired,
+              splitClientId,
+              refsSnapshot,
+            );
+          if (!resp.ok) {
+            failedActorIds.push(actorId);
+          }
+        }
+
+        const succeededCount = isolatedBroadcastTargets.length - failedActorIds.length;
+        if (succeededCount <= 0) {
+          restoreComposerState();
+          showError(t("chat:broadcastSendFailed", { defaultValue: "Failed to send to any agent." }));
+          return;
+        }
+
+        finalizeSuccessfulSend();
+        if (failedActorIds.length > 0) {
+          showError(
+            t("chat:broadcastSendPartialFailure", {
+              defaultValue: `Sent to ${succeededCount}/${isolatedBroadcastTargets.length} agents. Failed: ${failedActorIds.join(", ")}`,
+            }),
+          );
+        }
+        return;
+      } catch (error) {
+        restoreComposerState();
+        showError(error instanceof Error ? error.message : "send failed");
+        return;
+      } finally {
+        sendInFlightRef.current = false;
+      }
     }
 
     // Optimistic: enqueue to outbox immediately for same-group sends.
@@ -1378,7 +1503,7 @@ export function useChatTab({
         group_id: selectedGroupId,
         data: {
           text: txt,
-          to: effectiveToTokens,
+          to: directToTokens,
           priority: prio,
           reply_required: replyRequired,
           client_id: localId,
@@ -1397,7 +1522,7 @@ export function useChatTab({
     applyImmediateComposerFeedback();
     sendInFlightRef.current = true;
     try {
-      const to = effectiveToTokens;
+      const to = directToTokens;
       let resp;
       if (replyTargetSnapshot) {
         resp = await api.replyMessage(
@@ -1461,22 +1586,7 @@ export function useChatTab({
           promoteStreamingEventsByPrefix(`local:${localId}:`, canonicalEventId, selectedGroupId);
         }
       }
-      setDestGroupId(selectedGroupId);
-      clearDraft(selectedGroupId, effectiveSlotId);
-      if (fileInputRef?.current) fileInputRef.current.value = "";
-      if (inChatWindow) {
-        closeChatWindow();
-        const url = new URL(window.location.href);
-        url.searchParams.delete("event");
-        url.searchParams.delete("tab");
-        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
-      }
-      if (selectedGroupId) {
-        setChatUnreadCount(selectedGroupId, 0);
-        setChatFilter(selectedGroupId, "all");
-        setChatMobileSurface(selectedGroupId, "messages");
-      }
-      onMessageSent?.();
+      finalizeSuccessfulSend();
     } catch (error) {
       const message = error instanceof Error ? error.message : "send failed";
       // Pending-only outbox: failed sends roll back to the composer.
@@ -1492,6 +1602,8 @@ export function useChatTab({
     composerFiles,
     selectedGroupId,
     sendGroupId,
+    groupAgentLinkMode,
+    isolatedBroadcastRecipientIds,
     priority,
     replyRequired,
     toText,
@@ -1525,6 +1637,7 @@ export function useChatTab({
     promoteStreamingEventsByPrefix,
     removeStreamingEventsByPrefix,
     resolveAssistantTargets,
+    t,
     upsertStreamingEvent,
   ]);
 
@@ -1605,7 +1718,7 @@ export function useChatTab({
 
   const startReply = useCallback(
     (ev: LedgerEvent) => {
-      const replyComposerState = buildReplyComposerState(ev, selectedGroupId, actors, groupSettings);
+      const replyComposerState = buildReplyComposerState(ev, selectedGroupId, actors, groupSettings, groupAgentLinkMode);
       if (!replyComposerState) {
         showError(t("replyTargetUnavailable", { defaultValue: "This message is not ready for replies yet." }));
         return;
@@ -1619,7 +1732,7 @@ export function useChatTab({
       setReplyTarget(replyComposerState.replyTarget);
       requestAnimationFrame(() => composerRef?.current?.focus());
     },
-    [selectedGroupId, actors, groupSettings, setDestGroupId, setToText, setReplyTarget, composerRef, showError, t]
+    [selectedGroupId, actors, groupSettings, groupAgentLinkMode, setDestGroupId, setToText, setReplyTarget, composerRef, showError, t]
   );
 
   const cancelReply = useCallback(() => setReplyTarget(null), [setReplyTarget]);
@@ -1807,6 +1920,7 @@ export function useChatTab({
     cancelReply,
     clearQuotedPresentationRef: () => setQuotedPresentationRef(null),
     toTokens,
+    specialRecipientTokens,
     toggleRecipient,
     clearRecipients,
     appendRecipientToken,

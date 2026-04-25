@@ -350,20 +350,31 @@ export function getPresentationBrowserSurfaceWebSocketUrl(groupId: string, slotI
   return withAuthToken(base);
 }
 
-export async function createGroup(title: string, topic: string = "") {
+export async function createGroup(
+  title: string,
+  topic: string = "",
+  mode: "interactive" | "collaboration" = "interactive",
+) {
   clearGroupsReadRequest();
   return apiJson<{ group_id: string }>("/api/v1/groups", {
     method: "POST",
-    body: JSON.stringify({ title, topic, by: "user" }),
+    body: JSON.stringify({ title, topic, mode, by: "user" }),
   });
 }
 
-export async function createGroupFromTemplate(path: string, title: string, topic: string, file: File) {
+export async function createGroupFromTemplate(
+  path: string,
+  title: string,
+  topic: string,
+  mode: "interactive" | "collaboration" = "interactive",
+  file: File,
+) {
   clearGroupsReadRequest();
   const form = new FormData();
   form.append("path", path);
   form.append("title", title);
   form.append("topic", topic || "");
+  form.append("mode", mode);
   form.append("by", "user");
   form.append("file", file);
   return apiForm<{ group_id: string }>("/api/v1/groups/from_template", form);

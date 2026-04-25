@@ -10,7 +10,12 @@ from .context import ContextStorage
 from ..util.fs import atomic_write_json, read_json
 from ..util.time import parse_utc_iso, utc_now_iso
 from .actors import find_actor, get_effective_role, is_internal_actor, list_actors
-from .group import Group
+from .group import (
+    Group,
+    group_broadcast_delivery_enabled,
+    group_requires_explicit_actor_recipient,
+    group_selector_recipients_enabled,
+)
 from .ledger_index import has_chat_ack_indexed, lookup_event_by_id, lookup_events_by_ids, search_event_ids_indexed
 from .ledger_segments import iter_source_lines, list_ledger_sources
 from .ledger_state_snapshot import can_replay_from_basis, current_ledger_basis, load_latest_ledger_snapshot
@@ -783,23 +788,27 @@ def is_message_for_actor(
         target = str(data.get("target_actor_id") or "").strip()
         if actor_internal:
             return bool(target) and target == actor_id
-        # Empty target = broadcast to everyone
+        # Empty-target notify is only broadcast-capable in connected groups.
         if not target:
+            if group_requires_explicit_actor_recipient(group.doc):
+                return False
             return True
         return target == actor_id
 
     # chat.message: check the "to" field
     targets = _message_targets(event)
+    broadcast_delivery_enabled = group_broadcast_delivery_enabled(group.doc)
+    selector_recipients_enabled = group_selector_recipients_enabled(group.doc)
 
     if actor_internal:
         return actor_id in targets
 
     # Empty targets = broadcast (everyone can see)
     if not targets:
-        return True
+        return broadcast_delivery_enabled
 
     # @all = all actors
-    if "@all" in targets:
+    if selector_recipients_enabled and "@all" in targets:
         return True
 
     # Direct actor_id mention
@@ -809,9 +818,9 @@ def is_message_for_actor(
     # Role-based matching (use pre-computed role if provided)
     if role is None:
         role = _actor_role(group, actor_id)
-    if role == "peer" and "@peers" in targets:
+    if selector_recipients_enabled and role == "peer" and "@peers" in targets:
         return True
-    if role == "foreman" and "@foreman" in targets:
+    if selector_recipients_enabled and role == "foreman" and "@foreman" in targets:
         return True
 
     return False

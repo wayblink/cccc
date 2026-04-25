@@ -24,7 +24,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from ...daemon.server import call_daemon
 from ...kernel.actors import list_actors, resolve_recipient_tokens
 from ...kernel.blobs import resolve_blob_attachment_path, store_blob_bytes
-from ...kernel.group import Group, load_group
+from ...kernel.group import (
+    Group,
+    group_broadcast_delivery_enabled,
+    group_requires_explicit_actor_recipient,
+    load_group,
+)
 from ...kernel.messaging import disabled_recipient_actor_ids, get_default_send_to
 from ...paths import ensure_home
 from ...util.conv import coerce_bool
@@ -1132,7 +1137,14 @@ class IMBridge:
     def _handle_help(self, chat_id: str, thread_id: int = 0) -> None:
         """Handle /help command."""
         platform = str(getattr(self.adapter, "platform", "") or "").strip().lower() or "telegram"
-        self.adapter.send_message(chat_id, format_help(platform=platform), thread_id=thread_id)
+        self.adapter.send_message(
+            chat_id,
+            format_help(
+                platform=platform,
+                interactive=group_requires_explicit_actor_recipient(self.group.doc),
+            ),
+            thread_id=thread_id,
+        )
 
     def _add_typing_indicator(self, chat_id: str, message_id: str) -> None:
         """Add a typing indicator (emoji reaction) to the user's message."""
@@ -1189,6 +1201,8 @@ class IMBridge:
         # Parse recipients from leading args (supports multiple @targets, comma-separated).
         to: List[str] = []
         args = list(parsed.args or [])
+        requires_explicit_recipient = group_requires_explicit_actor_recipient(group.doc)
+        broadcast_delivery_enabled = group_broadcast_delivery_enabled(group.doc)
         # Known-recipient set for validating @targets in args.
         _actor_ids = {str(a.get("id") or "").strip() for a in list_actors(group) if isinstance(a, dict)}
         _valid_selectors = {"@all", "@peers", "@foreman", "user"}
@@ -1215,7 +1229,7 @@ class IMBridge:
             return
 
         # If no explicit recipients were provided, try @mentions in the message text first.
-        if not to and msg_text:
+        if not to and msg_text and not requires_explicit_recipient:
             mention_tokens: List[str] = []
             for m in re.findall(r"@(\w[\w-]*)", msg_text):
                 if not m:
@@ -1229,7 +1243,7 @@ class IMBridge:
                 to = mention_tokens
 
         # If still empty, apply the group policy for empty-recipient sends.
-        if not to and get_default_send_to(group.doc) == "foreman":
+        if not to and not requires_explicit_recipient and get_default_send_to(group.doc) == "foreman":
             to = ["@foreman"]
 
         # Fail fast if the recipient set matches no enabled agents.
@@ -1238,6 +1252,13 @@ class IMBridge:
             canonical_to = resolve_recipient_tokens(group, to)
         except Exception as e:
             self.adapter.send_message(chat_id, f"❌ Invalid recipient: {e}", thread_id=thread_id)
+            return
+        if requires_explicit_recipient and not canonical_to:
+            self.adapter.send_message(
+                chat_id,
+                "❌ This group requires explicit direct recipients. Use /send @<agent> <message> or /send user <message>.",
+                thread_id=thread_id,
+            )
             return
         if to and not canonical_to:
             self.adapter.send_message(
@@ -1262,8 +1283,9 @@ class IMBridge:
         matched: set[str] = set()
         to_set = set(canonical_to)
         if not to_set:
-            # Empty recipients = broadcast semantics.
-            matched.update(enabled_actor_ids)
+            if broadcast_delivery_enabled:
+                # Empty recipients = broadcast semantics only when actor coordination is enabled.
+                matched.update(enabled_actor_ids)
         if "@all" in to_set:
             matched.update(enabled_actor_ids)
         if "@foreman" in to_set and foreman_id:
@@ -1282,7 +1304,7 @@ class IMBridge:
             # Check if disabled actors match — daemon will auto-wake them.
             disabled_matches = disabled_recipient_actor_ids(group, canonical_to)
             if not disabled_matches:
-                wanted = " ".join(canonical_to) if canonical_to else "@all"
+                wanted = " ".join(canonical_to) if canonical_to else ("<none>" if requires_explicit_recipient else "@all")
                 self.adapter.send_message(
                     chat_id,
                     f"⚠️ No agents match the recipient(s): {wanted}. Run /status to check available agents.",

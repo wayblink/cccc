@@ -11,11 +11,13 @@ from ...contracts.v1 import (
     DaemonError,
     DaemonResponse,
 )
-from ...kernel.actors import find_actor, get_effective_role
+from ...kernel.actors import find_actor, get_effective_role, list_visible_actors
 from ...kernel.group import (
     automation_snippet_catalog,
     default_automation_builtin_snippets,
     default_automation_ruleset_doc,
+    group_requires_explicit_actor_recipient,
+    group_selector_recipients_enabled,
     load_group,
     normalize_automation_snippet_storage,
     split_automation_snippets_for_storage,
@@ -46,9 +48,54 @@ def _parse_expected_version(args: Dict[str, Any]) -> tuple[Optional[int], Option
         return None, _error("invalid_request", "expected_version must be an integer")
 
 
+def _visible_actor_ids(group: Any) -> set[str]:
+    return {
+        str(actor.get("id") or "").strip()
+        for actor in list_visible_actors(group)
+        if isinstance(actor, dict) and str(actor.get("id") or "").strip()
+    }
+
+
+def _validate_rule_recipients_for_group(group: Any, rule: AutomationRule) -> None:
+    requires_explicit_recipient = group_requires_explicit_actor_recipient(group.doc)
+    selector_recipients_enabled = group_selector_recipients_enabled(group.doc)
+    actor_ids = _visible_actor_ids(group)
+    selector_tokens = {"@all", "@foreman", "@peers"}
+
+    action = getattr(rule, "action", None)
+    action_kind = str(getattr(action, "kind", "notify") or "notify").strip()
+
+    if action_kind == "notify":
+        recipients = [str(x).strip() for x in (rule.to or []) if isinstance(x, str) and str(x).strip()]
+        if requires_explicit_recipient and not recipients:
+            raise ValueError("this group requires explicit actor recipients for notify rules")
+        for token in recipients:
+            if token in selector_tokens:
+                if not selector_recipients_enabled:
+                    raise ValueError(f"this group does not support selector recipients: {token}")
+                continue
+            if token not in actor_ids:
+                raise ValueError(f"unknown notify recipient actor: {token}")
+        return
+
+    if action_kind != "actor_control":
+        return
+
+    targets = [str(x).strip() for x in (getattr(action, "targets", []) or []) if isinstance(x, str) and str(x).strip()]
+    if requires_explicit_recipient and not targets:
+        raise ValueError("this group requires explicit actor targets for actor_control rules")
+    for token in targets:
+        if token in selector_tokens:
+            if not selector_recipients_enabled:
+                raise ValueError(f"this group does not support selector targets: {token}")
+            continue
+        if token not in actor_ids:
+            raise ValueError(f"unknown actor_control target: {token}")
+
+
 def _ensure_automation_doc(group: Any) -> Dict[str, Any]:
     raw_automation = group.doc.get("automation")
-    seed = default_automation_ruleset_doc()
+    seed = default_automation_ruleset_doc(group_doc=group.doc)
     if not isinstance(raw_automation, dict):
         automation = seed
     else:
@@ -61,7 +108,10 @@ def _ensure_automation_doc(group: Any) -> Dict[str, Any]:
         else:
             if not has_rules:
                 automation["rules"] = []
-            custom_snippets, built_in_overrides = normalize_automation_snippet_storage(automation)
+            custom_snippets, built_in_overrides = normalize_automation_snippet_storage(
+                automation,
+                group_doc=group.doc,
+            )
             automation["snippets"] = custom_snippets
             automation["snippet_overrides"] = built_in_overrides
     if "snippets" not in automation:
@@ -164,7 +214,10 @@ def _reconcile_automation_state_after_ruleset_change(
 def _set_automation_ruleset(group: Any, *, ruleset: AutomationRuleSet) -> int:
     previous_ruleset = load_automation_ruleset(group)
     automation = _ensure_automation_doc(group)
-    custom_snippets, built_in_overrides = split_automation_snippets_for_storage(ruleset.snippets or {})
+    custom_snippets, built_in_overrides = split_automation_snippets_for_storage(
+        ruleset.snippets or {},
+        group_doc=group.doc,
+    )
     automation["rules"] = [r.model_dump(exclude_none=True) for r in (ruleset.rules or [])]
     automation["snippets"] = custom_snippets
     automation["snippet_overrides"] = built_in_overrides
@@ -237,7 +290,9 @@ def _build_automation_payload(group: Any, *, by: str) -> Dict[str, Any]:
             raise ValueError(f"unknown actor: {by}")
 
     ruleset = load_automation_ruleset(group)
-    snippet_catalog = AutomationSnippetCatalog.model_validate(automation_snippet_catalog(group.doc.get("automation")))
+    snippet_catalog = AutomationSnippetCatalog.model_validate(
+        automation_snippet_catalog(group.doc.get("automation"), group_doc=group.doc)
+    )
     status = build_automation_status(group)
     version = _automation_version(group)
 
@@ -306,6 +361,7 @@ def handle_group_automation_update(args: Dict[str, Any]) -> DaemonResponse:
         ruleset = AutomationRuleSet.model_validate(raw)
         for rule in ruleset.rules:
             _validate_automation_rule_action_trigger(rule)
+            _validate_rule_recipients_for_group(group, rule)
         if by and by != "user":
             for rule in ruleset.rules:
                 action = getattr(rule, "action", None)
@@ -472,6 +528,7 @@ def handle_group_automation_manage(args: Dict[str, Any]) -> DaemonResponse:
                 rule = _enforce_peer_rule(rule)
                 rule = _enforce_actor_action_kind(rule)
                 _validate_automation_rule_action_trigger(rule)
+                _validate_rule_recipients_for_group(group, rule)
                 rules_by_id[rid] = rule
                 rules_order.append(rid)
                 applied_actions.append({"type": action_type, "rule_id": rid})
@@ -495,6 +552,7 @@ def handle_group_automation_manage(args: Dict[str, Any]) -> DaemonResponse:
                 rule = _enforce_peer_rule(rule, existing=existing)
                 rule = _enforce_actor_action_kind(rule)
                 _validate_automation_rule_action_trigger(rule)
+                _validate_rule_recipients_for_group(group, rule)
                 rules_by_id[rid] = rule
                 applied_actions.append({"type": action_type, "rule_id": rid})
                 continue
@@ -555,6 +613,7 @@ def handle_group_automation_manage(args: Dict[str, Any]) -> DaemonResponse:
                     normalized = _normalize_rule(rule)
                     normalized = _enforce_actor_action_kind(normalized)
                     _validate_automation_rule_action_trigger(normalized)
+                    _validate_rule_recipients_for_group(group, normalized)
                     new_order.append(rid)
                     new_map[rid] = normalized
                 rules_order = new_order
@@ -622,11 +681,11 @@ def handle_group_automation_reset_baseline(args: Dict[str, Any]) -> DaemonRespon
                 "automation version mismatch",
                 details={"expected_version": expected_version, "current_version": current_version},
             )
-        seed = default_automation_ruleset_doc()
+        seed = default_automation_ruleset_doc(group_doc=group.doc)
         baseline = AutomationRuleSet.model_validate(
             {
                 "rules": list(seed.get("rules", [])),
-                "snippets": default_automation_builtin_snippets(),
+                "snippets": default_automation_builtin_snippets(group_doc=group.doc),
             }
         )
         next_version = _set_automation_ruleset(group, ruleset=baseline)

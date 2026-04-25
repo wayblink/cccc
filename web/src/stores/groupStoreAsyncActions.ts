@@ -105,6 +105,10 @@ export function createGroupStoreAsyncActions(
             const meta = next.find((g) => String(g.group_id || "") === String(selectedId || "")) || null;
             if (meta) {
               const patch: Partial<GroupDoc> = {};
+              if (typeof meta.mode === "string" && meta.mode !== doc.mode) patch.mode = meta.mode;
+              if (typeof meta.agent_link_mode === "string" && meta.agent_link_mode !== doc.agent_link_mode) {
+                patch.agent_link_mode = meta.agent_link_mode;
+              }
               if (typeof meta.state === "string" && meta.state !== doc.state) patch.state = meta.state;
               if (typeof meta.title === "string" && meta.title !== doc.title) patch.title = meta.title;
               if (typeof meta.topic === "string" && meta.topic !== doc.topic) patch.topic = meta.topic;

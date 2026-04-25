@@ -3,6 +3,9 @@ from __future__ import annotations
 """Messaging/inbox/ledger CLI command handlers."""
 
 from .common import *  # noqa: F401,F403
+from ..kernel.actors import find_actor
+from ..kernel.group import group_requires_explicit_actor_recipient
+from ..kernel.messaging import isolated_single_enabled_actor_recipient, peer_recipient_actor_ids
 
 __all__ = [
     "cmd_send",
@@ -14,6 +17,28 @@ __all__ = [
     "cmd_read",
     "cmd_prompt",
 ]
+
+
+def _interactive_missing_recipient_payload() -> dict[str, object]:
+    return {
+        "ok": False,
+        "error": {
+            "code": "missing_recipient",
+            "message": "This group requires explicit direct recipients. Please choose at least one agent or 'user'.",
+        },
+    }
+
+
+def _isolated_peer_message_payload(*, sender: str, recipients: list[str]) -> dict[str, object]:
+    return {
+        "ok": False,
+        "error": {
+            "code": "peer_messaging_disabled",
+            "message": "This group has agent_link_mode=isolated, so agents cannot send visible chat to other agents.",
+            "details": {"by": str(sender or "").strip(), "peer_recipients": list(recipients)},
+        },
+    }
+
 
 def cmd_send(args: argparse.Namespace) -> int:
     group_id = _resolve_group_id(getattr(args, "group", ""))
@@ -59,11 +84,22 @@ def cmd_send(args: argparse.Namespace) -> int:
             return 0
 
     # Fallback: local execution (dev convenience)
+    to_explicitly_set = len(to_tokens) > 0
     try:
         to = resolve_recipient_tokens(group, to_tokens)
     except Exception as e:
         _print_json({"ok": False, "error": {"code": "invalid_recipient", "message": str(e)}})
         return 2
+    if group_requires_explicit_actor_recipient(group.doc) and not to and not to_explicitly_set:
+        to = isolated_single_enabled_actor_recipient(group)
+    if group_requires_explicit_actor_recipient(group.doc) and not to:
+        _print_json(_interactive_missing_recipient_payload())
+        return 2
+    if isinstance(find_actor(group, str(args.by or "")), dict) and group_requires_explicit_actor_recipient(group.doc):
+        peer_targets = peer_recipient_actor_ids(group, to, sender_actor_id=str(args.by or ""))
+        if peer_targets:
+            _print_json(_isolated_peer_message_payload(sender=str(args.by or ""), recipients=peer_targets))
+            return 2
     scope_key = str(group.doc.get("active_scope_key") or "")
     if args.path:
         scope = detect_scope(Path(args.path))
@@ -172,13 +208,26 @@ def cmd_reply(args: argparse.Namespace) -> int:
             return 0
 
     # Fallback: local execution
+    to_explicitly_set = len(to_tokens) > 0
     if not to_tokens:
         to_tokens = default_reply_recipients(group, by=str(args.by or "user"), original_event=original)
     try:
         to = resolve_recipient_tokens(group, to_tokens)
     except Exception as e:
-        _print_json({"ok": False, "error": {"code": "invalid_recipient", "message": str(e)}})
+        if to_explicitly_set:
+            _print_json({"ok": False, "error": {"code": "invalid_recipient", "message": str(e)}})
+            return 2
+        to = []
+    if group_requires_explicit_actor_recipient(group.doc) and not to and not to_explicitly_set:
+        to = isolated_single_enabled_actor_recipient(group)
+    if group_requires_explicit_actor_recipient(group.doc) and not to:
+        _print_json(_interactive_missing_recipient_payload())
         return 2
+    if isinstance(find_actor(group, str(args.by or "")), dict) and group_requires_explicit_actor_recipient(group.doc):
+        peer_targets = peer_recipient_actor_ids(group, to, sender_actor_id=str(args.by or ""))
+        if peer_targets:
+            _print_json(_isolated_peer_message_payload(sender=str(args.by or ""), recipients=peer_targets))
+            return 2
 
     scope_key = str(group.doc.get("active_scope_key") or "")
     event = append_event(

@@ -4,6 +4,7 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type { AutomationRule, AutomationRuleAction } from "../../../types";
+import { normalizeGroupAgentLinkMode } from "../../../utils/groupMode";
 import { cardClass, inputClass, labelClass } from "./types";
 
 export const BellIcon = ({ className }: { className?: string }) => (
@@ -182,12 +183,20 @@ export function defaultNotifyAction(): Extract<AutomationRuleAction, { kind: "no
   return { kind: "notify", priority: "high", requires_ack: false, snippet_ref: null, message: "" };
 }
 
+export function defaultNotifyRecipients(agentLinkMode?: unknown): string[] {
+  return normalizeGroupAgentLinkMode(agentLinkMode) === "connected" ? ["@foreman"] : [];
+}
+
 export function defaultGroupStateAction(): Extract<AutomationRuleAction, { kind: "group_state" }> {
   return { kind: "group_state", state: "paused" };
 }
 
-export function defaultActorControlAction(): Extract<AutomationRuleAction, { kind: "actor_control" }> {
-  return { kind: "actor_control", operation: "restart", targets: ["@all"] };
+export function defaultActorControlTargets(agentLinkMode?: unknown): string[] {
+  return normalizeGroupAgentLinkMode(agentLinkMode) === "connected" ? ["@all"] : [];
+}
+
+export function defaultActorControlAction(agentLinkMode?: unknown): Extract<AutomationRuleAction, { kind: "actor_control" }> {
+  return { kind: "actor_control", operation: "restart", targets: defaultActorControlTargets(agentLinkMode) };
 }
 
 export function actionKind(action: AutomationRule["action"] | undefined): "notify" | "group_state" | "actor_control" {

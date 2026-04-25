@@ -10,6 +10,7 @@ import {
 } from "../../types";
 import { getGroupStatusFromSource } from "../../utils/groupStatus";
 import { getGroupControlVisual, getLaunchControlMode, resolveGroupControls } from "../../utils/groupControls";
+import { getGroupMode } from "../../utils/groupMode";
 import { classNames } from "../../utils/classNames";
 import { ChatNotificationSoundSwitcher } from "../ChatNotificationSoundSwitcher";
 import { TextScaleSwitcher } from "../TextScaleSwitcher";
@@ -138,6 +139,15 @@ export function AppHeader({
     onStopGroup();
   };
   const title = titleOverride || groupDoc?.title || (selectedGroupId ? selectedGroupId : t('selectGroup'));
+  const hasGroupModeMetadata = !!groupDoc;
+  const groupMode = getGroupMode(groupDoc);
+  const modeBadgeClass = groupMode === "interactive"
+    ? isDark
+      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+      : "border-cyan-500/20 bg-cyan-500/10 text-cyan-700"
+    : isDark
+      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+      : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700";
   return (
     <header
       className="z-20 flex h-14 flex-shrink-0 items-center justify-between gap-3 px-4 pt-1 glass-header md:px-5"
@@ -156,8 +166,8 @@ export function AppHeader({
           <MenuIcon size={18} />
         </button>
 
-        <div className="min-w-0 flex flex-col">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex flex-col justify-center">
+          <div className="flex min-w-0 items-center gap-2">
             <h1 className="truncate text-base font-semibold leading-tight text-[var(--color-text-primary)] md:text-[1.125rem]">
               {title}
             </h1>
@@ -203,6 +213,17 @@ export function AppHeader({
           <>
             {/* Desktop Actions */}
             <div className="mr-1 hidden items-center gap-1.5 md:flex">
+              {!hideGroupControls && selectedGroupId && hasGroupModeMetadata ? (
+                <span
+                  className={classNames(
+                    "inline-flex h-9 flex-shrink-0 items-center rounded-full border px-3 text-xs font-medium shadow-sm",
+                    modeBadgeClass,
+                  )}
+                  title={t(groupMode === "interactive" ? "groupModeInteractive" : "groupModeCollaboration")}
+                >
+                  {t(groupMode === "interactive" ? "groupModeInteractive" : "groupModeCollaboration")}
+                </span>
+              ) : null}
               {!hideGroupControls && (
                 <>
                   <div className={headerRailClass}>

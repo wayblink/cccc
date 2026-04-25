@@ -8,7 +8,14 @@ from ... import __version__
 from ...contracts.v1.ipc import DaemonError, DaemonResponse
 from ...kernel.actors import add_actor, find_actor, list_actors, remove_actor, reorder_actors, update_actor, validate_actor_id
 from ...kernel.context import ContextStorage
-from ...kernel.group import Group, attach_scope_to_group, create_group, load_group
+from ...kernel.group import (
+    Group,
+    attach_scope_to_group,
+    create_group,
+    load_group,
+    normalize_group_agent_link_mode,
+    supports_group_default_send_to,
+)
 from ...kernel.inbox import delete_cursor, set_cursor
 from ...kernel.ledger import append_event
 from ...kernel.permissions import require_group_permission
@@ -241,9 +248,12 @@ def _normalize_template_actor_command(actor: Any) -> List[str]:
 def _apply_settings_replace(group: Group, settings: Dict[str, Any]) -> Dict[str, Any]:
     """Apply settings to group.doc and return the effective patch we wrote."""
     patch: Dict[str, Any] = {}
+    supports_default_send_to = supports_group_default_send_to(group.doc)
 
     # Messaging policy
-    if "default_send_to" in settings:
+    if "agent_link_mode" in settings:
+        patch["agent_link_mode"] = normalize_group_agent_link_mode(settings.get("agent_link_mode"))
+    if supports_default_send_to and "default_send_to" in settings:
         v = str(settings.get("default_send_to") or "").strip()
         if v in ("foreman", "broadcast"):
             patch["default_send_to"] = v
@@ -316,7 +326,7 @@ def _apply_settings_replace(group: Group, settings: Dict[str, Any]) -> Dict[str,
         "help_nudge_interval_seconds",
         "help_nudge_min_messages",
     }
-    messaging_keys = {"default_send_to"}
+    messaging_keys = {"agent_link_mode", "default_send_to"}
     feature_keys = {"panorama_enabled", "desktop_pet_enabled"}
 
     delivery = group.doc.get("delivery") if isinstance(group.doc.get("delivery"), dict) else {}
@@ -332,7 +342,7 @@ def _apply_settings_replace(group: Group, settings: Dict[str, Any]) -> Dict[str,
         if k in automation_keys:
             automation[k] = int(v)
         if k in messaging_keys:
-            messaging["default_send_to"] = str(v)
+            messaging[k] = str(v)
 
     group.doc["delivery"] = delivery
     group.doc["automation"] = automation
@@ -572,7 +582,7 @@ def group_template_import_replace(args: Dict[str, Any]) -> DaemonResponse:
         return _error("template_apply_failed", str(e))
 
     # Apply group settings.
-    settings_patch = _apply_settings_replace(group, tpl.settings.model_dump())
+    settings_patch = _apply_settings_replace(group, tpl.settings.model_dump(exclude_none=True))
     if settings_patch:
         try:
             append_event(
@@ -663,6 +673,7 @@ def group_create_from_template(args: Dict[str, Any]) -> DaemonResponse:
     by = str(args.get("by") or "user").strip()
     title = str(args.get("title") or "working-group").strip()
     topic = str(args.get("topic") or "").strip()
+    mode = str(args.get("mode") or "").strip()
     template_text = str(args.get("template") or "")
     if not path:
         return _error("missing_path", "missing path")
@@ -696,7 +707,7 @@ def group_create_from_template(args: Dict[str, Any]) -> DaemonResponse:
                 details={"group_id": existing_id, "path": scope.url},
             )
 
-    group = create_group(reg, title=title, topic=topic)
+    group = create_group(reg, title=title, topic=topic, mode=mode or "interactive")
     group = attach_scope_to_group(reg, group, scope, set_active=True)
 
     # Ledger events: create + attach (match normal flows).

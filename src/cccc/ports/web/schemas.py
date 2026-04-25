@@ -22,6 +22,7 @@ def _default_runner_kind() -> str:
 class CreateGroupRequest(BaseModel):
     title: str = Field(default="working-group")
     topic: str = Field(default="")
+    mode: Optional[Literal["interactive", "collaboration"]] = Field(default="interactive")
     by: str = Field(default="user")
 
 
@@ -42,6 +43,7 @@ class SendRequest(BaseModel):
     src_event_id: str = Field(default="")
     client_id: str = Field(default="")
     refs: list[dict[str, Any]] = Field(default_factory=list)
+    attachments: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class SendCrossGroupRequest(BaseModel):
@@ -62,6 +64,7 @@ class ReplyRequest(BaseModel):
     reply_required: bool = False
     client_id: str = Field(default="")
     refs: list[dict[str, Any]] = Field(default_factory=list)
+    attachments: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class DebugClearLogsRequest(BaseModel):
@@ -140,6 +143,12 @@ class ProjectMdUpdateRequest(BaseModel):
     by: str = Field(default="user")
 
 
+class SaveTextAttachmentRequest(BaseModel):
+    filename: str = Field(default="")
+    content: str = Field(default="")
+    mime_type: str = Field(default="")
+
+
 class RepoPromptUpdateRequest(BaseModel):
     content: str = Field(default="")
     by: str = Field(default="user")
@@ -184,6 +193,7 @@ class GroupPresentationBrowserSessionRequest(BaseModel):
 
 
 class GroupSettingsRequest(BaseModel):
+    agent_link_mode: Optional[Literal["connected", "isolated"]] = None
     default_send_to: Optional[Literal["foreman", "broadcast"]] = None
     nudge_after_seconds: Optional[int] = None
     reply_required_nudge_after_seconds: Optional[int] = None

@@ -10,11 +10,17 @@ STDOUT_LOG="${LOG_DIR}/raw.stdout.log"
 STDERR_LOG="${LOG_DIR}/raw.stderr.log"
 PORT="${CCCC_WEB_PORT:-8848}"
 CCCC_BIN="${REPO_DIR}/.venv/bin/cccc"
+PYTHON_BIN="${REPO_DIR}/.venv/bin/python"
 
 mkdir -p "${CACHE_DIR}" "${LOG_DIR}"
 
 if [[ ! -x "${CCCC_BIN}" ]]; then
   echo "Cannot find executable: ${CCCC_BIN}"
+  exit 1
+fi
+
+if [[ ! -x "${PYTHON_BIN}" ]]; then
+  echo "Cannot find python executable: ${PYTHON_BIN}"
   exit 1
 fi
 
@@ -35,8 +41,31 @@ if [[ -n "${PORT_PID}" ]]; then
 fi
 
 cd "${REPO_DIR}"
-nohup "${CCCC_BIN}" >>"${STDOUT_LOG}" 2>>"${STDERR_LOG}" &
-CCCC_PID=$!
+CCCC_PID="$(REPO_DIR="${REPO_DIR}" CCCC_BIN="${CCCC_BIN}" STDOUT_LOG="${STDOUT_LOG}" STDERR_LOG="${STDERR_LOG}" "${PYTHON_BIN}" - <<'PY'
+import os
+import subprocess
+
+repo_dir = os.environ["REPO_DIR"]
+cccc_bin = os.environ["CCCC_BIN"]
+stdout_log = os.environ["STDOUT_LOG"]
+stderr_log = os.environ["STDERR_LOG"]
+env = os.environ.copy()
+
+with open(stdout_log, "ab", buffering=0) as stdout_f, open(stderr_log, "ab", buffering=0) as stderr_f:
+    proc = subprocess.Popen(
+        [cccc_bin],
+        cwd=repo_dir,
+        stdin=subprocess.DEVNULL,
+        stdout=stdout_f,
+        stderr=stderr_f,
+        env=env,
+        start_new_session=True,
+        close_fds=True,
+    )
+
+print(proc.pid)
+PY
+)"
 echo "${CCCC_PID}" > "${PID_FILE}"
 
 for _ in {1..20}; do

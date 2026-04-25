@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -259,6 +260,19 @@ class TestMcpHelpSkillsDigest(unittest.TestCase):
         self.assertNotIn("stale skill digest", markdown)
         self.assertIn("## Role Notes", markdown)
         self.assertIn("- keep this", markdown)
+
+    def test_isolated_help_rewrites_collaboration_specific_routes(self) -> None:
+        from cccc.ports.mcp.handlers.cccc_core import _CCCC_HELP_BUILTIN, _adapt_help_markdown_for_group
+
+        fake_group = SimpleNamespace(doc={"agent_link_mode": "isolated"})
+        with patch("cccc.ports.mcp.handlers.cccc_core.load_group", return_value=fake_group):
+            markdown = _adapt_help_markdown_for_group(_CCCC_HELP_BUILTIN, group_id="g1")
+
+        self.assertIn("shared coordination/task tools are unavailable while `agent_link_mode=isolated`", markdown)
+        self.assertIn("Primary target is `user`", markdown)
+        self.assertIn("do not use peer targets or selector fanout in isolated groups", markdown)
+        self.assertNotIn("At key transitions, sync `cccc_coordination` / `cccc_task`", markdown)
+        self.assertNotIn("Targets: `@all`, `@foreman`, `@peers`, `user`, or one actor.", markdown)
 
     def test_cccc_help_includes_context_hygiene(self) -> None:
         from cccc.ports.mcp.server import handle_tool_call

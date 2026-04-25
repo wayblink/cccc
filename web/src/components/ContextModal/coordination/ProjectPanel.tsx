@@ -17,6 +17,7 @@ interface ProjectPanelProps {
   editingProject: boolean;
   projectMd: ProjectMdInfo | null;
   projectText: string;
+  allowTeamNotify?: boolean;
   notifyAgents: boolean;
   onExpand: () => void;
   onCancelEdit: () => void;
@@ -39,6 +40,7 @@ export function ProjectPanel({
   editingProject,
   projectMd,
   projectText,
+  allowTeamNotify = true,
   notifyAgents,
   onExpand,
   onCancelEdit,
@@ -105,10 +107,16 @@ export function ProjectPanel({
               className={textAreaClass}
               placeholder={tr("context.writePlaceholder", "Write your project constitution here…")}
             />
-            <label className={classNames("mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm", "glass-card text-[var(--color-text-primary)]")}>
-              <input type="checkbox" checked={notifyAgents} onChange={(event) => onNotifyAgentsChange(event.target.checked)} />
-              {tr("context.notifyAgents", "Notify the team in chat (@all) after save")}
-            </label>
+            {allowTeamNotify ? (
+              <label className={classNames("mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm", "glass-card text-[var(--color-text-primary)]")}>
+                <input type="checkbox" checked={notifyAgents} onChange={(event) => onNotifyAgentsChange(event.target.checked)} />
+                {tr("context.notifyAgents", "Notify the team in chat (@all) after save")}
+              </label>
+            ) : (
+              <div className={classNames("mt-3 rounded-lg border px-3 py-2 text-sm", "glass-card text-[var(--color-text-muted)]")}>
+                {tr("context.notifyAgentsUnsupported", "Interactive groups do not broadcast PROJECT.md changes automatically.")}
+              </div>
+            )}
             <div className="mt-3 flex items-center gap-2">
               <button type="button" onClick={onSaveProject} disabled={projectBusy} className={ui.buttonPrimaryClass}>
                 {projectBusy ? tr("context.saving", "Saving…") : tr("context.saveProject", "Save PROJECT.md")}

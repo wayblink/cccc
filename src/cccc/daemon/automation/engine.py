@@ -30,6 +30,7 @@ from ...kernel.group import (
     Group,
     effective_automation_snippets,
     get_group_state,
+    group_agent_coordination_enabled,
     load_group,
     set_group_state,
 )
@@ -103,6 +104,18 @@ def _cfg(group: Group) -> AutomationConfig:
         help_nudge_interval_seconds=_int("help_nudge_interval_seconds", 600),
         help_nudge_min_messages=_int("help_nudge_min_messages", 10),
     )
+
+
+def _coordination_enabled(group: Group) -> bool:
+    return group_agent_coordination_enabled(group.doc)
+
+
+def _selector_token(values: List[str]) -> str:
+    for value in values:
+        token = str(value or "").strip()
+        if token in {"@all", "@foreman", "@peers"}:
+            return token
+    return ""
 
 
 def _state_path(group: Group) -> Path:
@@ -204,7 +217,7 @@ def _rule_state(doc: Dict[str, Any], rule_id: str) -> Dict[str, Any]:
 def _load_ruleset(group: Group) -> AutomationRuleSet:
     doc = group.doc.get("automation")
     d = doc if isinstance(doc, dict) else {}
-    snippets = effective_automation_snippets(d)
+    snippets = effective_automation_snippets(d, group_doc=group.doc)
 
     raw_rules = d.get("rules")
     rules_in = raw_rules if isinstance(raw_rules, list) else []
@@ -880,22 +893,30 @@ class AutomationManager:
         """Run all automation checks for a group."""
         cfg = _cfg(group)
         now = datetime.now(timezone.utc)
-        
+        coordination_enabled = _coordination_enabled(group)
+
         # Level 1: Message-level checks
-        self._check_nudge(group, cfg, now)
-        
+        self._check_nudge(group, cfg, now, coordination_enabled=coordination_enabled)
+
         # Level 2: Session-level checks
-        self._check_actor_idle(group, cfg, now)
+        self._check_actor_idle(group, cfg, now, coordination_enabled=coordination_enabled)
         self._check_keepalive(group, cfg, now)
-        self._check_silence(group, cfg, now)
+        self._check_silence(group, cfg, now, coordination_enabled=coordination_enabled)
 
         # Level 3: Actor-facing help nudges
-        self._check_help_nudge(group, cfg, now)
+        self._check_help_nudge(group, cfg, now, coordination_enabled=coordination_enabled)
 
         # Level 4: User-defined automation rules
         self._check_rules(group, now)
 
-    def _check_nudge(self, group: Group, cfg: AutomationConfig, now: datetime) -> None:
+    def _check_nudge(
+        self,
+        group: Group,
+        cfg: AutomationConfig,
+        now: datetime,
+        *,
+        coordination_enabled: Optional[bool] = None,
+    ) -> None:
         """Check pending obligations/unread and send one digest nudge per actor."""
         if (
             cfg.reply_required_nudge_after_seconds <= 0
@@ -940,7 +961,12 @@ class AutomationManager:
             state = _load_state(group)
             resume_dt = parse_utc_iso(str(state.get("resume_at") or "")) if state.get("resume_at") else None
             foreman = find_foreman(group)
-            foreman_id = str((foreman or {}).get("id") or "").strip() if isinstance(foreman, dict) else ""
+            allow_escalation = _coordination_enabled(group) if coordination_enabled is None else coordination_enabled
+            foreman_id = (
+                str((foreman or {}).get("id") or "").strip()
+                if allow_escalation and isinstance(foreman, dict)
+                else ""
+            )
 
             for actor in roster:
                 aid = str(actor.get("id") or "").strip()
@@ -1140,7 +1166,14 @@ class AutomationManager:
                     )
                     _queue_notify_to_pty(group, actor_id=foreman_id, runner_kind=str((foreman or {}).get("runner") or "pty"), ev=ev2, notify=escalate_notify)
 
-    def _check_actor_idle(self, group: Group, cfg: AutomationConfig, now: datetime) -> None:
+    def _check_actor_idle(
+        self,
+        group: Group,
+        cfg: AutomationConfig,
+        now: datetime,
+        *,
+        coordination_enabled: Optional[bool] = None,
+    ) -> None:
         """Check for idle actors and notify foreman.
 
         Idle detection uses multiple signals:
@@ -1150,6 +1183,8 @@ class AutomationManager:
         An actor is considered idle only if BOTH signals indicate inactivity.
         """
         if cfg.actor_idle_timeout_seconds <= 0:
+            return
+        if not (_coordination_enabled(group) if coordination_enabled is None else coordination_enabled):
             return
 
         foreman = find_foreman(group)
@@ -1341,7 +1376,14 @@ class AutomationManager:
             )
             _queue_notify_to_pty(group, actor_id=aid, runner_kind=runner_kind, ev=ev, notify=notify_data)
 
-    def _check_silence(self, group: Group, cfg: AutomationConfig, now: datetime) -> None:
+    def _check_silence(
+        self,
+        group: Group,
+        cfg: AutomationConfig,
+        now: datetime,
+        *,
+        coordination_enabled: Optional[bool] = None,
+    ) -> None:
         """Check if group has been silent and notify foreman.
 
         Also tracks consecutive silence periods.  When the group has been
@@ -1350,6 +1392,8 @@ class AutomationManager:
         (Level 1-3) is muted and actors stop receiving nudges.
         """
         if cfg.silence_timeout_seconds <= 0:
+            return
+        if not (_coordination_enabled(group) if coordination_enabled is None else coordination_enabled):
             return
 
         foreman = find_foreman(group)
@@ -1680,6 +1724,14 @@ class AutomationManager:
                         continue
 
                     to = [str(x).strip() for x in (rule.to or []) if isinstance(x, str) and str(x).strip()]
+                    if not _coordination_enabled(group):
+                        if not to:
+                            _record_error("this group requires explicit actor recipients for notify rules")
+                            continue
+                        selector = _selector_token(to)
+                        if selector:
+                            _record_error(f"this group does not support selector recipients: {selector}")
+                            continue
                     recipient_ids = enabled_recipient_actor_ids(group, to)
                     if not recipient_ids:
                         continue
@@ -1775,6 +1827,16 @@ class AutomationManager:
                 operation = str(getattr(rule.action, "operation", "") or "").strip()
                 raw_targets = getattr(rule.action, "targets", [])
                 targets = [str(x).strip() for x in (raw_targets or []) if isinstance(x, str) and str(x).strip()]
+                if not _coordination_enabled(group):
+                    if not targets:
+                        last_error = "this group requires explicit actor targets for actor_control rules"
+                        results[rid] = (False, last_error, trigger_kind, slot_key)
+                        continue
+                    selector = _selector_token(targets)
+                    if selector:
+                        last_error = f"this group does not support selector targets: {selector}"
+                        results[rid] = (False, last_error, trigger_kind, slot_key)
+                        continue
                 sent_any, last_error = self._execute_actor_control_action(
                     group,
                     operation=operation,
@@ -1848,13 +1910,22 @@ class AutomationManager:
                     if dirty:
                         _save_state(group, state)
 
-    def _check_help_nudge(self, group: Group, cfg: AutomationConfig, now: datetime) -> None:
+    def _check_help_nudge(
+        self,
+        group: Group,
+        cfg: AutomationConfig,
+        now: datetime,
+        *,
+        coordination_enabled: Optional[bool] = None,
+    ) -> None:
         """Remind running actors to refresh the help playbook via cccc_help.
 
         This is intentionally low-frequency and tied to "work volume" rather than pure time,
         to avoid nagging idle sessions.
         """
         if cfg.help_nudge_interval_seconds <= 0 or cfg.help_nudge_min_messages <= 0:
+            return
+        if not (_coordination_enabled(group) if coordination_enabled is None else coordination_enabled):
             return
 
         # Snapshot currently running actors (we only track "work volume" while running).

@@ -33,7 +33,7 @@ class TestAutomationSilenceActivityFilter(unittest.TestCase):
         _, cleanup = self._with_home()
         try:
             reg = load_registry()
-            group = create_group(reg, title="silence-filter")
+            group = create_group(reg, title="silence-filter", mode="collaboration")
             add_actor(group, actor_id="foreman1", runtime="codex", runner="headless", enabled=True)
             add_actor(group, actor_id="peer1", runtime="codex", runner="headless", enabled=True)
 
@@ -150,7 +150,7 @@ class TestAutomationSilenceActivityFilter(unittest.TestCase):
         _, cleanup = self._with_home()
         try:
             reg = load_registry()
-            group = create_group(reg, title="auto-idle")
+            group = create_group(reg, title="auto-idle", mode="collaboration")
             add_actor(group, actor_id="foreman1", runtime="codex", runner="headless", enabled=True)
             automation = group.doc.get("automation") if isinstance(group.doc.get("automation"), dict) else {}
             automation["silence_timeout_seconds"] = 1

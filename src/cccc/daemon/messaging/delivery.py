@@ -32,7 +32,13 @@ logger = logging.getLogger("cccc.delivery")
 
 from ...contracts.v1 import SystemNotifyData
 from ...kernel.actors import find_actor, list_actors
-from ...kernel.group import Group, get_group_state, load_group, set_group_state
+from ...kernel.group import (
+    Group,
+    get_group_state,
+    group_requires_explicit_actor_recipient,
+    load_group,
+    set_group_state,
+)
 from ...kernel.inbox import get_cursor, is_message_for_actor, set_cursor
 from ...kernel.ledger import append_event
 from ...kernel.system_prompt import render_system_prompt
@@ -555,10 +561,10 @@ def render_single_message(msg: PendingMessage) -> str:
     if msg.kind == "system.notify":
         # System notification format
         return f"[cccc] SYSTEM ({msg.notify_kind}): {msg.notify_title}\n{msg.notify_message}".strip()
-    
+
     # Chat message format
     who = str(msg.by or "user").strip() or "user"
-    targets = ", ".join([str(x).strip() for x in (msg.to or []) if str(x).strip()]) or "@all"
+    targets = ", ".join([str(x).strip() for x in (msg.to or []) if str(x).strip()]) or "<none>"
     body = (msg.text or "").rstrip("\n")
     source_bits: List[str] = []
     if msg.source_platform:
@@ -615,7 +621,7 @@ def render_system_notify_delivery_text(*, notify: SystemNotifyData) -> str:
         PendingMessage(
             event_id="",
             by="system",
-            to=[str(notify.target_actor_id or "").strip() or "@all"],
+            to=[str(notify.target_actor_id or "").strip()],
             text="",
             kind="system.notify",
             notify_kind=str(notify.kind or "info"),
@@ -899,6 +905,10 @@ def emit_system_notify(
         target_actor_ids = [target_actor_id]
     else:
         target_actor_ids: List[str] = []
+        if group_requires_explicit_actor_recipient(group.doc):
+            # Isolated groups require a concrete actor target; keep the ledger event
+            # for auditability, but do not fan it out to every agent runtime.
+            return event
         seen: set[str] = set()
         for actor in list_actors(group):
             if not isinstance(actor, dict):

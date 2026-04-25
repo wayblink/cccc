@@ -393,11 +393,12 @@
     "failedToLoadTranscript": "Failed to load terminal transcript",
     "failedToClearTranscript": "Failed to clear terminal transcript",
     "resetGuidanceConfirm": "Reset {{kind}}? This will delete {{filename}} override under CCCC_HOME. This cannot be undone.",
-    "removeRegistryConfirm": "Remove {{count}} missing group entries from registry?"
+    "removeRegistryConfirm": "Remove {{count}} missing group entries from registry?",
+    "interactiveRecipientHint": "This group is in interactive mode, so only explicit actor recipients and targets are available here. Team selector tokens are disabled."
   },
   "policies": {
     "title": "Built-in Automation",
-    "description": "System-managed follow-ups and collaboration health loops. Adjust values, then save.",
+    "description": "System-managed follow-ups and group health loops. Adjust values, then save.",
     "unreadFollowup": "Unread Follow-up (sec)",
     "unreadFollowupHelp": "Remind a member when unread messages sit too long.",
     "needReplyFollowup": "Need Reply Follow-up (sec)",
@@ -533,7 +534,14 @@
     "foremanOnly": "Send to foreman only",
     "broadcastAll": "Broadcast to all enabled agents",
     "tip": "Tip: Use explicit recipients for unambiguous routing.",
-    "saveMessaging": "Save Messaging Settings"
+    "saveMessaging": "Save Messaging Settings",
+    "modeTitle": "Group Mode",
+    "modeDescription": "Messaging behavior now follows the current group mode. There is no separate routing toggle here anymore.",
+    "modeInteractive": "Interactive mode",
+    "modeInteractiveHint": "Multiple agents can exist in parallel, but they stay separate. Choose recipients explicitly when sending messages.",
+    "modeCollaboration": "Collaboration mode",
+    "modeCollaborationHint": "Keeps the original collaboration path, including default team routing and @all / @foreman / @peers.",
+    "interactiveHint": "Interactive mode does not auto-route empty recipients. Choose one or more agents explicitly when sending messages."
   },
   "imBridge": {
     "title": "IM Bridge",
