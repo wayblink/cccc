@@ -81,7 +81,7 @@ export function MessageAttachments({
                 >
                   {label}
                 </span>
-              </a>
+              </div>
             );
           })}
         </div>

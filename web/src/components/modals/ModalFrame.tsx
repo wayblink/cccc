@@ -15,7 +15,7 @@ interface ModalFrameProps {
 
 export function ModalFrame({
   isOpen = true,
-  isDark: _isDark,
+  isDark,
   onClose,
   titleId,
   title,
@@ -25,6 +25,7 @@ export function ModalFrame({
   modalRef,
   children,
 }: ModalFrameProps) {
+  const hasHeaderContent = !!(title || headerActions);
   return (
     <div
       className={`fixed inset-0 z-50 flex items-stretch justify-center p-0 transition-[opacity,visibility] duration-200 sm:items-center sm:p-4 ${
@@ -84,7 +85,7 @@ export function ModalFrame({
               ×
             </button>
           </div>
-        </div>
+        )}
 
         {children}
       </div>
