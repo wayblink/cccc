@@ -130,7 +130,7 @@ export function TerminalDirectView({
                         : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                   )}
                 >
-                  {actor.label || actor.id}
+                  {actor.title || actor.id}
                 </button>
               );
             })}
