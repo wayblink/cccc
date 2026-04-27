@@ -21,7 +21,7 @@ from ..kernel.actors import find_actor, find_foreman, update_actor, get_effectiv
 from ..kernel.actor_avatar_assets import delete_actor_avatar as _delete_actor_avatar
 from ..kernel.blobs import resolve_blob_attachment_path
 from ..kernel.ledger_retention import compact as compact_ledger
-from ..kernel.runtime import apply_codex_cli_overrides
+from ..kernel.runtime import apply_codex_cli_overrides, apply_copilot_cli_overrides
 from ..kernel.settings import (
     get_observability_settings,
     get_web_branding_settings,
@@ -346,6 +346,14 @@ def _normalize_runtime_command(runtime: str, command: list[str]) -> list[str]:
             exe = str(cmd[0] or "").strip().lower()
         if exe == "codex":
             cmd = apply_codex_cli_overrides(cmd)
+
+    if rt == "copilot":
+        try:
+            exe = os.path.splitext(ntpath.basename(str(cmd[0] or "")))[0].lower()
+        except Exception:
+            exe = str(cmd[0] or "").strip().lower()
+        if exe == "copilot":
+            cmd = apply_copilot_cli_overrides(cmd)
 
     return cmd
 

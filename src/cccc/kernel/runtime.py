@@ -233,6 +233,10 @@ _CODEX_REQUIRED_CONFIG_OVERRIDES: tuple[tuple[str, str], ...] = (
     ("features.multi_agent", "true"),
 )
 
+_COPILOT_REQUIRED_FLAGS: tuple[str, ...] = (
+    "--allow-all-tools",
+)
+
 
 def apply_codex_cli_overrides(command: List[str]) -> List[str]:
     """Normalize Codex CLI config overrides on a command line.
@@ -277,6 +281,32 @@ def apply_codex_cli_overrides(command: List[str]) -> List[str]:
     return normalized
 
 
+def apply_copilot_cli_overrides(command: List[str]) -> List[str]:
+    """Ensure Copilot CLI command line has non-interactive tool permissions.
+
+    CCCC delivers instructions through PTY and requires MCP tool calls for visible
+    replies. If Copilot prompts for tool approval, sessions can appear stuck and
+    frontend messages never arrive.
+    """
+    cmd = [str(part) for part in (command or []) if str(part).strip()]
+    if not cmd:
+        return []
+
+    try:
+        exe = os.path.splitext(ntpath.basename(str(cmd[0] or "")))[0].lower()
+    except Exception:
+        exe = str(cmd[0] or "").strip().lower()
+    if exe != "copilot":
+        return cmd
+
+    existing = {str(token).strip() for token in cmd[1:] if str(token).strip()}
+    normalized = list(cmd)
+    for flag in _COPILOT_REQUIRED_FLAGS:
+        if flag not in existing:
+            normalized.append(flag)
+    return normalized
+
+
 def get_runtime_command_with_flags(name: str) -> List[str]:
     """Get the command with recommended flags for autonomous operation."""
     commands = {
@@ -287,7 +317,7 @@ def get_runtime_command_with_flags(name: str) -> List[str]:
         # (CCCC_GROUP_ID/CCCC_ACTOR_ID), and keep feature flags on the supported
         # multi-agent path without surfacing deprecated `features.collab`.
         "codex": apply_codex_cli_overrides(["codex", "--dangerously-bypass-approvals-and-sandbox", "--search"]),
-        "copilot": ["copilot", "-s"],
+        "copilot": apply_copilot_cli_overrides(["copilot", "-s"]),
         "droid": ["droid", "--auto", "high"],
         "gemini": ["gemini", "--yolo"],
         "kimi": ["kimi", "--yolo"],

@@ -4,6 +4,14 @@ from unittest.mock import patch
 
 
 class TestRuntimeCommandDefaults(unittest.TestCase):
+    def test_copilot_runtime_enables_tool_auto_approval(self) -> None:
+        from cccc.kernel.runtime import get_runtime_command_with_flags
+
+        self.assertEqual(
+            get_runtime_command_with_flags("copilot"),
+            ["copilot", "-s", "--allow-all-tools"],
+        )
+
     def test_kimi_runtime_uses_yolo_flags_for_launch(self) -> None:
         from cccc.kernel.runtime import get_runtime_command_with_flags
 
