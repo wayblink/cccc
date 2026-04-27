@@ -97,14 +97,13 @@ Open **http://127.0.0.1:8848** — by default, CCCC brings up the daemon and the
 ```bash
 cd /path/to/your/repo
 cccc attach .                              # bind this directory as a scope
-cccc setup --runtime claude                # configure MCP for your runtime
 cccc actor add foreman --runtime claude    # first actor becomes foreman
 cccc actor add reviewer --runtime codex    # add a peer
 cccc group start                           # start all actors
 cccc send "Split the task and begin." --to @all
 ```
 
-You now have two agents collaborating in a persistent group with full message history, delivery tracking, and a web dashboard. The daemon owns delivery and coordination, and runtime state stays in `CCCC_HOME` rather than inside your repo.
+You now have two agents collaborating in a persistent group with full message history, delivery tracking, and a web dashboard. Actor sessions receive CCCC MCP as session-scoped runtime config; ordinary local agent sessions are not globally modified. The daemon owns delivery and coordination, and runtime state stays in `CCCC_HOME` rather than inside your repo.
 
 ## Programmatic Access (SDK)
 
@@ -170,20 +169,20 @@ graph TB
 
 CCCC orchestrates agents across 8 first-class runtimes, with `custom` available for everything else. Each actor in a group can use a different runtime.
 
-| Runtime | Auto MCP Setup | Command |
+| Runtime | Actor MCP Injection | Command |
 |---------|:--------------:|---------|
-| Claude Code | ✅ | `claude` |
-| Codex CLI | ✅ | `codex` |
-| Gemini CLI | ✅ | `gemini` |
-| Droid | ✅ | `droid` |
-| Amp | ✅ | `amp` |
-| Auggie | ✅ | `auggie` |
-| Kimi CLI | ✅ | `kimi` |
-| Neovate | ✅ | `neovate` |
+| Claude Code | session-scoped | `claude` |
+| Codex CLI | session-scoped | `codex` |
+| Gemini CLI | global setup only | `gemini` |
+| Droid | global setup only | `droid` |
+| Amp | global setup only | `amp` |
+| Auggie | global setup only | `auggie` |
+| Kimi CLI | global setup only | `kimi` |
+| Neovate | global setup only | `neovate` |
 | Custom | — | Any command |
 
 ```bash
-cccc setup --runtime claude    # auto-configures MCP for this runtime
+cccc setup --runtime claude    # optional global/user MCP setup; actors use session-scoped MCP
 cccc runtime list --all        # show all available runtimes
 cccc doctor                    # verify environment and runtime availability
 ```
@@ -297,7 +296,7 @@ cccc inbox --mark-read         # mark all as read
 
 # Operations
 cccc doctor                    # environment check
-cccc setup --runtime <name>    # configure MCP
+cccc setup --runtime <name>    # optional global/user MCP setup
 cccc runtime list --all        # available runtimes
 
 # IM

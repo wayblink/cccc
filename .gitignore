@@ -64,3 +64,4 @@ AGENTS.md
 .github/*
 !.github/workflows/
 !.github/workflows/**
+.worktree-cleanup-backups/

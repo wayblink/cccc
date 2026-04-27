@@ -51,13 +51,13 @@ KNOWN_RUNTIMES: Dict[str, Dict[str, Any]] = {
     "claude": {
         "display_name": "Claude Code",
         "command": "claude",
-        "capabilities": "MCP; MCP setup: auto",
+        "capabilities": "MCP; actor MCP: session-scoped; setup: optional global",
         "mcp_add_pattern": "claude mcp add -s user {name} -- {cmd}",
     },
     "codex": {
         "display_name": "Codex CLI",
         "command": "codex",
-        "capabilities": "MCP; MCP setup: auto",
+        "capabilities": "MCP; actor MCP: session-scoped; setup: optional global",
         "mcp_add_pattern": "codex mcp add {name} -- {cmd}",
     },
     "droid": {

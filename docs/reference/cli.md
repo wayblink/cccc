@@ -228,11 +228,13 @@ Notes:
 
 ### `cccc setup`
 
-Configure MCP for an agent runtime.
+Explicitly configure MCP for an agent runtime in that runtime's own user/global config.
+
+Normal CCCC-managed actor sessions do not require this command for Claude Code or Codex CLI: CCCC injects its MCP server with session-scoped launch flags when it starts the actor, so ordinary local agent sessions are not modified.
 
 ```bash
-cccc setup --runtime claude        # Auto-configure for Claude Code
-cccc setup --runtime codex         # Auto-configure for Codex
+cccc setup --runtime claude        # Optional global/user MCP setup for Claude Code
+cccc setup --runtime codex         # Optional global/user MCP setup for Codex
 cccc setup --runtime kimi          # Auto-configure for Kimi CLI
 ```
 

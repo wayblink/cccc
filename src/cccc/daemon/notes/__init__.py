@@ -1,0 +1,1 @@
+"""Home-scope notes persistence."""

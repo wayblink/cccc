@@ -11,6 +11,7 @@ from ...kernel.context import ContextStorage
 from ...kernel.group import group_heavy_mcp_enabled
 from ...kernel.ledger import append_event
 from ...kernel.runtime import runtime_start_preflight_error
+from ...kernel.runtime_session_mcp import inject_session_scoped_mcp, session_scoped_mcp_supported
 from ..claude_app_sessions import SUPERVISOR as claude_app_supervisor
 from ..codex_app_sessions import SUPERVISOR as codex_app_supervisor
 from ...runners import headless as headless_runner
@@ -50,40 +51,24 @@ def ensure_actor_mcp_ready(
     effective_runner: str,
     ensure_mcp_installed: Callable[..., bool],
 ) -> tuple[bool, Optional[str]]:
+    del cwd, effective_env, ensure_mcp_installed
+
     if effective_runner == "headless":
         return True, None
 
-    try:
-        mcp_ready = bool(
-            ensure_mcp_installed(
-                runtime,
-                cwd,
-                env={str(k): str(v) for k, v in effective_env.items() if isinstance(k, str)},
-            )
-        )
-    except Exception as e:
-        if not group_heavy_mcp_enabled(group.doc):
-            logger.warning(
-                "MCP install skipped for isolated group %s/%s (runtime=%s): %s",
-                group.group_id,
-                actor_id,
-                runtime,
-                e,
-            )
-            return True, None
-        return False, f"failed to install MCP: {e}"
-
-    if mcp_ready:
+    if session_scoped_mcp_supported(runtime):
         return True, None
+
+    message = f"session-scoped MCP is not supported for runtime: {runtime}"
     if not group_heavy_mcp_enabled(group.doc):
         logger.warning(
-            "MCP server 'cccc' is not installed for isolated group %s/%s (runtime=%s); actor will start but tools may not work.",
+            "%s; isolated group %s/%s will start without global MCP installation.",
+            message,
             group.group_id,
             actor_id,
-            runtime,
         )
         return True, None
-    return False, f"failed to install MCP for runtime: {runtime}"
+    return False, message
 
 
 def _coerce_string_env(raw: Any) -> Dict[str, str]:
@@ -211,6 +196,8 @@ def resolve_actor_launch_spec(
         raise ValueError(f"unsupported runtime: {launch_config['runtime']}")
 
     effective_command = normalize_runtime_command(launch_config["runtime"], list(launch_config["command"] or []))
+    if launch_config["effective_runner"] != "headless":
+        effective_command = inject_session_scoped_mcp(launch_config["runtime"], effective_command)
     return {
         **launch_config,
         "scope_key": scope_key,

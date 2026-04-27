@@ -8,6 +8,14 @@ import {
   SCRATCHPAD_NOTE_ID,
   updateNoteRecord,
 } from "../pages/notes/model";
+import {
+  createUserNote,
+  deleteUserNote,
+  fetchUserNotes,
+  importUserNotes,
+  updateUserNote,
+  type UserNotesSnapshot,
+} from "../services/api/notes";
 
 export const NOTES_STORAGE_KEY = "cccc-notes-state";
 
@@ -17,6 +25,10 @@ export type NotesStateSnapshot = {
 };
 
 interface NotesState extends NotesStateSnapshot {
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
+  loadNotes: () => Promise<void>;
   selectNote: (noteId: string | null | undefined) => void;
   createNote: () => string;
   updateNote: (noteId: string, patch: Partial<Pick<NoteRecord, "title" | "body">>) => void;
@@ -33,28 +45,35 @@ function createNotesStateSnapshot(value: unknown, fallbackNow = Date.now()): Not
   return { notes, selectedNoteId };
 }
 
-export function loadNotesState(): NotesStateSnapshot {
-  if (typeof window === "undefined") {
-    return createNotesStateSnapshot(null);
-  }
+function isDefaultSnapshot(snapshot: NotesStateSnapshot): boolean {
+  return snapshot.notes.length === 1 && snapshot.notes[0]?.id === SCRATCHPAD_NOTE_ID && !snapshot.notes[0]?.body;
+}
 
+function hasUserContent(snapshot: NotesStateSnapshot): boolean {
+  return snapshot.notes.some((note) => {
+    if (note.id === SCRATCHPAD_NOTE_ID) return String(note.body || "").trim().length > 0;
+    return String(note.title || "").trim().length > 0 || String(note.body || "").trim().length > 0;
+  });
+}
+
+function readLocalNotesState(): NotesStateSnapshot | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(NOTES_STORAGE_KEY);
-    if (!raw) {
-      return createNotesStateSnapshot(null);
-    }
+    if (!raw) return null;
     return createNotesStateSnapshot(JSON.parse(raw));
   } catch (error) {
     console.warn("Failed to read notes from localStorage:", error);
-    return createNotesStateSnapshot(null);
+    return null;
   }
 }
 
-function persistNotesState(snapshot: NotesStateSnapshot): void {
-  if (typeof window === "undefined") {
-    return;
-  }
+export function loadNotesState(): NotesStateSnapshot {
+  return readLocalNotesState() || createNotesStateSnapshot(null);
+}
 
+function persistNotesState(snapshot: NotesStateSnapshot): void {
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(snapshot));
   } catch (error) {
@@ -62,8 +81,36 @@ function persistNotesState(snapshot: NotesStateSnapshot): void {
   }
 }
 
-export const useNotesStore = create<NotesState>((set) => ({
+function applyServerSnapshot(snapshot: UserNotesSnapshot): NotesStateSnapshot {
+  return createNotesStateSnapshot(snapshot);
+}
+
+export const useNotesStore = create<NotesState>((set, get) => ({
   ...loadNotesState(),
+  loading: false,
+  loaded: false,
+  error: null,
+  loadNotes: async () => {
+    if (get().loading) return;
+    set({ loading: true, error: null });
+    const response = await fetchUserNotes();
+    if (!response.ok) {
+      set({ loading: false, loaded: true, error: response.error.message });
+      return;
+    }
+
+    let snapshot = applyServerSnapshot(response.result);
+    const localSnapshot = readLocalNotesState();
+    if (isDefaultSnapshot(snapshot) && localSnapshot && hasUserContent(localSnapshot)) {
+      const imported = await importUserNotes(localSnapshot);
+      if (imported.ok) {
+        snapshot = applyServerSnapshot(imported.result);
+      }
+    }
+
+    persistNotesState(snapshot);
+    set({ ...snapshot, loading: false, loaded: true, error: null });
+  },
   selectNote: (noteId) => {
     set((state) => {
       const snapshot = createNotesStateSnapshot({
@@ -75,16 +122,39 @@ export const useNotesStore = create<NotesState>((set) => ({
     });
   },
   createNote: () => {
-    let createdNoteId = SCRATCHPAD_NOTE_ID;
+    const fallbackNote = createNoteRecord();
+    let createdNoteId = fallbackNote.id;
     set((state) => {
-      const nextNote = createNoteRecord();
-      createdNoteId = nextNote.id;
       const snapshot = createNotesStateSnapshot({
-        notes: [...state.notes, nextNote],
-        selectedNoteId: nextNote.id,
-      }, nextNote.updatedAt);
+        notes: [...state.notes, fallbackNote],
+        selectedNoteId: fallbackNote.id,
+      }, fallbackNote.updatedAt);
       persistNotesState(snapshot);
       return snapshot;
+    });
+
+    void createUserNote().then(async (response) => {
+      if (!response.ok) {
+        set({ error: response.error.message });
+        return;
+      }
+      createdNoteId = response.result.note.id;
+      const pendingLocal = get().notes.find((note) => note.id === fallbackNote.id);
+      const pendingPatch = pendingLocal
+        ? { title: pendingLocal.title, body: pendingLocal.body }
+        : { title: "", body: "" };
+      if (String(pendingPatch.title || "").trim() || String(pendingPatch.body || "").trim()) {
+        const updated = await updateUserNote(response.result.note.id, pendingPatch);
+        if (updated.ok) {
+          const snapshot = applyServerSnapshot(updated.result.snapshot);
+          persistNotesState(snapshot);
+          set({ ...snapshot, error: null });
+          return;
+        }
+      }
+      const snapshot = applyServerSnapshot(response.result.snapshot);
+      persistNotesState(snapshot);
+      set({ ...snapshot, error: null });
     });
     return createdNoteId;
   },
@@ -102,6 +172,15 @@ export const useNotesStore = create<NotesState>((set) => ({
       persistNotesState(snapshot);
       return snapshot;
     });
+    void updateUserNote(normalizedId, patch).then((response) => {
+      if (!response.ok) {
+        set({ error: response.error.message });
+        return;
+      }
+      const snapshot = applyServerSnapshot(response.result.snapshot);
+      persistNotesState(snapshot);
+      set({ ...snapshot, error: null });
+    });
   },
   deleteNote: (noteId) => {
     const normalizedId = String(noteId || "").trim();
@@ -111,9 +190,7 @@ export const useNotesStore = create<NotesState>((set) => ({
 
     let deleted = false;
     set((state) => {
-      if (!state.notes.some((note) => note.id === normalizedId)) {
-        return state;
-      }
+      if (!state.notes.some((note) => note.id === normalizedId)) return state;
       deleted = true;
       const snapshot = createNotesStateSnapshot({
         notes: state.notes.filter((note) => note.id !== normalizedId),
@@ -122,6 +199,17 @@ export const useNotesStore = create<NotesState>((set) => ({
       persistNotesState(snapshot);
       return snapshot;
     });
+    if (deleted) {
+      void deleteUserNote(normalizedId).then((response) => {
+        if (!response.ok) {
+          set({ error: response.error.message });
+          return;
+        }
+        const snapshot = applyServerSnapshot(response.result);
+        persistNotesState(snapshot);
+        set({ ...snapshot, error: null });
+      });
+    }
     return deleted;
   },
 }));

@@ -952,6 +952,8 @@ def list_tools_for_caller() -> List[Dict[str, Any]]:
     runtime_ctx = _runtime_context()
     gid = runtime_ctx.group_id
     aid = runtime_ctx.actor_id
+    if not gid or not aid:
+        return []
     profile = str(os.environ.get("CCCC_MCP_TOOL_PROFILE") or "").strip().lower()
     state: Dict[str, Any] = {}
     if gid and aid:

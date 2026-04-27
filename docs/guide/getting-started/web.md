@@ -44,15 +44,13 @@ cccc attach .
    - **Runner**: PTY (terminal) or Headless
 3. Click **Create**
 
-## Step 5: Configure MCP (First Time Only)
+## Step 5: Runtime MCP
 
-If this is your first time using CCCC with this runtime:
+For CCCC-managed Claude Code and Codex CLI actors, no global runtime setup is required. If you intentionally want CCCC in a runtime's user/global MCP config, run:
 
 ```bash
-cccc setup --runtime claude   # or codex, droid, etc.
+cccc setup --runtime claude   # optional global/user MCP setup
 ```
-
-This configures the agent to communicate with CCCC.
 
 ## Step 6: Start the Agent
 

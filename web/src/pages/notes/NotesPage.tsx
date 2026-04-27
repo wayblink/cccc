@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useUIStore, useNotesStore } from "../../stores";
 import { NoteEditor } from "./NoteEditor";
@@ -19,6 +19,11 @@ export function NotesPage({ isDark, readOnly = false }: NotesPageProps) {
   const createNote = useNotesStore((state) => state.createNote);
   const updateNote = useNotesStore((state) => state.updateNote);
   const deleteNote = useNotesStore((state) => state.deleteNote);
+  const loadNotes = useNotesStore((state) => state.loadNotes);
+
+  useEffect(() => {
+    void loadNotes();
+  }, [loadNotes]);
 
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedNoteId) || notes[0] || null,

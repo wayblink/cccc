@@ -313,7 +313,7 @@ CCCC first-class runtime support is the eight named CLIs above. `custom` remains
 ### Setup Commands
 
 ```bash
-cccc setup --runtime claude   # Configure MCP (auto)
+cccc setup --runtime claude   # Optional global/user MCP setup; actor launch is session-scoped
 cccc setup --runtime codex
 cccc setup --runtime droid
 cccc setup --runtime amp

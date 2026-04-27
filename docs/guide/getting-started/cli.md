@@ -16,13 +16,13 @@ cccc attach .
 
 This binds the current directory as a "scope" and creates a working group.
 
-## Step 3: Configure MCP for Your Runtime
+## Step 3: Runtime MCP
 
 ```bash
-cccc setup --runtime claude   # or codex, droid, gemini, kimi
+cccc setup --runtime claude   # optional global/user MCP setup
 ```
 
-This configures the MCP (Model Context Protocol) so agents can interact with CCCC.
+For CCCC-managed Claude Code and Codex CLI actors, this step is not required: actor launch injects CCCC MCP only for that session. Use `cccc setup` when you intentionally want to add CCCC to a runtime's user/global MCP config.
 
 ## Step 4: Add Your First Agent
 
