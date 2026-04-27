@@ -11,6 +11,7 @@ from ..kernel.messaging import isolated_single_enabled_actor_recipient, peer_rec
 
 __all__ = [
     "cmd_send",
+    "cmd_tracked_send",
     "cmd_reply",
     "cmd_tail",
     "cmd_ledger_snapshot",
@@ -41,6 +42,22 @@ def _isolated_peer_message_payload(*, sender: str, recipients: list[str]) -> dic
         },
     }
 
+
+
+def _to_tokens_from_args(args: argparse.Namespace) -> list[str]:
+    tokens: list[str] = []
+    to_raw = getattr(args, "to", None)
+    if isinstance(to_raw, list):
+        for item in to_raw:
+            if not isinstance(item, str):
+                continue
+            tokens.extend(p.strip() for p in item.split(",") if p.strip())
+    return tokens
+
+
+def _return_daemon_rejection(resp: dict) -> int:
+    _print_json(resp)
+    return 2
 
 
 def _resolve_cli_message_sender(args: argparse.Namespace) -> str:
