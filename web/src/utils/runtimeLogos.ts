@@ -9,6 +9,7 @@ export const RUNTIME_LOGO_FILE_BY_RUNTIME: Record<RuntimeLogoRuntime, string> = 
   codex: "logos/codex.png",
   droid: "logos/droid.png",
   gemini: "logos/gemini.png",
+  copilot: "logos/copilot.png",
   kimi: "logos/kimi.png",
   neovate: "logos/neovate.png",
 };

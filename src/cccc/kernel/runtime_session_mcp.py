@@ -8,7 +8,7 @@ from .runtime import get_cccc_mcp_stdio_command
 
 
 def session_scoped_mcp_supported(runtime: str) -> bool:
-    return str(runtime or "").strip().lower() in {"codex", "claude"}
+    return str(runtime or "").strip().lower() in {"codex", "claude", "copilot"}
 
 
 def _toml_string(value: str) -> str:
@@ -92,6 +92,34 @@ def _inject_claude(command: List[str], mcp_cmd: List[str]) -> List[str]:
     return [base[0], "--mcp-config", json.dumps(config, ensure_ascii=False, separators=(",", ":")), "--strict-mcp-config", *base[1:]]
 
 
+def _strip_copilot_mcp_flags(command: List[str]) -> List[str]:
+    out: List[str] = []
+    index = 0
+    while index < len(command):
+        token = str(command[index] or "")
+        if token == "--additional-mcp-config" and index + 1 < len(command):
+            index += 2
+            continue
+        out.append(token)
+        index += 1
+    return out
+
+
+def _inject_copilot(command: List[str], mcp_cmd: List[str]) -> List[str]:
+    base = _strip_copilot_mcp_flags(command)
+    if not base:
+        return []
+    config = {
+        "mcpServers": {
+            "cccc": {
+                "command": mcp_cmd[0],
+                "args": mcp_cmd[1:],
+            }
+        }
+    }
+    return [base[0], "--additional-mcp-config", json.dumps(config, ensure_ascii=False, separators=(",", ":")), *base[1:]]
+
+
 def inject_session_scoped_mcp(runtime: str, command: List[str]) -> List[str]:
     """Return argv with CCCC MCP configured only for this launched session.
 
@@ -102,7 +130,7 @@ def inject_session_scoped_mcp(runtime: str, command: List[str]) -> List[str]:
     cmd = [str(item) for item in (command or []) if str(item).strip()]
     if not cmd:
         return []
-    if rt not in {"codex", "claude"}:
+    if rt not in {"codex", "claude", "copilot"}:
         return cmd
     mcp_cmd = [str(item) for item in get_cccc_mcp_stdio_command() if str(item).strip()]
     if not mcp_cmd:
@@ -111,4 +139,6 @@ def inject_session_scoped_mcp(runtime: str, command: List[str]) -> List[str]:
         return _inject_codex(cmd, mcp_cmd)
     if rt == "claude":
         return _inject_claude(cmd, mcp_cmd)
+    if rt == "copilot":
+        return _inject_copilot(cmd, mcp_cmd)
     return cmd
