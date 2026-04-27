@@ -1098,6 +1098,7 @@ export type PresentationWorkspaceListing = {
 export const SUPPORTED_RUNTIMES = [
   "claude",
   "codex",
+  "copilot",
   "droid",
   "amp",
   "auggie",
@@ -1114,6 +1115,7 @@ export const RUNTIME_INFO: Record<string, { label: string; desc: string }> = {
   auggie: { label: "Auggie (Augment)", desc: "" },
   claude: { label: "Claude Code", desc: "" },
   codex: { label: "Codex CLI", desc: "" },
+  copilot: { label: "GitHub Copilot CLI", desc: "" },
   droid: { label: "Droid", desc: "" },
   gemini: { label: "Gemini CLI", desc: "" },
   kimi: { label: "Kimi CLI", desc: "" },

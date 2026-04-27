@@ -60,6 +60,12 @@ KNOWN_RUNTIMES: Dict[str, Dict[str, Any]] = {
         "capabilities": "MCP; actor MCP: session-scoped; setup: optional global",
         "mcp_add_pattern": "codex mcp add {name} -- {cmd}",
     },
+    "copilot": {
+        "display_name": "GitHub Copilot CLI",
+        "command": "copilot",
+        "capabilities": "MCP; MCP setup: auto",
+        "mcp_add_pattern": "copilot mcp add {name} -- {cmd}",
+    },
     "droid": {
         "display_name": "Droid CLI",
         "command": "droid",
@@ -93,7 +99,7 @@ KNOWN_RUNTIMES: Dict[str, Dict[str, Any]] = {
 }
 
 # First-class supported runtimes (CCCC manages startup defaults + MCP wiring)
-PRIMARY_RUNTIMES = ["claude", "codex", "droid", "amp", "auggie", "neovate", "gemini", "kimi"]
+PRIMARY_RUNTIMES = ["claude", "codex", "copilot", "droid", "amp", "auggie", "neovate", "gemini", "kimi"]
 
 _RUNTIME_PROBE_TIMEOUT_SECONDS = 6.0
 _RUNTIME_PROBE_ARGS: Dict[str, List[str]] = {
@@ -101,6 +107,7 @@ _RUNTIME_PROBE_ARGS: Dict[str, List[str]] = {
     "auggie": ["--version"],
     "claude": ["--version"],
     "codex": ["--version"],
+    "copilot": ["--version"],
     "droid": ["--version"],
     "gemini": ["--version"],
     "kimi": ["--version"],
@@ -280,6 +287,7 @@ def get_runtime_command_with_flags(name: str) -> List[str]:
         # (CCCC_GROUP_ID/CCCC_ACTOR_ID), and keep feature flags on the supported
         # multi-agent path without surfacing deprecated `features.collab`.
         "codex": apply_codex_cli_overrides(["codex", "--dangerously-bypass-approvals-and-sandbox", "--search"]),
+        "copilot": ["copilot", "-s"],
         "droid": ["droid", "--auto", "high"],
         "gemini": ["gemini", "--yolo"],
         "kimi": ["kimi", "--yolo"],

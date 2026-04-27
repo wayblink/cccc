@@ -167,12 +167,13 @@ graph TB
 
 ## サポートランタイム
 
-CCCC は 8 種の主要ランタイムでエージェントを編成し、残りは `custom` で扱えます。同一グループ内で各 actor が異なるランタイムを使用可能です。
+CCCC は 9 種の主要ランタイムでエージェントを編成し、残りは `custom` で扱えます。同一グループ内で各 actor が異なるランタイムを使用可能です。
 
 | ランタイム | MCP 自動設定 | コマンド |
 |-----------|:----------:|---------|
 | Claude Code | ✅ | `claude` |
 | Codex CLI | ✅ | `codex` |
+| GitHub Copilot CLI | ✅ | `copilot` |
 | Gemini CLI | ✅ | `gemini` |
 | Droid | ✅ | `droid` |
 | Amp | ✅ | `amp` |

@@ -167,12 +167,13 @@ graph TB
 
 ## 支持的运行时
 
-CCCC 跨 8 种一线运行时编排 agent，除此之外还支持 `custom` 运行时兜底。同一协作组内，每个 actor 可使用不同的运行时。
+CCCC 跨 9 种一线运行时编排 agent，除此之外还支持 `custom` 运行时兜底。同一协作组内，每个 actor 可使用不同的运行时。
 
 | 运行时 | 自动 MCP 配置 | 命令 |
 |---------|:----------:|------|
 | Claude Code | ✅ | `claude` |
 | Codex CLI | ✅ | `codex` |
+| GitHub Copilot CLI | ✅ | `copilot` |
 | Gemini CLI | ✅ | `gemini` |
 | Droid | ✅ | `droid` |
 | Amp | ✅ | `amp` |

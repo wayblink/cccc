@@ -180,11 +180,12 @@ def cmd_setup(args: argparse.Namespace) -> int:
     project_path = Path(args.path or ".").resolve()
 
     # Supported runtimes
-    # - claude/codex/droid/amp/auggie/neovate/gemini/kimi: MCP setup can be automated via their CLIs
+    # - claude/codex/copilot/droid/amp/auggie/neovate/gemini/kimi: MCP setup can be automated via their CLIs
     # - custom: user-provided runtime; MCP setup is manual (generic guidance only)
     SUPPORTED_RUNTIMES = [
         "claude",
         "codex",
+        "copilot",
         "droid",
         "amp",
         "auggie",

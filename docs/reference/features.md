@@ -302,19 +302,21 @@ Recommended options:
 | auggie | `auggie` | Auggie (Augment CLI) |
 | claude | `claude` | Claude Code |
 | codex | `codex` | Codex CLI |
+| copilot | `copilot` | GitHub Copilot CLI |
 | droid | `droid` | Droid |
 | gemini | `gemini` | Gemini CLI |
 | kimi | `kimi --yolo` | Kimi CLI |
 | neovate | `neovate` | Neovate Code |
 | custom | Custom | Any command |
 
-CCCC first-class runtime support is the eight named CLIs above. `custom` remains the manual fallback for any other command.
+CCCC first-class runtime support is the nine named CLIs above. `custom` remains the manual fallback for any other command.
 
 ### Setup Commands
 
 ```bash
 cccc setup --runtime claude   # Optional global/user MCP setup; actor launch is session-scoped
 cccc setup --runtime codex
+cccc setup --runtime copilot
 cccc setup --runtime droid
 cccc setup --runtime amp
 cccc setup --runtime auggie

@@ -167,12 +167,13 @@ graph TB
 
 ## Supported Runtimes
 
-CCCC orchestrates agents across 8 first-class runtimes, with `custom` available for everything else. Each actor in a group can use a different runtime.
+CCCC orchestrates agents across 9 first-class runtimes, with `custom` available for everything else. Each actor in a group can use a different runtime.
 
 | Runtime | Actor MCP Injection | Command |
 |---------|:--------------:|---------|
 | Claude Code | session-scoped | `claude` |
 | Codex CLI | session-scoped | `codex` |
+| GitHub Copilot CLI | global setup only | `copilot` |
 | Gemini CLI | global setup only | `gemini` |
 | Droid | global setup only | `droid` |
 | Amp | global setup only | `amp` |
