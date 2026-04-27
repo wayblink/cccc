@@ -1145,7 +1145,7 @@ export function useChatTab({
     const allMessages = events.filter((ev: LedgerEvent) => ev.kind === "chat.message");
     const slotActors = actors.filter((actor) => {
       const actorId = String(actor.id || "").trim();
-      return actorId.length > 0 && actorId !== "user" && !String(actor.internal_kind || "").trim();
+      return actorId.length > 0 && actorId !== "user" && !String(actor.internal_kind || "").trim() && !isQuickTerminalActor(actor);
     });
     return [
       {

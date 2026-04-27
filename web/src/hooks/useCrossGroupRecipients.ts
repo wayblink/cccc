@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../services/api";
 import type { Actor, GroupDoc } from "../types";
+import { isQuickTerminalActor } from "./useChatTab";
 
 interface UseCrossGroupRecipientsOptions {
   /** Current group's actors */
@@ -105,8 +106,8 @@ export function useCrossGroupRecipients({
 
   const recipientActors = useMemo(() => {
     if (!sendGid) return [];
-    if (sendGid === selectedGid) return actors;
-    return remoteActorsByGroup[sendGid] ?? [];
+    const list = sendGid === selectedGid ? actors : (remoteActorsByGroup[sendGid] ?? []);
+    return list.filter((actor) => !isQuickTerminalActor(actor));
   }, [actors, remoteActorsByGroup, selectedGid, sendGid]);
 
   const recipientActorsBusy = useMemo(() => {
