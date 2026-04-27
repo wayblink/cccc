@@ -4,6 +4,217 @@ interface IconProps {
   size?: number;
 }
 
+interface GroupModeIconProps extends IconProps {
+  mode: "interactive" | "collaboration";
+  interactiveVariant?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+}
+
+export function GroupModeIcon({ className, size = 16, mode, interactiveVariant = 7 }: GroupModeIconProps) {
+  if (mode === "interactive") {
+    if (interactiveVariant === 2) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <circle cx="12" cy="12" r="2.4" fill="currentColor" opacity="0.25" />
+          <circle cx="12" cy="12" r="2.4" />
+          <circle cx="12" cy="12" r="5.4" opacity="0.55" />
+          <circle cx="12" cy="12" r="8.4" opacity="0.3" />
+        </svg>
+      );
+    }
+    if (interactiveVariant === 1) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M5 4l5.2 12 1.8-4.2 4.2-1.8L5 4z" fill="currentColor" opacity="0.2" />
+          <path d="M5 4l5.2 12 1.8-4.2 4.2-1.8L5 4z" />
+          <rect x="14.5" y="12.5" width="5.5" height="4.5" rx="1.4" />
+          <path d="M15.5 12.5v-1a2.5 2.5 0 0 1 2.5-2.5h0a2.5 2.5 0 0 1 2.5 2.5v1" />
+        </svg>
+      );
+    }
+    if (interactiveVariant === 3) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <circle cx="12" cy="12" r="2.6" fill="currentColor" opacity="0.2" />
+          <circle cx="12" cy="12" r="6.2" opacity="0.45" />
+          <path d="M12 3.8v2.6" />
+          <path d="M12 17.6v2.6" />
+          <path d="M3.8 12h2.6" />
+          <path d="M17.6 12h2.6" />
+        </svg>
+      );
+    }
+    if (interactiveVariant === 4) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M4 13c1.4 0 1.4-2 2.8-2s1.4 2 2.8 2 1.4-2 2.8-2 1.4 2 2.8 2 1.4-2 2.8-2 1.4 2 2.8 2" opacity="0.8" />
+          <circle cx="12" cy="12" r="2.4" fill="currentColor" opacity="0.2" />
+          <circle cx="12" cy="12" r="2.4" />
+        </svg>
+      );
+    }
+    if (interactiveVariant === 5) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <ellipse cx="12" cy="12" rx="8.5" ry="5" opacity="0.45" />
+          <ellipse cx="12" cy="12" rx="5" ry="8.5" opacity="0.3" />
+          <circle cx="16.8" cy="9.4" r="1.8" fill="currentColor" opacity="0.2" />
+          <circle cx="16.8" cy="9.4" r="1.8" />
+        </svg>
+      );
+    }
+    if (interactiveVariant === 6) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" opacity="0.08" />
+          <rect x="5" y="5" width="14" height="14" rx="3" />
+          <path d="M13.6 7.5l-2.2 3.3h1.9l-2.1 3.2" />
+        </svg>
+      );
+    }
+    if (interactiveVariant === 7) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <rect x="5" y="6" width="14" height="12" rx="2.8" fill="currentColor" opacity="0.08" />
+          <rect x="5" y="6" width="14" height="12" rx="2.8" />
+          <path d="M8.4 11l2 1.9-2 1.9" />
+          <path d="M12.1 14.8h3" />
+        </svg>
+      );
+    }
+    if (interactiveVariant === 8) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <circle cx="8" cy="12" r="2.7" fill="currentColor" opacity="0.16" />
+          <circle cx="16" cy="12" r="2.7" fill="currentColor" opacity="0.16" />
+          <circle cx="8" cy="12" r="2.7" />
+          <circle cx="16" cy="12" r="2.7" />
+          <path d="M10.8 12h2.4" />
+        </svg>
+      );
+    }
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+      >
+        <rect x="5" y="6" width="14" height="12" rx="2.8" fill="currentColor" opacity="0.08" />
+        <rect x="5" y="6" width="14" height="12" rx="2.8" />
+        <path d="M8.4 11l2 1.9-2 1.9" />
+        <path d="M12.1 14.8h3" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.14" />
+      <circle cx="18" cy="7" r="2.5" fill="currentColor" opacity="0.14" />
+      <circle cx="18" cy="17" r="2.5" fill="currentColor" opacity="0.14" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="7" r="2.5" />
+      <circle cx="18" cy="17" r="2.5" />
+      <path d="M8.5 11l7-3" />
+      <path d="M8.5 13l7 3" />
+    </svg>
+  );
+}
+
 // Minimal line icons, designed to match the "liquid glass" UI style.
 export function ClipboardIcon({ className, size = 18 }: IconProps) {
   return (

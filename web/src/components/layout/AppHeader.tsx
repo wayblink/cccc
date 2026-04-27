@@ -25,7 +25,8 @@ import {
   SettingsIcon,
   EditIcon,
   MoreIcon,
-  MenuIcon
+  MenuIcon,
+  GroupModeIcon,
 } from "../Icons";
 
 export interface AppHeaderProps {
@@ -216,12 +217,16 @@ export function AppHeader({
               {!hideGroupControls && selectedGroupId && hasGroupModeMetadata ? (
                 <span
                   className={classNames(
-                    "inline-flex h-9 flex-shrink-0 items-center rounded-full border px-3 text-xs font-medium shadow-sm",
+                    "inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border shadow-sm",
                     modeBadgeClass,
                   )}
                   title={t(groupMode === "interactive" ? "groupModeInteractive" : "groupModeCollaboration")}
+                  aria-label={t(groupMode === "interactive" ? "groupModeInteractive" : "groupModeCollaboration")}
                 >
-                  {t(groupMode === "interactive" ? "groupModeInteractive" : "groupModeCollaboration")}
+                  <GroupModeIcon mode={groupMode} size={16} />
+                  <span className="sr-only">
+                    {t(groupMode === "interactive" ? "groupModeInteractive" : "groupModeCollaboration")}
+                  </span>
                 </span>
               ) : null}
               {!hideGroupControls && (

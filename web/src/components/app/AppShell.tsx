@@ -70,6 +70,7 @@ type AppShellProps = {
   onToggleSidebar: () => void;
   onResizeSidebar: (width: number) => void;
   onReorderGroupsInSection: (section: "working" | "archived", fromIndex: number, toIndex: number) => void;
+  onRenameGroup?: (groupId: string) => void;
   onArchiveGroup: (groupId: string) => void;
   onRestoreGroup: (groupId: string) => void;
   onDeleteGroup: (groupId: string) => void;
@@ -147,6 +148,7 @@ export function AppShell({
   onToggleSidebar,
   onResizeSidebar,
   onReorderGroupsInSection,
+  onRenameGroup,
   onArchiveGroup,
   onRestoreGroup,
   onDeleteGroup,
@@ -244,6 +246,7 @@ export function AppShell({
         onToggleCollapse={onToggleSidebar}
         onResizeWidth={onResizeSidebar}
         onReorderSection={onReorderGroupsInSection}
+        onRenameGroup={onRenameGroup}
         onArchiveGroup={onArchiveGroup}
         onRestoreGroup={onRestoreGroup}
         onDeleteGroup={onDeleteGroup}

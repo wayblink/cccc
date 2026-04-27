@@ -31,6 +31,7 @@ export interface GroupSidebarProps {
   onToggleCollapse: () => void;
   onResizeWidth: (width: number) => void;
   onReorderSection: (section: "working" | "archived", fromIndex: number, toIndex: number) => void;
+  onRenameGroup?: (groupId: string) => void;
   onArchiveGroup: (groupId: string) => void;
   onRestoreGroup: (groupId: string) => void;
   onDeleteGroup: (groupId: string) => void;
@@ -56,6 +57,7 @@ export function GroupSidebar({
   onToggleCollapse,
   onResizeWidth,
   onReorderSection,
+  onRenameGroup,
   onArchiveGroup,
   onRestoreGroup,
   onDeleteGroup,
@@ -148,13 +150,18 @@ export function GroupSidebar({
     (groups: GroupMeta[], section: "working" | "archived") => {
       const isArchivedSection = section === "archived";
       const getMenuActions = (gid: string) => {
+        const renameAction = onRenameGroup
+          ? [{ label: t("renameGroup"), onSelect: () => onRenameGroup(gid) }]
+          : [];
         if (isArchivedSection) {
           return [
+            ...renameAction,
             { label: t("restoreGroup"), onSelect: () => onRestoreGroup(gid) },
             { label: t("deleteGroup"), onSelect: () => onDeleteGroup(gid) },
           ];
         }
         return [
+          ...renameAction,
           {
             label: t("archiveGroup"),
             onSelect: () => {
@@ -208,7 +215,7 @@ export function GroupSidebar({
         </div>
       );
     },
-    [handleSelectGroup, isCollapsed, isDark, onArchiveGroup, onClose, onDeleteGroup, onReorderSection, onRestoreGroup, onWarmGroup, readOnly, t, visibleSelectedGroupId]
+    [handleSelectGroup, isCollapsed, isDark, onArchiveGroup, onClose, onDeleteGroup, onRenameGroup, onReorderSection, onRestoreGroup, onWarmGroup, readOnly, t, visibleSelectedGroupId]
   );
 
   return (

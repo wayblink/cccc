@@ -409,6 +409,19 @@ export default function App() {
         onToggleSidebar={toggleSidebarCollapsed}
         onResizeSidebar={setSidebarWidth}
         onReorderGroupsInSection={reorderGroupsInSection}
+        onRenameGroup={
+          canManageGroups
+            ? (groupId: string) => {
+                const gid = String(groupId || "").trim();
+                if (!gid) return;
+                const target = groups.find((item) => String(item.group_id || "") === gid) || null;
+                setSelectedGroupId(gid);
+                setEditGroupTitle(String(target?.title || ""));
+                setEditGroupTopic(String(target?.topic || ""));
+                openModal("groupEdit");
+              }
+            : undefined
+        }
         onArchiveGroup={archiveGroup}
         onRestoreGroup={restoreGroup}
         onDeleteGroup={(groupId) => void handleDeleteGroup(groupId)}

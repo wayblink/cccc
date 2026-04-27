@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { GroupMeta } from "../../types";
 import { classNames } from "../../utils/classNames";
+import { getGroupMode } from "../../utils/groupMode";
 import { getGroupStatusFromSource } from "../../utils/groupStatus";
-import { MoreIcon } from "../Icons";
+import { GroupModeIcon, MoreIcon } from "../Icons";
 
 interface GroupSidebarItemProps {
   group: GroupMeta;
@@ -28,6 +29,7 @@ export function GroupSidebarItem({
   const gid = String(group.group_id || "");
   const [menuOpen, setMenuOpen] = useState(false);
   const status = getGroupStatusFromSource(group);
+  const groupMode = getGroupMode(group);
 
   if (isCollapsed) {
     const initial = (group.title || gid).charAt(0).toUpperCase();
@@ -49,6 +51,15 @@ export function GroupSidebarItem({
           )}
         >
           {initial}
+        </span>
+        <span
+          className={classNames(
+            "absolute left-0 top-0 inline-flex h-4 w-4 -translate-x-1/4 -translate-y-1/4 items-center justify-center rounded-full",
+            isActive ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300" : "bg-black/5 text-[var(--color-text-secondary)] dark:bg-white/10"
+          )}
+          title={groupMode === "interactive" ? "Interactive" : "Collaboration"}
+        >
+          <GroupModeIcon mode={groupMode} size={11} />
         </span>
         <span
           className={classNames(
@@ -83,6 +94,17 @@ export function GroupSidebarItem({
           onFocus={onWarm}
         >
           <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={classNames(
+                "inline-flex h-5 w-5 items-center justify-center rounded-md border flex-shrink-0",
+                groupMode === "interactive"
+                  ? "border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
+                  : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              )}
+              title={groupMode === "interactive" ? "Interactive" : "Collaboration"}
+            >
+              <GroupModeIcon mode={groupMode} size={12} />
+            </span>
             <span className={classNames("w-2.5 h-2.5 rounded-full flex-shrink-0", status.dotClass)} />
             <span
               className={classNames(
