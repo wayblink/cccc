@@ -39,6 +39,7 @@ export interface ChatSessionState {
   mobileSurface: "messages" | "presentation";
   presentationDockOpen: boolean;
   presentationDisplayMode: "modal" | "split";
+  chatDisplayMode: "chat" | "terminal";
 }
 
 const DEFAULT_CHAT_SLOT_STATE: ChatSlotState = {
@@ -56,6 +57,7 @@ const DEFAULT_CHAT_SESSION: ChatSessionState = {
   mobileSurface: "messages",
   presentationDockOpen: false,
   presentationDisplayMode: "modal",
+  chatDisplayMode: "chat",
 };
 
 export function buildAgentChatSlotId(actorId: string | null | undefined): ChatSlotId {
@@ -157,6 +159,7 @@ interface UIState {
   chatSessions: Record<string, ChatSessionState>;
   webReadOnly: boolean;
   sseStatus: "connected" | "connecting" | "disconnected";
+  terminalDirectMode: boolean;
 
   // Actions
   setActiveTab: (tab: string) => void;
@@ -185,6 +188,8 @@ interface UIState {
   setChatPresentationDisplayMode: (groupId: string, v: "modal" | "split") => void;
   setWebReadOnly: (v: boolean) => void;
   setSSEStatus: (v: "connected" | "connecting" | "disconnected") => void;
+  toggleTerminalDirectMode: () => void;
+  setChatDisplayMode: (groupId: string, mode: "chat" | "terminal") => void;
 }
 
 let errorTimeoutId: number | null = null;
@@ -195,6 +200,7 @@ const SIDEBAR_COLLAPSED_KEY = "cccc-sidebar-collapsed";
 const SIDEBAR_WIDTH_KEY = "cccc-sidebar-width";
 const PRESENTATION_SPLIT_WIDTH_KEY = "cccc-presentation-split-width";
 const CHAT_SESSIONS_KEY = "cccc-chat-sessions";
+const TERMINAL_DIRECT_MODE_KEY = "cccc-terminal-direct-mode";
 
 export function clampSidebarWidth(value: number): number {
   const numeric = Number(value);
@@ -287,6 +293,7 @@ function sanitizeChatSessions(value: unknown): Record<string, ChatSessionState> 
       mobileSurface?: unknown;
       presentationDockOpen?: unknown;
       presentationDisplayMode?: unknown;
+      chatDisplayMode?: unknown;
     };
     const slotStates = sanitizeChatSlotStates(session.slotStates);
     const legacyScrollSnapshot = sanitizeChatScrollSnapshot(session.scrollSnapshot);
@@ -309,9 +316,26 @@ function sanitizeChatSessions(value: unknown): Record<string, ChatSessionState> 
       mobileSurface: session.mobileSurface === "presentation" ? "presentation" : "messages",
       presentationDockOpen: Boolean(session.presentationDockOpen),
       presentationDisplayMode: session.presentationDisplayMode === "split" ? "split" : "modal",
+      chatDisplayMode: session.chatDisplayMode === "terminal" ? "terminal" : "chat",
     });
   }
   return next;
+}
+
+function loadTerminalDirectMode(): boolean {
+  try {
+    return localStorage.getItem(TERMINAL_DIRECT_MODE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function saveTerminalDirectMode(value: boolean): void {
+  try {
+    localStorage.setItem(TERMINAL_DIRECT_MODE_KEY, String(value));
+  } catch {
+    // ignore
+  }
 }
 
 function loadChatSessions(): Record<string, ChatSessionState> {
@@ -337,6 +361,7 @@ function saveChatSessions(sessions: Record<string, ChatSessionState>): void {
           mobileSurface: session.mobileSurface,
           presentationDockOpen: session.presentationDockOpen,
           presentationDisplayMode: session.presentationDisplayMode,
+          chatDisplayMode: session.chatDisplayMode,
         },
       ]),
     );
@@ -375,6 +400,7 @@ export const useUIStore = create<UIState>((set) => ({
   chatSessions: loadChatSessions(),
   webReadOnly: false,
   sseStatus: "disconnected" as const,
+  terminalDirectMode: loadTerminalDirectMode(),
 
   // Actions
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -552,4 +578,19 @@ export const useUIStore = create<UIState>((set) => ({
     }),
   setWebReadOnly: (v) => set({ webReadOnly: v }),
   setSSEStatus: (v) => set({ sseStatus: v }),
+  toggleTerminalDirectMode: () =>
+    set((state) => {
+      const next = !state.terminalDirectMode;
+      saveTerminalDirectMode(next);
+      return { terminalDirectMode: next };
+    }),
+  setChatDisplayMode: (groupId, mode) =>
+    set((state) => {
+      const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
+        ...session,
+        chatDisplayMode: mode,
+      }));
+      saveChatSessions(chatSessions);
+      return { chatSessions };
+    }),
 }));

@@ -6,6 +6,7 @@ import { GroupSidebar } from "../layout/GroupSidebar";
 import { ModalFrame } from "../modals/ModalFrame";
 import { ActorTab } from "../../pages/ActorTab";
 import { ChatTab } from "../../pages/chat";
+import { TerminalDirectView } from "../../pages/chat/TerminalDirectView";
 import { NotesPage } from "../../pages/notes";
 import { ScriptManagerPage } from "../../pages/scripts";
 import type {
@@ -18,7 +19,7 @@ import type {
   GroupRuntimeStatus,
   TextScale,
 } from "../../types";
-import { SIDEBAR_COLLAPSED_WIDTH } from "../../stores/useUIStore";
+import { SIDEBAR_COLLAPSED_WIDTH, getChatSession, useUIStore } from "../../stores/useUIStore";
 import { isToolAppTab, isFixedAppTab } from "../../utils/appTabs";
 
 type AppShellProps = {
@@ -181,6 +182,12 @@ export function AppShell({
     "--sidebar-width": `${sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}px`,
   } as CSSProperties;
 
+  const terminalDirectMode = useUIStore((s) => s.terminalDirectMode);
+  const chatDisplayMode = useUIStore((s) =>
+    selectedGroupId ? getChatSession(selectedGroupId, s.chatSessions).chatDisplayMode : "chat"
+  );
+  const showTerminalDirect = terminalDirectMode && chatDisplayMode === "terminal" && !isToolAppTab(activeTab);
+
   useEffect(() => {
     if (!selectedGroupId || runtimeActors.length === 0) return;
     if (typeof window === "undefined") return;
@@ -303,42 +310,76 @@ export function AppShell({
           onTouchEnd={onTouchEnd}
         >
           <div className="absolute inset-0 flex min-h-0 flex-col">
-            <ErrorBoundary>
-              {activeTab === "scripts" ? (
+            {activeTab === "scripts" ? (
+              <ErrorBoundary>
                 <ScriptManagerPage isDark={isDark} readOnly={webReadOnly} />
-              ) : activeTab === "notes" ? (
+              </ErrorBoundary>
+            ) : activeTab === "notes" ? (
+              <ErrorBoundary>
                 <NotesPage isDark={isDark} readOnly={webReadOnly} />
-              ) : (
-                <ChatTab
-                  isDark={isDark}
-                  isSmallScreen={isSmallScreen}
-                  readOnly={webReadOnly}
-                  selectedGroupId={selectedGroupId}
-                  selectedGroupRunning={selectedGroupRunning}
-                  selectedGroupActorsHydrating={selectedGroupActorsHydrating}
-                  groupLabelById={groupLabelById}
-                  actors={actors}
-                  runtimeActors={runtimeActors}
-                  groups={groups}
-                  activeRuntimeActorId={!isFixedAppTab(activeTab) ? activeTab : undefined}
-                  recipientActors={recipientActors}
-                  recipientActorsBusy={recipientActorsBusy}
-                  destGroupScopeLabel={destGroupScopeLabel}
-                  scrollRef={eventContainerRef}
-                  composerRef={composerRef}
-                  fileInputRef={fileInputRef}
-                  chatAtBottomRef={chatAtBottomRef}
-                  appendComposerFiles={appendComposerFiles}
-                  onStartGroup={onStartGroup}
-                  onOpenRuntimeActor={onTabChange}
-                  showMentionMenu={showMentionMenu}
-                  setShowMentionMenu={setShowMentionMenu}
-                  mentionSelectedIndex={mentionSelectedIndex}
-                  setMentionSelectedIndex={setMentionSelectedIndex}
-                  setMentionFilter={setMentionFilter}
-                />
-              )}
-            </ErrorBoundary>
+              </ErrorBoundary>
+            ) : (
+              <>
+                <div
+                  className="absolute inset-0 flex min-h-0 flex-col"
+                  style={{ display: showTerminalDirect ? "none" : "flex" }}
+                >
+                  <ErrorBoundary>
+                    <ChatTab
+                      isDark={isDark}
+                      isSmallScreen={isSmallScreen}
+                      readOnly={webReadOnly}
+                      selectedGroupId={selectedGroupId}
+                      selectedGroupRunning={selectedGroupRunning}
+                      selectedGroupActorsHydrating={selectedGroupActorsHydrating}
+                      groupLabelById={groupLabelById}
+                      actors={actors}
+                      runtimeActors={runtimeActors}
+                      groups={groups}
+                      activeRuntimeActorId={!isFixedAppTab(activeTab) ? activeTab : undefined}
+                      recipientActors={recipientActors}
+                      recipientActorsBusy={recipientActorsBusy}
+                      destGroupScopeLabel={destGroupScopeLabel}
+                      scrollRef={eventContainerRef}
+                      composerRef={composerRef}
+                      fileInputRef={fileInputRef}
+                      chatAtBottomRef={chatAtBottomRef}
+                      appendComposerFiles={appendComposerFiles}
+                      onStartGroup={onStartGroup}
+                      onOpenRuntimeActor={onTabChange}
+                      showMentionMenu={showMentionMenu}
+                      setShowMentionMenu={setShowMentionMenu}
+                      mentionSelectedIndex={mentionSelectedIndex}
+                      setMentionSelectedIndex={setMentionSelectedIndex}
+                      setMentionFilter={setMentionFilter}
+                    />
+                  </ErrorBoundary>
+                </div>
+
+                {showTerminalDirect && (
+                  <div className="absolute inset-0 flex min-h-0 flex-col">
+                    <ErrorBoundary>
+                      <TerminalDirectView
+                        groupId={selectedGroupId}
+                        runtimeActors={runtimeActors}
+                        groupContext={groupContext}
+                        getTermEpoch={getTermEpoch}
+                        busy={busy}
+                        isDark={isDark}
+                        isSmallScreen={isSmallScreen}
+                        readOnly={webReadOnly}
+                        onToggleActorEnabled={onToggleActorEnabled}
+                        onRelaunchActor={onRelaunchActor}
+                        onEditActor={onEditActor}
+                        onRemoveActor={(actor) => onRemoveActor(actor, activeTab)}
+                        onOpenActorInbox={onOpenActorInbox}
+                        onRefreshActors={onRefreshActors}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {renderedActorIds.map((actorId) => {

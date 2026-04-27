@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Actor, GroupDoc, GroupSettings, IMStatus, IMPlatform, WebAccessSession, WeixinLoginStatus } from "../types";
 import * as api from "../services/api";
 import { useObservabilityStore } from "../stores";
+import { useUIStore } from "../stores/useUIStore";
 import type { RuntimeVisibilityMode } from "../utils/runtimeVisibility";
 import { getGroupAgentLinkMode, getGroupMode, supportsGroupDefaultSendTo } from "../utils/groupMode";
 import {
@@ -136,6 +137,13 @@ export function SettingsModal({
 
   // IM config drafts cache (per-platform local edits, not yet saved to server)
   const [imConfigDrafts, setImConfigDrafts] = useState<Partial<Record<IMPlatform, IMConfigDraft>>>({});
+
+  // Terminal direct mode (experimental, localStorage-backed)
+  const terminalDirectMode = useUIStore((s) => s.terminalDirectMode);
+  const toggleTerminalDirectMode = useUIStore((s) => s.toggleTerminalDirectMode);
+  const setTerminalDirectMode = (v: boolean) => {
+    if (v !== terminalDirectMode) toggleTerminalDirectMode();
+  };
 
   // Global observability (developer mode)
   const [developerMode, setDeveloperMode] = useState(false);
@@ -1231,6 +1239,8 @@ export function SettingsModal({
                   runtimeInfoErr={runtimeInfoErr}
                   developerMode={developerMode}
                   setDeveloperMode={setDeveloperMode}
+                  terminalDirectMode={terminalDirectMode}
+                  setTerminalDirectMode={setTerminalDirectMode}
                   logLevel={logLevel}
                   setLogLevel={setLogLevel}
                   terminalBacklogMiB={terminalBacklogMiB}
