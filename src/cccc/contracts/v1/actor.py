@@ -18,6 +18,7 @@ AgentRuntime = Literal[
     "auggie",
     "claude",
     "codex",
+    "copilot",
     "droid",
     "gemini",
     "kimi",

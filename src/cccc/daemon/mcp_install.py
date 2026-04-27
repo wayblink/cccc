@@ -58,7 +58,28 @@ def _entry_command_matches_expected(command: Any, args: Any, expected_cmd: list[
 def _mcp_transport_matches(entry: Dict[str, Any]) -> bool:
     transport = entry.get("transport", entry.get("type", "stdio"))
     value = str(transport or "stdio").strip().lower()
-    return not value or value == "stdio"
+    # "local" is copilot's term for a local stdio MCP process
+    return not value or value in {"stdio", "local"}
+
+
+def _copilot_mcp_entry_matches_expected(output: str, expected_cmd: list[str]) -> bool:
+    """Check copilot mcp get output against expected command.
+
+    Copilot reports the full command string (executable + args) in one "Command:" field.
+    """
+    entry = _parse_mcp_get_output(output)
+    if not entry:
+        return False
+    # copilot uses "local" transport type for stdio MCP servers
+    transport = str(entry.get("type", "stdio")).strip().lower()
+    if transport not in {"stdio", "local", ""}:
+        return False
+    command_str = str(entry.get("command", "")).strip()
+    if not command_str:
+        return False
+    actual_parts = [_normalize_mcp_command_value(p) for p in command_str.split()]
+    expected_parts = [_normalize_mcp_command_value(p) for p in expected_cmd]
+    return actual_parts == expected_parts
 
 
 def _coerce_output_text(output: Any) -> str:
@@ -144,6 +165,8 @@ def build_mcp_add_command(runtime: str) -> list[str] | None:
         return ["neovate", "mcp", "add", "-g", "cccc", *cccc_cmd]
     if runtime == "gemini":
         return ["gemini", "mcp", "add", "-s", "user", "cccc", *cccc_cmd]
+    if runtime == "copilot":
+        return ["copilot", "mcp", "add", "cccc", "--", *cccc_cmd]
     if runtime == "kimi":
         return ["kimi", "mcp", "add", "--transport", "stdio", "cccc", "--", *cccc_cmd]
     return None
@@ -268,6 +291,13 @@ def _runtime_mcp_state(runtime: str, *, env: Dict[str, str] | None = None) -> st
 
     if runtime == "gemini":
         return _json_mcp_state((Path.home() / ".gemini" / "settings.json",), expected_cmd)
+
+    if runtime == "copilot":
+        result = _run_cli(["copilot", "mcp", "get", "cccc"], timeout=10, text=False, env=env)
+        if result.returncode != 0:
+            return "missing"
+        output = _coerce_output_text(result.stdout)
+        return "ready" if _copilot_mcp_entry_matches_expected(output, expected_cmd) else "stale"
 
     if runtime == "kimi":
         return _json_mcp_state((_kimi_share_dir(env) / "mcp.json",), expected_cmd)

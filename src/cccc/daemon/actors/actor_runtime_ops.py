@@ -51,7 +51,7 @@ def ensure_actor_mcp_ready(
     effective_runner: str,
     ensure_mcp_installed: Callable[..., bool],
 ) -> tuple[bool, Optional[str]]:
-    del cwd, effective_env, ensure_mcp_installed
+    del effective_env
 
     if effective_runner == "headless":
         return True, None
@@ -59,10 +59,15 @@ def ensure_actor_mcp_ready(
     if session_scoped_mcp_supported(runtime):
         return True, None
 
+    # For non-session-scoped PTY runtimes (e.g. copilot), attempt persistent global MCP install.
+    ok = ensure_mcp_installed(runtime, cwd)
+    if ok:
+        return True, None
+
     message = f"session-scoped MCP is not supported for runtime: {runtime}"
     if not group_heavy_mcp_enabled(group.doc):
         logger.warning(
-            "%s; isolated group %s/%s will start without global MCP installation.",
+            "%s; MCP install failed; isolated group %s/%s will start without global MCP installation.",
             message,
             group.group_id,
             actor_id,
