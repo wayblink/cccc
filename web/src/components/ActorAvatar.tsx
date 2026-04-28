@@ -1,11 +1,12 @@
 import { memo, useMemo, useState } from "react";
 import { classNames } from "../utils/classNames";
 import { withAuthToken } from "../services/api/base";
-import { getRuntimeLogoSrc } from "../utils/runtimeLogos";
+import { getActorLogoSrc } from "../utils/runtimeLogos";
 export type ActorAvatarProps = {
   avatarUrl?: string | null;
   previewUrl?: string | null;
   runtime?: string | null;
+  uiKind?: string | null;
   title?: string | null;
   isUser?: boolean;
   isDark: boolean;
@@ -19,6 +20,7 @@ export const ActorAvatar = memo(function ActorAvatar({
   avatarUrl,
   previewUrl,
   runtime,
+  uiKind,
   title,
   isUser = false,
   isDark,
@@ -44,8 +46,8 @@ export const ActorAvatar = memo(function ActorAvatar({
 
   const logoSrc = useMemo(() => {
     if (isUser) return null;
-    return getRuntimeLogoSrc(runtime);
-  }, [isUser, runtime]);
+    return getActorLogoSrc({ runtime, uiKind });
+  }, [isUser, runtime, uiKind]);
 
   const fallbackText = isUser ? "U" : (String(title || "").trim() || "?")[0].toUpperCase();
 

@@ -14,6 +14,7 @@ export function MessageMetadataHeader({
   toLabel,
   senderAvatarUrl,
   senderRuntime,
+  senderUiKind,
   avatarRingClassName,
 }: {
   mobile?: boolean;
@@ -26,6 +27,7 @@ export function MessageMetadataHeader({
   toLabel: string;
   senderAvatarUrl?: string;
   senderRuntime?: string;
+  senderUiKind?: string;
   avatarRingClassName?: string;
 }) {
   const senderTextClass = isUserMessage
@@ -49,6 +51,7 @@ export function MessageMetadataHeader({
         <ActorAvatar
           avatarUrl={senderAvatarUrl}
           runtime={senderRuntime}
+          uiKind={senderUiKind}
           title={senderDisplayName}
           isUser={isUserMessage}
           isDark={isDark}

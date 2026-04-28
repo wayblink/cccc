@@ -15,7 +15,8 @@
     "myProfiles": "My Profiles",
     "branding": "Branding",
     "developer": "Developer",
-    "webAccess": "Web Access"
+    "webAccess": "Web Access",
+    "assistants": "Assistant"
   },
   "navigation": {
     "targetScope": "Target Scope",
@@ -26,7 +27,8 @@
     "globalScopeTitle": "Global Scope",
     "globalScopeContent": "Applies to your whole CCCC instance (daemon + Web). These settings affect all groups unless overridden.",
     "globalLockedTitle": "Admin access required",
-    "globalLockedContent": "Global settings are admin-only. Open Settings from a group to manage group-scoped settings, or sign in with an admin Access Token."
+    "globalLockedContent": "Global settings are admin-only. Open Settings from a group to manage group-scoped settings, or sign in with an admin Access Token.",
+    "sections": "Sections"
   },
   "actorProfiles": {
     "searchPlaceholder": "Search profiles by name/id/runtime",
@@ -1051,5 +1053,37 @@
     "restartDialogCommandStandaloneLabel": "If you normally run the Web server separately",
     "restartDialogSupervisorHint": "If Web is managed by Docker, systemd, or another supervisor, restart that service instead of using the commands above.",
     "restartDialogDone": "Understood"
+  },
+  "assistants": {
+    "title": "Assistant",
+    "description": "Configure the assistant surfaces that already exist on main: Web Pet visibility and its @pet persona prompt.",
+    "requireGroup": "Open settings from a group to configure assistants.",
+    "webPet": "Web Pet",
+    "webPetHint": "Group scoped",
+    "webPetTitle": "Web Pet assistant",
+    "webPetDescription": "This keeps main's existing Web Pet feature while adopting the worktree settings layout.",
+    "petToggleTitle": "Show Web Pet for this group",
+    "petToggleHint": "Uses desktop_pet_enabled from group settings; no Voice Secretary backend is required.",
+    "petEnabled": "Web Pet enabled for this group.",
+    "petDisabled": "Web Pet disabled for this group.",
+    "personaTitle": "@pet persona",
+    "personaDescription": "Edit the ## @pet block in this group's help prompt. Guidance, role notes, and actor notes are preserved.",
+    "personaPlaceholder": "Describe how the Web Pet should help this group...",
+    "personaSaved": "Assistant persona saved.",
+    "helpPrompt": "help prompt",
+    "reload": "Reload",
+    "discard": "Discard",
+    "savePersona": "Save persona",
+    "unsaved": "Unsaved changes",
+    "status": {
+      "enabled": "Web Pet On",
+      "disabled": "Web Pet Off",
+      "lightweight": "Prompt-backed"
+    },
+    "errors": {
+      "loadPersona": "Failed to load assistant persona.",
+      "savePersona": "Failed to save assistant persona.",
+      "updatePet": "Failed to update Web Pet setting."
+    }
   }
 }

@@ -11,7 +11,7 @@ import {
 
 import { ActorAvatar } from "../../components/ActorAvatar";
 import { HeadlessLiveTrace } from "../../components/headless/HeadlessLiveTrace";
-import { PlusIcon, TerminalIcon } from "../../components/Icons";
+import { PlusIcon } from "../../components/Icons";
 import { useActorDisplayState } from "../../hooks/useActorDisplayState";
 import type { StreamingActivity, Actor } from "../../types";
 import { classNames } from "../../utils/classNames";
@@ -129,15 +129,13 @@ function getRuntimeRingPresentation(tone: RuntimeRingTone, isDark: boolean): Run
       };
     case "working":
       return {
-        ringClassName: "absolute -inset-[4px] rounded-full animate-[spin_2.5s_linear_infinite] motion-reduce:animate-none",
-        ringStyle: {
-          WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 1px))",
-          mask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 1px))",
-          background: "conic-gradient(from 120deg, rgba(16,185,129,0.12) 0deg, rgba(16,185,129,0.99) 130deg, rgba(52,211,153,0.97) 220deg, rgba(45,212,191,0.88) 280deg, rgba(16,185,129,0.15) 360deg)",
-        },
+        ringClassName: "absolute -inset-[3px] rounded-full animate-[spin_5s_linear_infinite] motion-reduce:animate-none",
+        ringStyle: buildMaskedRing(
+          "conic-gradient(from 120deg, rgba(16,185,129,0.18) 0deg, rgba(16,185,129,0.98) 148deg, rgba(45,212,191,0.85) 246deg, rgba(16,185,129,0.22) 360deg)"
+        ),
         haloClassName: classNames(
-          "absolute -inset-[9px] rounded-full blur-md animate-pulse motion-reduce:animate-none",
-          isDark ? "bg-emerald-300/30" : "bg-emerald-400/34"
+          "absolute -inset-[7px] rounded-full blur-md animate-pulse motion-reduce:animate-none",
+          isDark ? "bg-emerald-300/18" : "bg-emerald-400/20"
         ),
         previewBorderClassName: isDark ? "border-emerald-300/28" : "border-emerald-500/24",
         statusPillClassName: isDark
@@ -602,6 +600,7 @@ function RuntimeDockActorButton({
         <ActorAvatar
           avatarUrl={item.actor.avatar_url || undefined}
           runtime={item.runtime}
+          uiKind={item.actor.ui_kind || undefined}
           title={item.actorLabel}
           isDark={isDark}
           sizeClassName={isSmallScreen ? "h-9 w-9" : "h-10 w-10"}
@@ -647,7 +646,6 @@ export interface RuntimeDockProps {
   selectedGroupRunning: boolean;
   selectedGroupActorsHydrating: boolean;
   onAddAgent?: () => void;
-  onLaunchQuickTerminal?: () => void;
   onOpenRuntimeActor: (actorId: string) => void;
 }
 
@@ -662,7 +660,6 @@ export function RuntimeDock({
   selectedGroupRunning,
   selectedGroupActorsHydrating,
   onAddAgent,
-  onLaunchQuickTerminal,
   onOpenRuntimeActor,
 }: RuntimeDockProps) {
   const { t } = useTranslation("chat");
@@ -672,7 +669,7 @@ export function RuntimeDock({
   const lastAutoPreviewSignalRef = useRef("");
 
   const items = useMemo(() => buildRuntimeDockItems({ actors: runtimeActors, liveWorkCards }), [runtimeActors, liveWorkCards]);
-  const hasActions = !readOnly && Boolean(onLaunchQuickTerminal || onAddAgent);
+  const hasActions = !readOnly && Boolean(onAddAgent);
   const autoPreviewCandidate = useMemo(() => {
     if (isSmallScreen) return null;
     const runtimeActorIds = new Set(runtimeActors.map((actor) => String(actor.id || "").trim()).filter(Boolean));
@@ -817,20 +814,6 @@ export function RuntimeDock({
             </button>
           ) : null}
 
-          {!readOnly && onLaunchQuickTerminal ? (
-            <button
-              type="button"
-              onClick={onLaunchQuickTerminal}
-              className={classNames(
-                "relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border shadow-[0_18px_40px_-28px_rgba(15,23,42,0.68)] transition-all duration-200",
-                isDark ? "border-cyan-300/18 bg-slate-950/86 text-cyan-100 hover:bg-slate-950" : "border-cyan-500/18 bg-white text-cyan-700 hover:bg-white",
-              )}
-              aria-label={t("chat:launchQuickTerminal", { defaultValue: "Launch temporary terminal" })}
-              title={t("chat:launchQuickTerminal", { defaultValue: "Launch temporary terminal" })}
-            >
-              <TerminalIcon size={18} />
-            </button>
-          ) : null}
         </div>
       </div>
     </div>

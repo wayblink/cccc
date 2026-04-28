@@ -13,6 +13,7 @@ import { useModalA11y } from "../../hooks/useModalA11y";
 import { CapabilityPicker } from "../CapabilityPicker";
 import { RolePresetPicker } from "../RolePresetPicker";
 import { ActorAvatarField } from "../ActorAvatarField";
+import { ChevronLeftIcon, SparklesIcon, TerminalIcon } from "../Icons";
 import { formatCapabilityIdInput, parseCapabilityIdInput } from "../../utils/capabilityAutoload";
 import { actorProfileIdentityKey } from "../../utils/actorProfiles";
 import { supportsStandardWebHeadlessRuntime } from "../../utils/headlessRuntimeSupport";
@@ -65,6 +66,7 @@ export interface AddActorModalProps {
   addActorDisabledReason: string;
 
   onAddActor: (avatarFile?: File | null) => Promise<boolean> | boolean;
+  onLaunchQuickTerminal?: () => Promise<boolean> | boolean;
   onSaveAsProfile: () => void;
   onClose: () => void;
   onCancelAndReset: () => void;
@@ -129,6 +131,7 @@ export function AddActorModal({
   canAddActor,
   addActorDisabledReason,
   onAddActor,
+  onLaunchQuickTerminal,
   onSaveAsProfile,
   onClose,
   onCancelAndReset,
@@ -136,6 +139,7 @@ export function AddActorModal({
   const { t } = useTranslation("actors");
   const { modalRef } = useModalA11y(isOpen, onClose);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [entryMode, setEntryMode] = useState<"choice" | "agent">(() => (onLaunchQuickTerminal ? "choice" : "agent"));
   const avatarPreviewUrl = useMemo(() => (avatarFile ? URL.createObjectURL(avatarFile) : null), [avatarFile]);
 
   useEffect(() => {
@@ -143,6 +147,10 @@ export function AddActorModal({
       if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     };
   }, [avatarPreviewUrl]);
+
+  useEffect(() => {
+    if (isOpen) setEntryMode(onLaunchQuickTerminal ? "choice" : "agent");
+  }, [isOpen, onLaunchQuickTerminal]);
 
   if (!isOpen) return null;
 
@@ -182,6 +190,16 @@ export function AddActorModal({
     onCancelAndReset();
   };
 
+  const handleLaunchQuickTerminal = async () => {
+    if (!onLaunchQuickTerminal) return;
+    try {
+      const ok = await Promise.resolve(onLaunchQuickTerminal());
+      if (ok) setAvatarFile(null);
+    } catch (e) {
+      setAddActorError(e instanceof Error ? e.message : t("chat:quickTerminalFailed", { defaultValue: "Failed to launch terminal." }));
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 backdrop-blur-sm flex items-stretch sm:items-start justify-center p-0 sm:p-6 z-50 animate-fade-in glass-overlay"
@@ -204,8 +222,60 @@ export function AddActorModal({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 safe-area-bottom-compact">
-          <div className="mx-auto max-w-2xl space-y-4">
-            <section className={sectionCardClass}>
+          {entryMode === "choice" ? (
+            <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                data-testid="add-actor-entry-ai"
+                className="group rounded-2xl border p-5 text-left transition-all border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] hover:-translate-y-0.5 hover:bg-[var(--glass-tab-bg-hover)] hover:shadow-lg"
+                onClick={() => setEntryMode("agent")}
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-300">
+                  <SparklesIcon size={20} />
+                </div>
+                <div className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">
+                  {t("addActorEntryAiAgent", { defaultValue: "AI Agent" })}
+                </div>
+                <div className="mt-1 text-sm text-[var(--color-text-muted)]">
+                  {t("addActorEntryAiAgentHint", { defaultValue: "Configure a runtime-backed assistant." })}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                data-testid="add-actor-entry-terminal"
+                className="group rounded-2xl border p-5 text-left transition-all border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] hover:-translate-y-0.5 hover:bg-[var(--glass-tab-bg-hover)] hover:shadow-lg disabled:cursor-wait disabled:opacity-60"
+                onClick={() => {
+                  void handleLaunchQuickTerminal();
+                }}
+                disabled={busy.startsWith("actor-add")}
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-300">
+                  <TerminalIcon size={20} />
+                </div>
+                <div className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">
+                  {t("addActorEntryTerminal", { defaultValue: "Terminal" })}
+                </div>
+                <div className="mt-1 text-sm text-[var(--color-text-muted)]">
+                  {t("addActorEntryTerminalHint", { defaultValue: "Create a temporary terminal instantly." })}
+                </div>
+              </button>
+            </div>
+          ) : (
+            <div className="mx-auto max-w-2xl space-y-4">
+              {onLaunchQuickTerminal ? (
+                <button
+                  type="button"
+                  data-testid="add-actor-back-to-choice"
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)]"
+                  onClick={() => setEntryMode("choice")}
+                >
+                  <ChevronLeftIcon size={14} />
+                  {t("common:back", { defaultValue: "Back" })}
+                </button>
+              ) : null}
+
+              <section className={sectionCardClass}>
               <div className={sectionTitleClass}>{t("sectionBasics")}</div>
               <div className={sectionHintClass}>{t("addSectionBasicsHint")}</div>
 
@@ -615,6 +685,7 @@ export function AddActorModal({
               </details>
             ) : null}
           </div>
+          )}
         </div>
 
         <div className="border-t px-4 py-3 sm:px-6 sm:py-4 safe-area-inset-bottom border-[var(--glass-border-subtle)] glass-header flex-shrink-0">
@@ -638,29 +709,33 @@ export function AddActorModal({
           ) : null}
 
           <div className="flex flex-col-reverse sm:flex-row gap-3">
-              <button
-                type="button"
-                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors min-h-[44px] border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
-                onClick={handleCancel}
-              >
-                {t("common:cancel")}
-              </button>
+            <button
+              type="button"
+              className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors min-h-[44px] border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
+              onClick={handleCancel}
+            >
+              {t("common:cancel")}
+            </button>
 
-            <div className="flex-1 min-w-0">
-              <button
-                type="button"
-                className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 text-sm font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px]"
-                onClick={() => {
-                  void handleSubmit();
-                }}
-                disabled={!canAddActor}
-              >
-                {busy === "actor-add" ? t("adding") : newActorUseProfile ? t("createFromProfile") : t("addAgent")}
-              </button>
-              {addActorDisabledReason ? (
-                <div className="text-[10px] text-amber-600 dark:text-amber-300 mt-1.5">{addActorDisabledReason}</div>
-              ) : null}
-            </div>
+            {entryMode === "agent" ? (
+              <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 text-sm font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px]"
+                  onClick={() => {
+                    void handleSubmit();
+                  }}
+                  disabled={!canAddActor}
+                >
+                  {busy === "actor-add" ? t("adding") : newActorUseProfile ? t("createFromProfile") : t("addAgent")}
+                </button>
+                {addActorDisabledReason ? (
+                  <div className="text-[10px] text-amber-600 dark:text-amber-300 mt-1.5">{addActorDisabledReason}</div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="hidden flex-1 sm:block" aria-hidden="true" />
+            )}
           </div>
         </div>
       </div>

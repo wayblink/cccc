@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../services/api";
 import type { Actor, GroupDoc } from "../types";
-import { isQuickTerminalActor } from "./useChatTab";
+import { isQuickTerminalActor } from "../features/quickTerminal/quickTerminal";
 
 interface UseCrossGroupRecipientsOptions {
   /** Current group's actors */

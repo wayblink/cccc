@@ -9,6 +9,12 @@ import { ChatTab } from "../../pages/chat";
 import { TerminalDirectView } from "../../pages/chat/TerminalDirectView";
 import { NotesPage } from "../../pages/notes";
 import { ScriptManagerPage } from "../../pages/scripts";
+import {
+  getNextChatDisplayMode,
+  getTerminalDirectShellClassName,
+  hasPtyRuntimeActor,
+  type ChatDisplayMode,
+} from "../../features/chatDisplay/chatDisplayMode";
 import type {
   Actor,
   ChatNotificationSoundId,
@@ -19,6 +25,7 @@ import type {
   GroupRuntimeStatus,
   TextScale,
 } from "../../types";
+import { useFormStore, useModalStore } from "../../stores";
 import { SIDEBAR_COLLAPSED_WIDTH, getChatSession, useUIStore } from "../../stores/useUIStore";
 import { isToolAppTab, isFixedAppTab } from "../../utils/appTabs";
 
@@ -182,11 +189,25 @@ export function AppShell({
     "--sidebar-width": `${sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}px`,
   } as CSSProperties;
 
-  const terminalDirectMode = useUIStore((s) => s.terminalDirectMode);
+  const setChatDisplayMode = useUIStore((s) => s.setChatDisplayMode);
+  const openModal = useModalStore((s) => s.openModal);
+  const setNewActorRole = useFormStore((s) => s.setNewActorRole);
   const chatDisplayMode = useUIStore((s) =>
     selectedGroupId ? getChatSession(selectedGroupId, s.chatSessions).chatDisplayMode : "chat"
   );
-  const showTerminalDirect = terminalDirectMode && chatDisplayMode === "terminal" && !isToolAppTab(activeTab);
+  const hasForeman = actors.some((actor) => actor.role === "foreman");
+  const hasPtyActors = hasPtyRuntimeActor(runtimeActors);
+  const showTerminalDirect = chatDisplayMode === "terminal" && hasPtyActors && !isToolAppTab(activeTab);
+  const terminalDisplayMode: ChatDisplayMode = showTerminalDirect ? "terminal" : "chat";
+  const handleHeaderDisplayModeToggle = () => {
+    if (!selectedGroupId || !hasPtyActors) return;
+    const nextMode = getNextChatDisplayMode(terminalDisplayMode);
+    setChatDisplayMode(selectedGroupId, nextMode);
+  };
+  const handleAddAgent = () => {
+    setNewActorRole(hasForeman ? "peer" : "foreman");
+    openModal("addActor");
+  };
 
   useEffect(() => {
     if (!selectedGroupId || runtimeActors.length === 0) return;
@@ -299,6 +320,9 @@ export function AppShell({
           onSetGroupState={onSetGroupState}
           onOpenSettings={onOpenSettings}
           onOpenMobileMenu={onOpenMobileMenu}
+          chatDisplayMode={terminalDisplayMode}
+          hasTerminalActors={hasPtyActors}
+          onToggleChatDisplayMode={handleHeaderDisplayModeToggle}
         />
 
         <div
@@ -357,7 +381,7 @@ export function AppShell({
                 </div>
 
                 {showTerminalDirect && (
-                  <div className="absolute inset-0 flex min-h-0 flex-col">
+                  <div className={getTerminalDirectShellClassName()}>
                     <ErrorBoundary>
                       <TerminalDirectView
                         groupId={selectedGroupId}
@@ -368,6 +392,8 @@ export function AppShell({
                         isDark={isDark}
                         isSmallScreen={isSmallScreen}
                         readOnly={webReadOnly}
+                        activeActorId={activeTab}
+                        onAddAgent={!webReadOnly ? handleAddAgent : undefined}
                         onToggleActorEnabled={onToggleActorEnabled}
                         onRelaunchActor={onRelaunchActor}
                         onEditActor={onEditActor}
@@ -382,7 +408,7 @@ export function AppShell({
             )}
           </div>
 
-          {renderedActorIds.map((actorId) => {
+          {!showTerminalDirect && renderedActorIds.map((actorId) => {
             const actor = runtimeActors.find((item) => item.id === actorId) || null;
             const isVisible = activeTab === actorId && !isFixedAppTab(activeTab);
             const agentState =

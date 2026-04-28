@@ -794,6 +794,7 @@ export const MessageBubble = memo(function MessageBubble({
         return buildSenderAvatarUrl(blobGroupId, senderSnapshotAvatarPath) || String(senderActor?.avatar_url || "").trim();
     }, [blobGroupId, senderActor?.avatar_url, senderSnapshotAvatarPath]);
     const senderRuntime = senderSnapshotRuntime || String(senderActor?.runtime || "").trim();
+    const senderUiKind = String(senderActor?.ui_kind || "").trim();
 
     const readPreviewEntries = visibleReadStatusEntries.slice(0, 3);
     const readPreviewOverflow = Math.max(0, visibleReadStatusEntries.length - readPreviewEntries.length);
@@ -847,6 +848,7 @@ export const MessageBubble = memo(function MessageBubble({
                     <ActorAvatar
                         avatarUrl={senderAvatarUrl || undefined}
                         runtime={senderRuntime || undefined}
+                        uiKind={senderUiKind || undefined}
                         title={senderDisplayName}
                         isUser={isUserMessage}
                         isDark={isDark}
@@ -891,6 +893,7 @@ export const MessageBubble = memo(function MessageBubble({
                             toLabel={toLabel}
                             senderAvatarUrl={senderAvatarUrl || undefined}
                             senderRuntime={senderRuntime || undefined}
+                            senderUiKind={senderUiKind || undefined}
                             avatarRingClassName={senderAccent?.ring}
                         />
 

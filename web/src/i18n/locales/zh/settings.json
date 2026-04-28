@@ -15,7 +15,8 @@
     "myProfiles": "我的配置",
     "branding": "品牌",
     "developer": "开发者",
-    "webAccess": "Web 访问"
+    "webAccess": "Web 访问",
+    "assistants": "Assistant"
   },
   "navigation": {
     "targetScope": "目标范围",
@@ -26,7 +27,8 @@
     "globalScopeTitle": "全局范围",
     "globalScopeContent": "应用于整个 CCCC 实例（守护进程 + Web）。这些设置影响所有工作组，除非被覆盖。",
     "globalLockedTitle": "需要管理员权限",
-    "globalLockedContent": "全局设置仅限管理员使用。若要调整工作组内设置，请从某个工作组打开设置；若要管理全局设置，请使用管理员访问令牌登录。"
+    "globalLockedContent": "全局设置仅限管理员使用。若要调整工作组内设置，请从某个工作组打开设置；若要管理全局设置，请使用管理员访问令牌登录。",
+    "sections": "设置项"
   },
   "actorProfiles": {
     "searchPlaceholder": "按名称/ID/runtime 搜索",
@@ -1051,5 +1053,37 @@
     "restartDialogCommandStandaloneLabel": "如果你平时单独启动 Web 服务",
     "restartDialogSupervisorHint": "如果 Web 是由 Docker、systemd 或其它 supervisor 托管的，请重启对应服务，而不是直接使用上面的命令。",
     "restartDialogDone": "知道了"
+  },
+  "assistants": {
+    "title": "Assistant",
+    "description": "配置 main 分支已经具备的 Assistant 表面：Web Pet 开关和它的 @pet 人设提示词。",
+    "requireGroup": "请从某个工作组打开设置来配置 Assistant。",
+    "webPet": "Web Pet",
+    "webPetHint": "工作组范围",
+    "webPetTitle": "Web Pet Assistant",
+    "webPetDescription": "保留 main 现有 Web Pet 能力，同时采用 worktree 的设置页布局。",
+    "petToggleTitle": "在当前工作组显示 Web Pet",
+    "petToggleHint": "使用工作组设置里的 desktop_pet_enabled；不需要 Voice Secretary 后端。",
+    "petEnabled": "已为当前工作组开启 Web Pet。",
+    "petDisabled": "已为当前工作组关闭 Web Pet。",
+    "personaTitle": "@pet 人设",
+    "personaDescription": "编辑当前工作组 help prompt 中的 ## @pet 块。引导、角色备注和 actor 备注会被保留。",
+    "personaPlaceholder": "描述 Web Pet 应该如何帮助这个工作组...",
+    "personaSaved": "Assistant 人设已保存。",
+    "helpPrompt": "help prompt",
+    "reload": "重新加载",
+    "discard": "放弃更改",
+    "savePersona": "保存人设",
+    "unsaved": "未保存更改",
+    "status": {
+      "enabled": "Web Pet 开启",
+      "disabled": "Web Pet 关闭",
+      "lightweight": "Prompt 驱动"
+    },
+    "errors": {
+      "loadPersona": "加载 Assistant 人设失败。",
+      "savePersona": "保存 Assistant 人设失败。",
+      "updatePet": "更新 Web Pet 设置失败。"
+    }
   }
 }

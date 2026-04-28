@@ -13,7 +13,6 @@ import { useChatTab } from "../../hooks/useChatTab";
 import { useTranslation } from 'react-i18next';
 import { useComposerStore, useGroupStore, useModalStore, useUIStore } from "../../stores";
 import { getChatSession, parseChatSlotActorId } from "../../stores/useUIStore";
-import { getEffectiveActorRunner } from "../../utils/headlessRuntimeSupport";
 import { findPresentationSlot } from "../../utils/presentation";
 import { buildPresentationRefForSlot } from "../../utils/presentationRefs";
 import { clearPresentationSlot } from "../../services/api";
@@ -184,7 +183,6 @@ export function ChatTab({
     handleScrollChange,
     handleScrollSnapshot,
     addAgent,
-    launchQuickTerminal,
   } = useChatTab({
     selectedGroupId,
     selectedGroupRunning,
@@ -218,9 +216,6 @@ export function ChatTab({
   const presentationSplitWidth = useUIStore((state) => state.presentationSplitWidth);
   const setPresentationSplitWidth = useUIStore((state) => state.setPresentationSplitWidth);
   const showError = useUIStore((state) => state.showError);
-  const terminalDirectMode = useUIStore((state) => state.terminalDirectMode);
-  const setChatDisplayMode = useUIStore((state) => state.setChatDisplayMode);
-  const hasPtyActors = runtimeActors.some((a) => getEffectiveActorRunner(a) === "pty");
   const setQuotedPresentationRef = useComposerStore((state) => state.setQuotedPresentationRef);
   const setComposerDestGroupId = useComposerStore((state) => state.setDestGroupId);
   const liveWorkBucket = useGroupStore((state) => state.chatByGroup[String(selectedGroupId || "").trim()]);
@@ -451,25 +446,6 @@ export function ChatTab({
     <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
       {/* 1. Header Area: For critical banners/setup only, very space-efficient */}
       <header className="flex-shrink-0 z-10 flex flex-col w-full">
-        {/* Terminal Direct Mode toggle (experimental) */}
-        {terminalDirectMode && hasPtyActors && (
-          <div className="flex justify-end px-3 pt-2">
-            <button
-              type="button"
-              onClick={() => selectedGroupId && setChatDisplayMode(selectedGroupId, "terminal")}
-              title="Switch to terminal view (experimental)"
-              className={classNames(
-                "flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-colors font-mono",
-                isDark
-                  ? "border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-                  : "border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-              )}
-            >
-              <span aria-hidden="true">&gt;_</span>
-              <span>Terminal</span>
-            </button>
-          </div>
-        )}
         {/* Jump-to window banner */}
         {chatWindowProps && (
           <div className="px-4 pt-4">
@@ -717,7 +693,6 @@ export function ChatTab({
                     selectedGroupRunning={selectedGroupRunning}
                     selectedGroupActorsHydrating={selectedGroupActorsHydrating}
                     onAddAgent={!readOnly ? addAgent : undefined}
-                    onLaunchQuickTerminal={!readOnly ? launchQuickTerminal : undefined}
                     onOpenRuntimeActor={onOpenRuntimeActor}
                   />
                 </div>

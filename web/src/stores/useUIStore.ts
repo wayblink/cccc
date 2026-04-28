@@ -159,7 +159,6 @@ interface UIState {
   chatSessions: Record<string, ChatSessionState>;
   webReadOnly: boolean;
   sseStatus: "connected" | "connecting" | "disconnected";
-  terminalDirectMode: boolean;
 
   // Actions
   setActiveTab: (tab: string) => void;
@@ -188,7 +187,6 @@ interface UIState {
   setChatPresentationDisplayMode: (groupId: string, v: "modal" | "split") => void;
   setWebReadOnly: (v: boolean) => void;
   setSSEStatus: (v: "connected" | "connecting" | "disconnected") => void;
-  toggleTerminalDirectMode: () => void;
   setChatDisplayMode: (groupId: string, mode: "chat" | "terminal") => void;
 }
 
@@ -200,7 +198,6 @@ const SIDEBAR_COLLAPSED_KEY = "cccc-sidebar-collapsed";
 const SIDEBAR_WIDTH_KEY = "cccc-sidebar-width";
 const PRESENTATION_SPLIT_WIDTH_KEY = "cccc-presentation-split-width";
 const CHAT_SESSIONS_KEY = "cccc-chat-sessions";
-const TERMINAL_DIRECT_MODE_KEY = "cccc-terminal-direct-mode";
 
 export function clampSidebarWidth(value: number): number {
   const numeric = Number(value);
@@ -322,22 +319,6 @@ function sanitizeChatSessions(value: unknown): Record<string, ChatSessionState> 
   return next;
 }
 
-function loadTerminalDirectMode(): boolean {
-  try {
-    return localStorage.getItem(TERMINAL_DIRECT_MODE_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function saveTerminalDirectMode(value: boolean): void {
-  try {
-    localStorage.setItem(TERMINAL_DIRECT_MODE_KEY, String(value));
-  } catch {
-    // ignore
-  }
-}
-
 function loadChatSessions(): Record<string, ChatSessionState> {
   try {
     const raw = localStorage.getItem(CHAT_SESSIONS_KEY);
@@ -400,7 +381,6 @@ export const useUIStore = create<UIState>((set) => ({
   chatSessions: loadChatSessions(),
   webReadOnly: false,
   sseStatus: "disconnected" as const,
-  terminalDirectMode: loadTerminalDirectMode(),
 
   // Actions
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -578,12 +558,6 @@ export const useUIStore = create<UIState>((set) => ({
     }),
   setWebReadOnly: (v) => set({ webReadOnly: v }),
   setSSEStatus: (v) => set({ sseStatus: v }),
-  toggleTerminalDirectMode: () =>
-    set((state) => {
-      const next = !state.terminalDirectMode;
-      saveTerminalDirectMode(next);
-      return { terminalDirectMode: next };
-    }),
   setChatDisplayMode: (groupId, mode) =>
     set((state) => {
       const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({

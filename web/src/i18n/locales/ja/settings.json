@@ -15,7 +15,8 @@
     "myProfiles": "自分のプロファイル",
     "branding": "ブランド",
     "developer": "開発者",
-    "webAccess": "Web アクセス"
+    "webAccess": "Web アクセス",
+    "assistants": "Assistant"
   },
   "navigation": {
     "targetScope": "対象範囲",
@@ -26,7 +27,8 @@
     "globalScopeTitle": "グローバル範囲",
     "globalScopeContent": "CCCC インスタンス全体 (daemon + Web) に適用されます。これらの設定は、オーバーライドしない限り、すべてのグループに影響します。",
     "globalLockedTitle": "管理者権限が必要です",
-    "globalLockedContent": "グローバル設定は管理者専用です。グループ設定を変更したい場合は対象グループから Settings を開き、グローバル設定を管理したい場合は管理者アクセストークンでサインインしてください。"
+    "globalLockedContent": "グローバル設定は管理者専用です。グループ設定を変更したい場合は対象グループから Settings を開き、グローバル設定を管理したい場合は管理者アクセストークンでサインインしてください。",
+    "sections": "セクション"
   },
   "actorProfiles": {
     "searchPlaceholder": "名前/ID/runtimeで検索",
@@ -1051,5 +1053,37 @@
     "restartDialogCommandStandaloneLabel": "普段 Web サーバーを個別に起動している場合",
     "restartDialogSupervisorHint": "Web が Docker、systemd、または他の supervisor 配下にある場合は、上のコマンドではなくそのサービス自体を再起動してください。",
     "restartDialogDone": "了解"
+  },
+  "assistants": {
+    "title": "Assistant",
+    "description": "main に既にある Assistant 機能（Web Pet の表示と @pet ペルソナプロンプト）を設定します。",
+    "requireGroup": "Assistant を設定するには、作業グループから設定を開いてください。",
+    "webPet": "Web Pet",
+    "webPetHint": "作業グループ範囲",
+    "webPetTitle": "Web Pet Assistant",
+    "webPetDescription": "main 既存の Web Pet 機能を保ちながら、worktree の設定画面レイアウトを採用します。",
+    "petToggleTitle": "この作業グループで Web Pet を表示",
+    "petToggleHint": "作業グループ設定の desktop_pet_enabled を使用します。Voice Secretary バックエンドは不要です。",
+    "petEnabled": "この作業グループで Web Pet を有効にしました。",
+    "petDisabled": "この作業グループで Web Pet を無効にしました。",
+    "personaTitle": "@pet ペルソナ",
+    "personaDescription": "この作業グループの help prompt にある ## @pet ブロックを編集します。ガイダンス、ロールメモ、actor メモは保持されます。",
+    "personaPlaceholder": "Web Pet がこの作業グループをどう支援するかを記述してください...",
+    "personaSaved": "Assistant ペルソナを保存しました。",
+    "helpPrompt": "help prompt",
+    "reload": "再読み込み",
+    "discard": "破棄",
+    "savePersona": "ペルソナを保存",
+    "unsaved": "未保存の変更",
+    "status": {
+      "enabled": "Web Pet オン",
+      "disabled": "Web Pet オフ",
+      "lightweight": "Prompt 駆動"
+    },
+    "errors": {
+      "loadPersona": "Assistant ペルソナの読み込みに失敗しました。",
+      "savePersona": "Assistant ペルソナの保存に失敗しました。",
+      "updatePet": "Web Pet 設定の更新に失敗しました。"
+    }
   }
 }

@@ -22,6 +22,7 @@ import {
   syncContextModalData,
   type ContextModalFetch,
 } from "../features/contextModal/contextRead";
+import { launchQuickTerminalForGroup } from "../features/quickTerminal/quickTerminal";
 import { parsePrivateEnvSetText } from "../utils/privateEnvInput";
 import { parseHelpMarkdown, updateActorHelpNote } from "../utils/helpMarkdown";
 import { formatCapabilityIdInput, normalizeCapabilityIdList, parseCapabilityIdInput } from "../utils/capabilityAutoload";
@@ -1094,6 +1095,38 @@ export function AppModals({
     }
   };
 
+  const handleLaunchQuickTerminal = useCallback(async (): Promise<boolean> => {
+    const ok = await launchQuickTerminalForGroup({
+      groupId: selectedGroupId,
+      runtimes,
+      hasForeman,
+      t,
+      setBusy,
+      setRuntimes: useGroupStore.getState().setRuntimes,
+      refreshActors,
+      setActiveTab,
+      showError,
+      showNotice,
+    });
+    if (ok) {
+      closeModal("addActor");
+      resetAddActorForm();
+    }
+    return ok;
+  }, [
+    closeModal,
+    hasForeman,
+    refreshActors,
+    resetAddActorForm,
+    runtimes,
+    selectedGroupId,
+    setActiveTab,
+    setBusy,
+    showError,
+    showNotice,
+    t,
+  ]);
+
   const handleSaveNewActorAsProfile = async () => {
     if (newActorUseProfile) return;
     const suggested = String(newActorId || `${newActorRuntime}-profile`).trim();
@@ -1753,6 +1786,7 @@ export function AppModals({
         canAddActor={canAddActor}
         addActorDisabledReason={addActorDisabledReason}
         onAddActor={handleAddActor}
+        onLaunchQuickTerminal={handleLaunchQuickTerminal}
         onSaveAsProfile={handleSaveNewActorAsProfile}
         onClose={handleCloseAddActor}
         onCancelAndReset={() => {

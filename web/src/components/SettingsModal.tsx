@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { Actor, GroupDoc, GroupSettings, IMStatus, IMPlatform, WebAccessSession, WeixinLoginStatus } from "../types";
 import * as api from "../services/api";
 import { useObservabilityStore } from "../stores";
-import { useUIStore } from "../stores/useUIStore";
 import type { RuntimeVisibilityMode } from "../utils/runtimeVisibility";
 import { getGroupAgentLinkMode, getGroupMode, supportsGroupDefaultSendTo } from "../utils/groupMode";
 import {
@@ -24,6 +23,7 @@ const MessagingTab = lazy(() => import("./modals/settings/MessagingTab").then((m
 const IMBridgeTab = lazy(() => import("./modals/settings/IMBridgeTab").then((module) => ({ default: module.IMBridgeTab })));
 const TranscriptTab = lazy(() => import("./modals/settings/TranscriptTab").then((module) => ({ default: module.TranscriptTab })));
 const GuidanceTab = lazy(() => import("./modals/settings/GuidanceTab").then((module) => ({ default: module.GuidanceTab })));
+const AssistantsTab = lazy(() => import("./modals/settings/AssistantsTab").then((module) => ({ default: module.AssistantsTab })));
 const GroupSpaceTab = lazy(() => import("./modals/settings/GroupSpaceTab").then((module) => ({ default: module.GroupSpaceTab })));
 const BlueprintTab = lazy(() => import("./modals/settings/BlueprintTab").then((module) => ({ default: module.BlueprintTab })));
 const CapabilitiesTab = lazy(() => import("./modals/settings/CapabilitiesTab").then((module) => ({ default: module.CapabilitiesTab })));
@@ -137,13 +137,6 @@ export function SettingsModal({
 
   // IM config drafts cache (per-platform local edits, not yet saved to server)
   const [imConfigDrafts, setImConfigDrafts] = useState<Partial<Record<IMPlatform, IMConfigDraft>>>({});
-
-  // Terminal direct mode (experimental, localStorage-backed)
-  const terminalDirectMode = useUIStore((s) => s.terminalDirectMode);
-  const toggleTerminalDirectMode = useUIStore((s) => s.toggleTerminalDirectMode);
-  const setTerminalDirectMode = (v: boolean) => {
-    if (v !== terminalDirectMode) toggleTerminalDirectMode();
-  };
 
   // Global observability (developer mode)
   const [developerMode, setDeveloperMode] = useState(false);
@@ -959,6 +952,7 @@ export function SettingsModal({
 
   const groupTabs: { id: GroupTabId; label: string }[] = [
     { id: "guidance", label: t("tabs.guidance") },
+    { id: "assistants", label: t("tabs.assistants") },
     { id: "automation", label: t("tabs.automation") },
     { id: "delivery", label: t("tabs.delivery") },
     { id: "space", label: t("tabs.space") },
@@ -1000,9 +994,35 @@ export function SettingsModal({
       isDark={isDark}
       onClose={onClose}
       titleId="settings-modal-title"
-      title={`⚙️ ${t("title")}`}
+      title={(
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+            Workspace Settings
+          </div>
+          <h2 className="mt-1 truncate text-[1.15rem] font-semibold text-[var(--color-text-primary)]">
+            {t("title")}
+          </h2>
+          <div className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">
+            {scope === "group"
+              ? t("navigation.groupScopeContent", { scopeRoot: scopeRootUrl || groupId || "—" })
+              : (globalScopeEnabled ? t("navigation.globalScopeContent") : t("navigation.globalLockedContent"))}
+          </div>
+        </div>
+      )}
       closeAriaLabel={t("closeAriaLabel")}
       panelClassName="w-full h-full sm:h-[min(90dvh,920px)] sm:max-w-[min(1280px,calc(100vw-2rem))] sm:max-h-[90dvh]"
+      headerActions={(
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="rounded-full border border-[var(--glass-border-subtle)] bg-[var(--glass-tab-bg)] px-3 py-1 text-[11px] font-medium text-[var(--color-text-secondary)]">
+            {scope === "group" ? t("navigation.thisGroup") : t("navigation.global")}
+          </span>
+          {groupDoc?.title && scope === "group" ? (
+            <span className="max-w-[18rem] truncate rounded-full border border-[var(--glass-border-subtle)] bg-transparent px-3 py-1 text-[11px] font-medium text-[var(--color-text-tertiary)]">
+              {groupDoc.title}
+            </span>
+          ) : null}
+        </div>
+      )}
       modalRef={modalRef}
     >
       <div className="min-h-0 flex-1 flex flex-col sm:flex-row overflow-hidden">
@@ -1027,7 +1047,7 @@ export function SettingsModal({
               : "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.96),rgba(255,255,255,0)_34%),linear-gradient(180deg,rgb(255,255,255),rgb(246,248,251))]"
           }`}
         >
-          <div className="p-5 pb-8 sm:p-8 lg:p-10 sm:pb-10 space-y-6 lg:space-y-7">
+          <div className="p-4 pb-6 sm:p-5 lg:p-6 sm:pb-7 space-y-4 lg:space-y-5">
             {scope === "global" && !globalSettingsEnabled && !currentBrowserSignedIn ? (
               <div className={`rounded-xl border p-6 ${isDark ? "border-amber-700/40 bg-amber-900/10 text-amber-200" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
                 <div className="text-sm font-semibold">{t("navigation.globalLockedTitle")}</div>
@@ -1182,6 +1202,17 @@ export function SettingsModal({
 
               {activeTab === "guidance" && <GuidanceTab isDark={isDark} groupId={groupId} />}
 
+              {activeTab === "assistants" && (
+                <AssistantsTab
+                  isDark={isDark}
+                  groupId={groupId}
+                  isActive={scope === "group" && activeTab === "assistants"}
+                  petEnabled={Boolean(settings?.desktop_pet_enabled)}
+                  busy={busy}
+                  onUpdatePetEnabled={(enabled) => onUpdateSettings({ desktop_pet_enabled: enabled })}
+                />
+              )}
+
               {activeTab === "space" && (
                 <GroupSpaceTab
                   isDark={isDark}
@@ -1239,8 +1270,6 @@ export function SettingsModal({
                   runtimeInfoErr={runtimeInfoErr}
                   developerMode={developerMode}
                   setDeveloperMode={setDeveloperMode}
-                  terminalDirectMode={terminalDirectMode}
-                  setTerminalDirectMode={setTerminalDirectMode}
                   logLevel={logLevel}
                   setLogLevel={setLogLevel}
                   terminalBacklogMiB={terminalBacklogMiB}

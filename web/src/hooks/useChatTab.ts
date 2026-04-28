@@ -22,7 +22,7 @@ import {
   type ChatSlotId,
 } from "../stores/useUIStore";
 import { useChatOutboxStore, selectOutboxEntries } from "../stores/chatOutboxStore";
-import type { Actor, LedgerEvent, ChatMessageData, MessageRef, OptimisticAttachment, RuntimeInfo } from "../types";
+import type { Actor, LedgerEvent, ChatMessageData, MessageRef, OptimisticAttachment } from "../types";
 import * as api from "../services/api";
 import { buildReplyComposerState, getReplyEventId } from "../utils/chatReply";
 import { copyTextToClipboard } from "../utils/copy";
@@ -32,6 +32,13 @@ import {
   getImplicitRecipientTokens,
 } from "../utils/groupMode";
 import { hasRenderableChatMessageContent } from "../utils/ledgerEventHandlers";
+import {
+  buildQuickTerminalActorId,
+  getQuickTerminalCommand,
+  isQuickTerminalActor,
+  launchQuickTerminalForGroup,
+} from "../features/quickTerminal/quickTerminal";
+export { buildQuickTerminalActorId, getQuickTerminalCommand, isQuickTerminalActor } from "../features/quickTerminal/quickTerminal";
 
 export function supportsChatStreamingPlaceholder(actor: Pick<Actor, "runtime" | "runner" | "runner_effective">): boolean {
   const runtime = String(actor.runtime || "").trim();
@@ -40,29 +47,6 @@ export function supportsChatStreamingPlaceholder(actor: Pick<Actor, "runtime" | 
 }
 
 export const CHAT_SCROLL_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
-const QUICK_TERMINAL_RUNTIME = "custom";
-const QUICK_TERMINAL_RUNNER = "pty";
-
-export function getQuickTerminalCommand(runtimes: RuntimeInfo[]): string {
-  const customRuntime = runtimes.find((runtime) => String(runtime.name || "").trim() === QUICK_TERMINAL_RUNTIME);
-  return String(customRuntime?.quick_terminal_command || "").trim();
-}
-
-function buildQuickTerminalEntropy(): string {
-  return Math.random().toString(36).slice(2, 8) || "temp";
-}
-
-export function buildQuickTerminalActorId(now = Date.now()): string {
-  const stamp = Math.max(0, Math.floor(now)).toString(36) || "0";
-  const actorId = `terminal-${stamp}-${buildQuickTerminalEntropy()}`;
-  return actorId.slice(0, 32);
-}
-
-export function isQuickTerminalActor(actor: Pick<Actor, "runtime" | "runner" | "runner_effective" | "ui_kind">): boolean {
-  return String(actor.runtime || "").trim() === QUICK_TERMINAL_RUNTIME
-    && String(actor.runner_effective || actor.runner || QUICK_TERMINAL_RUNNER).trim() === QUICK_TERMINAL_RUNNER
-    && String(actor.ui_kind || "").trim() === "quick_terminal";
-}
 
 export function shouldRestoreDetachedScrollSnapshot(
   snapshot: { mode?: unknown; anchorId?: unknown; updatedAt?: unknown } | null | undefined,
@@ -142,7 +126,7 @@ export function buildChatViewKey(
 export function getEffectiveChatMentionSuggestions(
   slotId: ChatSlotId | string | null | undefined,
   recipientActors: Array<Pick<Actor, "id"> | { id: string }>,
-  specialRecipientTokens: string[] = [],
+  specialRecipientTokens: string[] = getChatSpecialRecipientTokens(undefined),
 ): string[] {
   const actorId = parseChatSlotActorId(sanitizeChatSlotId(slotId));
   if (actorId) return [actorId];
@@ -1789,54 +1773,18 @@ export function useChatTab({
   }, [hasForeman, openModal, setNewActorRole]);
 
   const launchQuickTerminal = useCallback(async () => {
-    const gid = String(selectedGroupId || "").trim();
-    if (!gid) return;
-
-    let command = getQuickTerminalCommand(runtimes);
-    if (!command) {
-      const runtimesResp = await api.fetchRuntimes();
-      if (runtimesResp.ok) {
-        const nextRuntimes = runtimesResp.result.runtimes || [];
-        setRuntimes(nextRuntimes);
-        command = getQuickTerminalCommand(nextRuntimes) || String(runtimesResp.result.quick_terminal_command || "").trim();
-      }
-    }
-    if (!command) {
-      showError(t("chat:quickTerminalUnavailable", { defaultValue: "No interactive shell is available on this machine." }));
-      return;
-    }
-
-    const actorTitle = t("chat:quickTerminalTitle", { defaultValue: "Temporary terminal" });
-    const actorRole = hasForeman ? "peer" : "foreman";
-
-    let requestedActorId = buildQuickTerminalActorId();
-    setBusy(`actor-add:${requestedActorId}`);
-    try {
-      let resp = await api.addActor(gid, requestedActorId, actorRole, QUICK_TERMINAL_RUNTIME, QUICK_TERMINAL_RUNNER, command, undefined, {
-        title: actorTitle,
-        uiKind: "quick_terminal",
-      });
-      if (!resp.ok && String(resp.error?.message || "").includes("Name already exists")) {
-        requestedActorId = buildQuickTerminalActorId();
-        setBusy(`actor-add:${requestedActorId}`);
-        resp = await api.addActor(gid, requestedActorId, actorRole, QUICK_TERMINAL_RUNTIME, QUICK_TERMINAL_RUNNER, command, undefined, {
-          title: actorTitle,
-          uiKind: "quick_terminal",
-        });
-      }
-      if (!resp.ok) {
-        showError(resp.error?.message || t("chat:quickTerminalFailed", { defaultValue: "Failed to launch terminal." }));
-        return;
-      }
-      const createdActorId = String(resp.result?.actor?.id || requestedActorId).trim() || requestedActorId;
-      await refreshActors(gid, { includeUnread: true });
-      useUIStore.getState().setActiveTab(createdActorId);
-      showNotice({ message: t("chat:quickTerminalReady", { defaultValue: "Temporary terminal is ready." }) });
-    } catch (error) {
-      showError(error instanceof Error ? error.message : t("chat:quickTerminalFailed", { defaultValue: "Failed to launch terminal." }));
-    } finally {
-      setBusy("");
-    }
+    return launchQuickTerminalForGroup({
+      groupId: selectedGroupId,
+      runtimes,
+      hasForeman,
+      t,
+      setBusy,
+      setRuntimes,
+      refreshActors,
+      setActiveTab: useUIStore.getState().setActiveTab,
+      showError,
+      showNotice,
+    });
   }, [hasForeman, refreshActors, runtimes, selectedGroupId, setBusy, setRuntimes, showError, showNotice, t]);
 
   const loadCurrentGroupHistory = useCallback(() => {

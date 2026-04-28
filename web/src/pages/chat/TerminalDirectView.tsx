@@ -1,7 +1,8 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { PlusIcon } from "../../components/Icons";
 import { classNames } from "../../utils/classNames";
+import { getTerminalDirectActorFrameClassName } from "../../features/chatDisplay/chatDisplayMode";
 import { getEffectiveActorRunner } from "../../utils/headlessRuntimeSupport";
-import { useUIStore } from "../../stores/useUIStore";
 import type { Actor, AgentState, GroupContext } from "../../types";
 
 const LazyAgentTab = lazy(() =>
@@ -17,6 +18,8 @@ interface TerminalDirectViewProps {
   isDark: boolean;
   isSmallScreen: boolean;
   readOnly?: boolean;
+  activeActorId?: string;
+  onAddAgent?: () => void;
   onToggleActorEnabled: (actor: Actor) => void;
   onRelaunchActor: (actor: Actor) => void;
   onEditActor: (actor: Actor) => void;
@@ -34,6 +37,8 @@ export function TerminalDirectView({
   isDark,
   isSmallScreen,
   readOnly,
+  activeActorId: activeActorIdHint,
+  onAddAgent,
   onToggleActorEnabled,
   onRelaunchActor,
   onEditActor,
@@ -41,9 +46,9 @@ export function TerminalDirectView({
   onOpenActorInbox,
   onRefreshActors,
 }: TerminalDirectViewProps) {
-  const setChatDisplayMode = useUIStore((s) => s.setChatDisplayMode);
-  const ptyActors = runtimeActors.filter(
-    (a) => getEffectiveActorRunner(a) === "pty"
+  const ptyActors = useMemo(
+    () => runtimeActors.filter((a) => getEffectiveActorRunner(a) === "pty"),
+    [runtimeActors]
   );
   const [activeActorId, setActiveActorId] = useState<string>(() => {
     return ptyActors[0]?.id || "";
@@ -55,12 +60,18 @@ export function TerminalDirectView({
       ? activeActorId
       : (ptyActors[0]?.id || "");
 
+  useEffect(() => {
+    const nextActiveId = String(activeActorIdHint || "").trim();
+    if (!nextActiveId || !ptyActors.some((actor) => actor.id === nextActiveId)) return;
+    setActiveActorId(nextActiveId);
+  }, [activeActorIdHint, ptyActors]);
+
   const agentStateFor = (actorId: string): AgentState | null =>
     (groupContext?.agent_states || []).find((s) => s.id === actorId) || null;
 
   if (ptyActors.length === 0) {
     return (
-      <div className="flex flex-col h-full w-full items-center justify-center gap-3">
+      <div className="flex h-full w-full items-center justify-center">
         <span
           className={classNames(
             "text-sm",
@@ -69,49 +80,22 @@ export function TerminalDirectView({
         >
           No PTY actors running in this group.
         </span>
-        <button
-          type="button"
-          onClick={() => setChatDisplayMode(groupId, "chat")}
-          className={classNames(
-            "text-xs px-3 py-1.5 rounded-full border transition-colors",
-            isDark
-              ? "border-slate-600 text-slate-300 hover:bg-slate-800"
-              : "border-gray-300 text-gray-600 hover:bg-gray-100"
-          )}
-        >
-          ← Back to Chat
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Top bar: actor tabs + back button */}
-      <div
-        className={classNames(
-          "flex-shrink-0 flex items-center gap-1 px-2 border-b h-9",
-          isDark
-            ? "bg-slate-950/60 border-white/8"
-            : "bg-white/70 border-black/8"
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => setChatDisplayMode(groupId, "chat")}
-          title="Switch to chat view"
+    <div className="flex h-full w-full min-w-0 max-w-none flex-col overflow-hidden">
+      {(ptyActors.length > 1 || (!readOnly && onAddAgent)) && (
+        <div
           className={classNames(
-            "flex-shrink-0 flex items-center gap-1 text-xs px-2 py-1 rounded border mr-1 transition-colors",
+            "flex h-9 flex-shrink-0 items-center gap-1 border-b px-2",
             isDark
-              ? "border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              : "border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+              ? "bg-slate-950/60 border-white/8"
+              : "bg-white/70 border-black/8"
           )}
         >
-          ← Chat
-        </button>
-
-        {ptyActors.length > 1 && (
-          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-hide">
             {ptyActors.map((actor) => {
               const active = actor.id === resolvedActiveId;
               return (
@@ -135,18 +119,35 @@ export function TerminalDirectView({
               );
             })}
           </div>
-        )}
-      </div>
+          {!readOnly && onAddAgent ? (
+            <button
+              type="button"
+              data-testid="terminal-direct-add-actor"
+              onClick={onAddAgent}
+              className={classNames(
+                "ml-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded border transition-colors",
+                isDark
+                  ? "border-white/10 text-slate-300 hover:bg-white/8 hover:text-white"
+                  : "border-black/10 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              )}
+              aria-label="Add AI Agent"
+              title="Add AI Agent"
+            >
+              <PlusIcon size={15} />
+            </button>
+          ) : null}
+        </div>
+      )}
 
       {/* Terminal instances — keep all mounted, show active via CSS */}
-      <div className="flex-1 min-h-0 relative">
+      <div className="relative min-h-0 w-full min-w-0 flex-1 overflow-hidden">
         {ptyActors.map((actor) => {
           const isVisible = actor.id === resolvedActiveId;
           return (
             <div
               key={actor.id}
-              className="absolute inset-0"
-              style={{ display: isVisible ? "flex" : "none" }}
+              className={getTerminalDirectActorFrameClassName()}
+              style={{ display: isVisible ? "block" : "none" }}
             >
               <Suspense
                 fallback={

@@ -4,9 +4,9 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { useTranslation } from "react-i18next";
-import { Actor, AgentState, HeadlessPreviewSession, StreamingActivity, getRuntimeColor, RUNTIME_INFO } from "../types";
+import { Actor, AgentState, HeadlessPreviewSession, HeadlessStreamEvent, StreamingActivity, getRuntimeColor, RUNTIME_INFO } from "../types";
 import { useActorDisplayState } from "../hooks/useActorDisplayState";
-import { isQuickTerminalActor } from "../hooks/useChatTab";
+import { isQuickTerminalActor } from "../features/quickTerminal/quickTerminal";
 import { getTerminalTheme } from "../hooks/useTheme";
 import { classNames } from "../utils/classNames";
 import { formatFullTime, formatTime } from "../utils/time";
@@ -23,6 +23,7 @@ import { copyTextToClipboard } from "../utils/copy";
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 const EMPTY_STREAMING_ACTIVITIES: StreamingActivity[] = [];
 const EMPTY_HEADLESS_PREVIEW_SESSIONS: HeadlessPreviewSession[] = [];
+const EMPTY_HEADLESS_RAW_EVENTS: HeadlessStreamEvent[] = [];
 
 // Delay before showing terminal after connection (allows backlog replay to complete without visible scrolling)
 const TERMINAL_SHOW_DELAY_MS = 150;
@@ -826,7 +827,7 @@ export function AgentTab({
                   previewSessions={headlessPreviewSessions}
                   fallbackText={latestHeadlessText}
                   fallbackActivities={latestHeadlessActivities}
-                  rawEvents={rawHeadlessEvents}
+                  rawEvents={EMPTY_HEADLESS_RAW_EVENTS}
                   emptyLabel={t('noStreamingOutputYet', { defaultValue: '当前还没有可显示的流式输出。' })}
                   isDark={isDark}
                 />

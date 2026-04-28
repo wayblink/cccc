@@ -11,8 +11,6 @@ interface DeveloperTabProps {
   runtimeInfoErr: string;
   developerMode: boolean;
   setDeveloperMode: (v: boolean) => void;
-  terminalDirectMode: boolean;
-  setTerminalDirectMode: (v: boolean) => void;
   logLevel: "INFO" | "DEBUG";
   setLogLevel: (v: "INFO" | "DEBUG") => void;
   terminalBacklogMiB: number;
@@ -64,8 +62,6 @@ export function DeveloperTab({
   runtimeInfoErr,
   developerMode,
   setDeveloperMode,
-  terminalDirectMode,
-  setTerminalDirectMode,
   logLevel,
   setLogLevel,
   terminalBacklogMiB,
@@ -187,34 +183,6 @@ export function DeveloperTab({
             }`}>
               <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform mt-0.5 ${
                 developerMode ? "translate-x-5" : "translate-x-0.5"
-              }`} />
-            </div>
-          </label>
-        </div>
-
-        <div className="mt-4 pt-3 border-t border-[var(--glass-border-subtle)] flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Terminal Direct Mode <span className="text-xs font-normal text-amber-500">(experimental)</span>
-            </div>
-            <div className="text-xs mt-0.5 text-[var(--color-text-muted)]">
-              Show a direct terminal view in the chat tab when PTY actors are running.
-            </div>
-          </div>
-          <label className="inline-flex flex-shrink-0 cursor-pointer items-center">
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={terminalDirectMode}
-              onChange={(e) => setTerminalDirectMode(e.target.checked)}
-            />
-            <div className={`h-6 w-11 rounded-full transition-colors ${
-              terminalDirectMode
-                ? "bg-amber-500"
-                : "bg-gray-300 dark:bg-slate-700"
-            }`}>
-              <div className={`mt-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                terminalDirectMode ? "translate-x-5" : "translate-x-0.5"
               }`} />
             </div>
           </label>

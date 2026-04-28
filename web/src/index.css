@@ -52,22 +52,22 @@
   --glass-panel-bg: rgba(255, 255, 255, 0.78);
   --glass-panel-border: rgba(226, 232, 240, 0.58);
 
-  /* Enhanced Accent System (Less Intense Cyber Cyan) */
-  --glass-accent-bg: rgba(14, 165, 233, 0.06);
-  --glass-accent-bg-hover: rgba(14, 165, 233, 0.12);
-  --glass-accent-border: rgba(14, 165, 233, 0.2);
-  --glass-accent-glow: 0 0 16px rgba(14, 165, 233, 0.1);
-  --glass-accent-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+  /* Enhanced Accent System - Neutral */
+  --glass-accent-bg: rgba(35, 36, 37, 0.08);
+  --glass-accent-bg-hover: rgba(35, 36, 37, 0.12);
+  --glass-accent-border: rgba(35, 36, 37, 0.16);
+  --glass-accent-glow: 0 0 16px rgba(15, 23, 42, 0.06);
+  --glass-accent-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
 
   /* Gradient Colors */
-  --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-  --gradient-accent: linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #0e7490 100%);
-  --gradient-subtle: linear-gradient(180deg, rgba(6, 182, 212, 0.08) 0%, transparent 100%);
+  --gradient-primary: linear-gradient(135deg, rgb(35, 36, 37) 0%, rgb(61, 63, 66) 100%);
+  --gradient-accent: linear-gradient(135deg, rgba(35, 36, 37, 0.96) 0%, rgba(66, 69, 73, 0.92) 52%, rgba(95, 99, 104, 0.82) 100%);
+  --gradient-subtle: linear-gradient(180deg, rgba(35, 36, 37, 0.08) 0%, transparent 100%);
   --gradient-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
 
   --color-border-primary: #e2e8f0;
   --color-border-secondary: #cbd5e1;
-  --color-border-focus: #06b6d4; /* Cyan-500 */
+  --color-border-focus: rgb(35, 36, 37);
 
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
@@ -75,10 +75,30 @@
   --color-text-muted: #94a3b8;
   --color-text-inverse: #ffffff;
 
-  --color-accent-primary: #06b6d4; /* Cyan-500 */
+  --color-accent-primary: rgb(35, 36, 37);
   --color-accent-secondary: #10b981;
   --color-accent-warning: #f59e0b;
   --color-accent-danger: #ef4444;
+  --background: var(--color-bg-primary);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-elevated);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--glass-panel-bg);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-accent-primary);
+  --primary-foreground: var(--color-text-inverse);
+  --secondary: var(--glass-tab-bg);
+  --secondary-foreground: var(--color-text-secondary);
+  --muted: var(--color-bg-tertiary);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--glass-accent-bg);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: var(--color-accent-danger);
+  --destructive-foreground: var(--color-text-inverse);
+  --border: var(--color-border-primary);
+  --input: var(--glass-border-subtle);
+  --ring: var(--color-border-focus);
+  --radius: 0.75rem;
   
   /* Terminal colors - light theme */
   --term-bg: #fafafa;
@@ -147,22 +167,22 @@
   --glass-panel-bg: rgba(20, 20, 28, 0.92);
   --glass-panel-border: rgba(255, 255, 255, 0.08);
 
-  /* Enhanced Accent System */
-  --glass-accent-bg: rgba(56, 189, 248, 0.08);
-  --glass-accent-bg-hover: rgba(56, 189, 248, 0.12);
-  --glass-accent-border: rgba(56, 189, 248, 0.2);
-  --glass-accent-glow: 0 0 20px rgba(56, 189, 248, 0.1);
+  /* Enhanced Accent System - Neutral */
+  --glass-accent-bg: rgba(255, 255, 255, 0.08);
+  --glass-accent-bg-hover: rgba(255, 255, 255, 0.12);
+  --glass-accent-border: rgba(255, 255, 255, 0.16);
+  --glass-accent-glow: 0 0 20px rgba(255, 255, 255, 0.05);
   --glass-accent-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 
   /* Gradient Colors */
-  --gradient-primary: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
-  --gradient-accent: linear-gradient(135deg, #67e8f9 0%, #22d3ee 50%, #06b6d4 100%);
-  --gradient-subtle: linear-gradient(180deg, rgba(34, 211, 238, 0.06) 0%, transparent 100%);
+  --gradient-primary: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(209, 213, 219, 0.92) 100%);
+  --gradient-accent: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(229, 231, 235, 0.74) 52%, rgba(148, 163, 184, 0.62) 100%);
+  --gradient-subtle: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%);
   --gradient-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
 
   --color-border-primary: #1f1f1f;
   --color-border-secondary: #2a2a2a;
-  --color-border-focus: #38bdf8; /* Cyan-400 equivalent but keep active styles standard */
+  --color-border-focus: rgba(255, 255, 255, 0.9);
 
   --color-text-primary: #ffffff;
   --color-text-secondary: #d4d4dc;
@@ -170,10 +190,30 @@
   --color-text-muted: #9396a4;
   --color-text-inverse: #000000;
 
-  --color-accent-primary: #38bdf8;
+  --color-accent-primary: rgba(255, 255, 255, 0.92);
   --color-accent-secondary: #10b981;
   --color-accent-warning: #f59e0b;
   --color-accent-danger: #ef4444;
+  --background: var(--color-bg-primary);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-elevated);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--glass-panel-bg);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-accent-primary);
+  --primary-foreground: var(--color-text-inverse);
+  --secondary: var(--glass-tab-bg);
+  --secondary-foreground: var(--color-text-secondary);
+  --muted: var(--color-bg-tertiary);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--glass-accent-bg);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: var(--color-accent-danger);
+  --destructive-foreground: var(--color-text-inverse);
+  --border: var(--color-border-primary);
+  --input: var(--glass-border-subtle);
+  --ring: var(--color-border-focus);
+  --radius: 0.75rem;
   
   /* Terminal colors - dark theme */
   --term-bg: #000000;
@@ -927,7 +967,10 @@ select {
 }
 
 .dark .glass-header {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background:
+    linear-gradient(180deg, rgba(18, 18, 22, 0.96) 0%, rgba(8, 8, 11, 0.9) 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 /* Liquid shimmer animation */
