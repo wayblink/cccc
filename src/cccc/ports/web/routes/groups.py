@@ -24,6 +24,7 @@ from ....runners import pty as pty_runner
 from ....kernel.blobs import resolve_blob_attachment_path, store_blob_bytes
 from ....kernel.headless_events import headless_events_path, read_headless_replay_events, read_headless_replay_lines
 from ....kernel.group import get_group_agent_link_mode, get_group_mode, get_group_state, load_group
+from ....kernel.git import git_diff, git_root, git_status_porcelain, parse_git_status_porcelain_z
 from ....kernel.context import ContextStorage
 from ....kernel.query_projections import get_groups_projection
 from ....kernel.settings import build_remote_virtual_group_id, get_remote_backends_settings, get_remote_groups_settings
@@ -86,6 +87,20 @@ _CONTEXT_INFLIGHT: Dict[str, asyncio.Future[Dict[str, Any]]] = {}
 _CONTEXT_GENERATION: Dict[str, int] = {}
 _CONTEXT_LOCK = asyncio.Lock()
 logger = logging.getLogger("cccc.web.groups")
+_WORKSPACE_IGNORED_DIRS = {
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+}
+_WORKSPACE_FILE_MAX_BYTES = 512 * 1024
+_WORKSPACE_BINARY_SAMPLE_BYTES = 4096
+_WORKSPACE_DIFF_MAX_BYTES = 512 * 1024
 
 
 def _actor_running_local(group_id: str, actor: Any) -> bool:
@@ -671,6 +686,83 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         rel_text = rel.as_posix()
         return "" if rel_text == "." else rel_text
 
+    def _workspace_root(group_id: str) -> Path:
+        group = load_group(group_id)
+        if group is None:
+            raise HTTPException(status_code=404, detail={"code": "group_not_found", "message": f"group not found: {group_id}"})
+        root = resolve_active_scope_root(group)
+        if root is None:
+            raise HTTPException(status_code=400, detail={"code": "workspace_missing_scope", "message": "group has no active scope"})
+        if not root.exists():
+            raise HTTPException(status_code=404, detail={"code": "workspace_root_not_found", "message": f"workspace root not found: {root}"})
+        if not root.is_dir():
+            raise HTTPException(status_code=400, detail={"code": "workspace_root_not_dir", "message": f"workspace root is not a directory: {root}"})
+        return root
+
+    def _resolve_workspace_path(group_id: str, raw_path: str, *, must_exist: bool = True) -> tuple[Path, Path]:
+        root = _workspace_root(group_id)
+        path_text = str(raw_path or "").strip().replace("\\", "/")
+        if path_text.startswith("/") or path_text.startswith("~"):
+            raise HTTPException(status_code=400, detail={"code": "workspace_out_of_scope", "message": "path must be relative"})
+        target = root if not path_text else (root / Path(*Path(path_text).parts)).resolve()
+        try:
+            target.relative_to(root)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "workspace_out_of_scope", "message": "path must stay under the group's active scope root"},
+            ) from exc
+        if must_exist and not target.exists():
+            raise HTTPException(status_code=404, detail={"code": "workspace_not_found", "message": f"path not found: {path_text or '.'}"})
+        return root, target
+
+    def _workspace_relpath(root: Path, path: Path) -> str:
+        rel = path.relative_to(root).as_posix()
+        return "" if rel == "." else rel
+
+    def _workspace_entry_in_scope(root: Path, entry: Path) -> bool:
+        try:
+            entry.resolve().relative_to(root)
+            return True
+        except ValueError:
+            return False
+        except Exception:
+            return False
+
+    def _workspace_looks_binary(raw: bytes) -> bool:
+        return b"\x00" in raw
+
+    def _workspace_truncate_text(text: str, max_bytes: int) -> tuple[str, bool]:
+        raw = str(text or "").encode("utf-8")
+        if len(raw) <= max_bytes:
+            return text, False
+        return raw[:max_bytes].decode("utf-8", errors="ignore"), True
+
+    def _workspace_repo_status_item_for_scope(root: Path, repo_root: Path, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        repo_path = str(item.get("path") or "").strip().replace("\\", "/")
+        if not repo_path:
+            return None
+        target = (repo_root / Path(*Path(repo_path).parts)).resolve()
+        try:
+            rel_path = target.relative_to(root).as_posix()
+        except ValueError:
+            return None
+        out = dict(item)
+        out["path"] = "" if rel_path == "." else rel_path
+        old_path = str(out.get("old_path") or "").strip().replace("\\", "/")
+        if old_path:
+            old_target = (repo_root / Path(*Path(old_path).parts)).resolve()
+            try:
+                old_rel_path = old_target.relative_to(root).as_posix()
+            except ValueError:
+                old_rel_path = old_path
+            out["old_path"] = "" if old_rel_path == "." else old_rel_path
+        return out
+
+    def _workspace_git_path_for_diff(root: Path, repo_root: Path, target: Path) -> str:
+        rel_path = target.relative_to(repo_root).as_posix()
+        return "" if rel_path == "." else rel_path
+
     # ------------------------------------------------------------------ #
     # Global routes
     # ------------------------------------------------------------------ #
@@ -892,6 +984,140 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         if task_id:
             args["task_id"] = task_id
         return await ctx.daemon({"op": "task_list", "args": args})
+
+    @group_router.get("/workspace/tree")
+    async def group_workspace_tree(group_id: str, path: str = "", show_hidden: bool = False) -> Dict[str, Any]:
+        root, target = _resolve_workspace_path(group_id, path)
+        if not target.is_dir():
+            raise HTTPException(status_code=400, detail={"code": "workspace_not_dir", "message": "path is not a directory"})
+
+        items = []
+        try:
+            for entry in sorted(target.iterdir(), key=lambda item: (not item.is_dir(), item.name.lower())):
+                if not show_hidden and entry.name.startswith("."):
+                    continue
+                if entry.is_dir() and entry.name in _WORKSPACE_IGNORED_DIRS:
+                    continue
+                if not _workspace_entry_in_scope(root, entry):
+                    continue
+                is_file = entry.is_file()
+                items.append(
+                    {
+                        "name": entry.name,
+                        "path": _workspace_relpath(root, entry.resolve()),
+                        "is_dir": entry.is_dir(),
+                        "mime_type": str(mimetypes.guess_type(entry.name)[0] or "") if is_file else "",
+                        "size": int(entry.stat().st_size) if is_file else 0,
+                    }
+                )
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail={"code": "workspace_permission_denied", "message": str(exc)}) from exc
+
+        parent = None if target == root else _workspace_relpath(root, target.parent)
+        return {
+            "ok": True,
+            "result": {
+                "root_path": str(root),
+                "path": _workspace_relpath(root, target),
+                "parent": parent,
+                "items": items[:300],
+            },
+        }
+
+    @group_router.get("/workspace/file")
+    async def group_workspace_file(group_id: str, path: str) -> Dict[str, Any]:
+        root, target = _resolve_workspace_path(group_id, path)
+        if not target.is_file():
+            raise HTTPException(status_code=400, detail={"code": "workspace_not_file", "message": "path is not a file"})
+
+        try:
+            size = int(target.stat().st_size)
+            raw = target.read_bytes()[: _WORKSPACE_FILE_MAX_BYTES + 1]
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail={"code": "workspace_permission_denied", "message": str(exc)}) from exc
+
+        sample = raw[:_WORKSPACE_BINARY_SAMPLE_BYTES]
+        is_binary = _workspace_looks_binary(sample)
+        truncated = len(raw) > _WORKSPACE_FILE_MAX_BYTES
+        content = "" if is_binary else raw[:_WORKSPACE_FILE_MAX_BYTES].decode("utf-8", errors="replace")
+        return {
+            "ok": True,
+            "result": {
+                "root_path": str(root),
+                "path": _workspace_relpath(root, target),
+                "name": target.name,
+                "mime_type": str(mimetypes.guess_type(target.name)[0] or ""),
+                "size": size,
+                "is_binary": is_binary,
+                "truncated": truncated,
+                "content": content,
+            },
+        }
+
+    @group_router.get("/workspace/git/status")
+    async def group_workspace_git_status(group_id: str) -> Dict[str, Any]:
+        root = _workspace_root(group_id)
+        repo_root = git_root(root)
+        if repo_root is None:
+            return {"ok": True, "result": {"is_git_repo": False, "root_path": str(root), "items": []}}
+
+        code, raw = git_status_porcelain(repo_root)
+        if code != 0:
+            raise HTTPException(status_code=500, detail={"code": "workspace_git_status_failed", "message": "git status failed"})
+        items = [
+            scoped
+            for item in parse_git_status_porcelain_z(raw)
+            if (scoped := _workspace_repo_status_item_for_scope(root, repo_root, item)) is not None
+        ]
+        return {
+            "ok": True,
+            "result": {
+                "is_git_repo": True,
+                "root_path": str(root),
+                "repo_root_path": str(repo_root),
+                "items": items,
+            },
+        }
+
+    @group_router.get("/workspace/git/diff")
+    async def group_workspace_git_diff(group_id: str, path: str = "") -> Dict[str, Any]:
+        if str(path or "").strip():
+            root, target = _resolve_workspace_path(group_id, path, must_exist=False)
+            response_path = _workspace_relpath(root, target)
+        else:
+            root = _workspace_root(group_id)
+            target = root
+            response_path = ""
+
+        repo_root = git_root(root)
+        if repo_root is None:
+            return {
+                "ok": True,
+                "result": {
+                    "is_git_repo": False,
+                    "root_path": str(root),
+                    "path": response_path,
+                    "diff": "",
+                    "truncated": False,
+                },
+            }
+
+        rel_path = "" if target == repo_root else _workspace_git_path_for_diff(root, repo_root, target)
+        code, diff_text = git_diff(repo_root, rel_path)
+        if code != 0:
+            raise HTTPException(status_code=500, detail={"code": "workspace_git_diff_failed", "message": "git diff failed"})
+        diff_text, truncated = _workspace_truncate_text(diff_text, _WORKSPACE_DIFF_MAX_BYTES)
+        return {
+            "ok": True,
+            "result": {
+                "is_git_repo": True,
+                "root_path": str(root),
+                "repo_root_path": str(repo_root),
+                "path": response_path,
+                "diff": diff_text,
+                "truncated": truncated,
+            },
+        }
 
     @group_router.get("/presentation")
     async def group_presentation_get(group_id: str) -> Dict[str, Any]:

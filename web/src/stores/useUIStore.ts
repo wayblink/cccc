@@ -1,11 +1,15 @@
 // UI state store (tabs, sidebar, toasts, etc.).
 import { create } from "zustand";
 import { clampPresentationSplitWidth, PRESENTATION_SPLIT_DEFAULT_WIDTH } from "../utils/presentationSplitLayout";
+import type { WorkspaceInspectorTab } from "../features/workspaceInspector/workspaceTypes";
 
 export const SIDEBAR_COLLAPSED_WIDTH = 60;
 export const SIDEBAR_DEFAULT_WIDTH = 280;
 export const SIDEBAR_MIN_WIDTH = 280;
 export const SIDEBAR_MAX_WIDTH = 480;
+export const WORKSPACE_INSPECTOR_MIN_WIDTH = 320;
+export const WORKSPACE_INSPECTOR_MAX_WIDTH = 720;
+export const WORKSPACE_INSPECTOR_DEFAULT_WIDTH = 420;
 
 interface UINotice {
   message: string;
@@ -156,6 +160,9 @@ interface UIState {
   sidebarWidth: number;
   isSmallScreen: boolean;
   presentationSplitWidth: number;
+  workspaceInspectorOpen: boolean;
+  workspaceInspectorWidth: number;
+  workspaceInspectorActiveTab: WorkspaceInspectorTab;
   chatSessions: Record<string, ChatSessionState>;
   webReadOnly: boolean;
   sseStatus: "connected" | "connecting" | "disconnected";
@@ -178,6 +185,10 @@ interface UIState {
   incrementChatUnread: (groupId: string) => void;
   setSmallScreen: (v: boolean) => void;
   setPresentationSplitWidth: (v: number) => void;
+  setWorkspaceInspectorOpen: (v: boolean) => void;
+  setWorkspaceInspectorWidth: (v: number) => void;
+  setWorkspaceInspectorActiveTab: (v: WorkspaceInspectorTab) => void;
+  toggleWorkspaceInspector: () => void;
   setChatFilter: (groupId: string, v: ChatFilter) => void;
   setChatSelectedSlotId: (groupId: string, slotId: ChatSlotId) => void;
   setChatScrollSnapshot: (groupId: string, snap: ChatScrollSnapshot | null) => void;
@@ -197,12 +208,20 @@ let noticeTimeoutId: number | null = null;
 const SIDEBAR_COLLAPSED_KEY = "cccc-sidebar-collapsed";
 const SIDEBAR_WIDTH_KEY = "cccc-sidebar-width";
 const PRESENTATION_SPLIT_WIDTH_KEY = "cccc-presentation-split-width";
+const WORKSPACE_INSPECTOR_OPEN_KEY = "cccc-workspace-inspector-open";
+const WORKSPACE_INSPECTOR_WIDTH_KEY = "cccc-workspace-inspector-width";
 const CHAT_SESSIONS_KEY = "cccc-chat-sessions";
 
 export function clampSidebarWidth(value: number): number {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return SIDEBAR_DEFAULT_WIDTH;
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(numeric)));
+}
+
+export function clampWorkspaceInspectorWidth(value: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return WORKSPACE_INSPECTOR_DEFAULT_WIDTH;
+  return Math.min(WORKSPACE_INSPECTOR_MAX_WIDTH, Math.max(WORKSPACE_INSPECTOR_MIN_WIDTH, Math.round(numeric)));
 }
 
 function loadSidebarCollapsed(): boolean {
@@ -253,6 +272,40 @@ function savePresentationSplitWidth(width: number): void {
     localStorage.setItem(PRESENTATION_SPLIT_WIDTH_KEY, String(clampPresentationSplitWidth(width)));
   } catch (e) {
     console.warn("Failed to persist presentation split width to localStorage:", e);
+  }
+}
+
+function loadWorkspaceInspectorOpen(): boolean {
+  try {
+    return localStorage.getItem(WORKSPACE_INSPECTOR_OPEN_KEY) === "true";
+  } catch (e) {
+    console.warn("Failed to read workspace inspector open state from localStorage:", e);
+    return false;
+  }
+}
+
+function saveWorkspaceInspectorOpen(open: boolean): void {
+  try {
+    localStorage.setItem(WORKSPACE_INSPECTOR_OPEN_KEY, String(open));
+  } catch (e) {
+    console.warn("Failed to persist workspace inspector open state to localStorage:", e);
+  }
+}
+
+function loadWorkspaceInspectorWidth(): number {
+  try {
+    return clampWorkspaceInspectorWidth(Number(localStorage.getItem(WORKSPACE_INSPECTOR_WIDTH_KEY)));
+  } catch (e) {
+    console.warn("Failed to read workspace inspector width from localStorage:", e);
+    return WORKSPACE_INSPECTOR_DEFAULT_WIDTH;
+  }
+}
+
+function saveWorkspaceInspectorWidth(width: number): void {
+  try {
+    localStorage.setItem(WORKSPACE_INSPECTOR_WIDTH_KEY, String(clampWorkspaceInspectorWidth(width)));
+  } catch (e) {
+    console.warn("Failed to persist workspace inspector width to localStorage:", e);
   }
 }
 
@@ -378,6 +431,9 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarWidth: loadSidebarWidth(),
   isSmallScreen: false,
   presentationSplitWidth: loadPresentationSplitWidth(),
+  workspaceInspectorOpen: loadWorkspaceInspectorOpen(),
+  workspaceInspectorWidth: loadWorkspaceInspectorWidth(),
+  workspaceInspectorActiveTab: "files",
   chatSessions: loadChatSessions(),
   webReadOnly: false,
   sseStatus: "disconnected" as const,
@@ -475,6 +531,22 @@ export const useUIStore = create<UIState>((set) => ({
     savePresentationSplitWidth(next);
     set({ presentationSplitWidth: next });
   },
+  setWorkspaceInspectorOpen: (v) => {
+    saveWorkspaceInspectorOpen(v);
+    set({ workspaceInspectorOpen: v });
+  },
+  setWorkspaceInspectorWidth: (v) => {
+    const next = clampWorkspaceInspectorWidth(v);
+    saveWorkspaceInspectorWidth(next);
+    set({ workspaceInspectorWidth: next });
+  },
+  setWorkspaceInspectorActiveTab: (v) => set({ workspaceInspectorActiveTab: v }),
+  toggleWorkspaceInspector: () =>
+    set((state) => {
+      const next = !state.workspaceInspectorOpen;
+      saveWorkspaceInspectorOpen(next);
+      return { workspaceInspectorOpen: next };
+    }),
   setChatFilter: (groupId, v) =>
     set((state) => {
       const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({

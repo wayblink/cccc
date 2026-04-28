@@ -43,6 +43,25 @@ describe("useUIStore sidebar width", () => {
     expect(mod.clampSidebarWidth(281.7)).toBe(282);
   });
 
+  it("persists workspace inspector shell preferences", async () => {
+    let mod = await import("../../src/stores/useUIStore");
+
+    expect(mod.clampWorkspaceInspectorWidth(Number.NaN)).toBe(mod.WORKSPACE_INSPECTOR_DEFAULT_WIDTH);
+    mod.useUIStore.getState().setWorkspaceInspectorOpen(true);
+    mod.useUIStore.getState().setWorkspaceInspectorWidth(9999);
+    mod.useUIStore.getState().setWorkspaceInspectorActiveTab("diff");
+
+    expect(mod.useUIStore.getState().workspaceInspectorWidth).toBe(mod.WORKSPACE_INSPECTOR_MAX_WIDTH);
+    expect(mod.useUIStore.getState().workspaceInspectorOpen).toBe(true);
+    expect(mod.useUIStore.getState().workspaceInspectorActiveTab).toBe("diff");
+
+    vi.resetModules();
+    mod = await import("../../src/stores/useUIStore");
+
+    expect(mod.useUIStore.getState().workspaceInspectorOpen).toBe(true);
+    expect(mod.useUIStore.getState().workspaceInspectorWidth).toBe(mod.WORKSPACE_INSPECTOR_MAX_WIDTH);
+  });
+
   it("tracks presentation dock open state per group", async () => {
     const mod = await import("../../src/stores/useUIStore");
     mod.useUIStore.getState().setChatPresentationDockOpen("g-demo", true);

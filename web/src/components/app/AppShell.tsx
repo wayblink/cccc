@@ -15,6 +15,7 @@ import {
   hasPtyRuntimeActor,
   type ChatDisplayMode,
 } from "../../features/chatDisplay/chatDisplayMode";
+import { WorkspaceInspector } from "../../features/workspaceInspector/WorkspaceInspector";
 import type {
   Actor,
   ChatNotificationSoundId,
@@ -195,6 +196,13 @@ export function AppShell({
   const chatDisplayMode = useUIStore((s) =>
     selectedGroupId ? getChatSession(selectedGroupId, s.chatSessions).chatDisplayMode : "chat"
   );
+  const workspaceInspectorOpen = useUIStore((s) => s.workspaceInspectorOpen);
+  const workspaceInspectorWidth = useUIStore((s) => s.workspaceInspectorWidth);
+  const workspaceInspectorActiveTab = useUIStore((s) => s.workspaceInspectorActiveTab);
+  const setWorkspaceInspectorOpen = useUIStore((s) => s.setWorkspaceInspectorOpen);
+  const setWorkspaceInspectorWidth = useUIStore((s) => s.setWorkspaceInspectorWidth);
+  const setWorkspaceInspectorActiveTab = useUIStore((s) => s.setWorkspaceInspectorActiveTab);
+  const toggleWorkspaceInspector = useUIStore((s) => s.toggleWorkspaceInspector);
   const hasForeman = actors.some((actor) => actor.role === "foreman");
   const hasPtyActors = hasPtyRuntimeActor(runtimeActors);
   const showTerminalDirect = chatDisplayMode === "terminal" && hasPtyActors && !isToolAppTab(activeTab);
@@ -208,6 +216,15 @@ export function AppShell({
     setNewActorRole(hasForeman ? "peer" : "foreman");
     openModal("addActor");
   };
+
+  useEffect(() => {
+    if (!workspaceInspectorOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setWorkspaceInspectorOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [setWorkspaceInspectorOpen, workspaceInspectorOpen]);
 
   useEffect(() => {
     if (!selectedGroupId || runtimeActors.length === 0) return;
@@ -285,54 +302,58 @@ export function AppShell({
           isDark ? "bg-black/75" : "bg-white/80"
         }`}
       >
-        <AppHeader
-          isDark={isDark}
-          theme={theme}
-          textScale={textScale}
-          chatNotificationSound={chatNotificationSound}
-          titleOverride={
-            activeTab === "scripts"
-              ? t("layout:scriptManagerTitle", { defaultValue: "Script Manager" })
-              : activeTab === "notes"
-                ? t("layout:notesToolTitle", { defaultValue: "Notes" })
-                : undefined
-          }
-          hideGroupControls={isToolAppTab(activeTab)}
-          allowSettingsWithoutGroup={isToolAppTab(activeTab)}
-          onThemeChange={onThemeChange}
-          onTextScaleChange={onTextScaleChange}
-          onChatNotificationSoundChange={onChatNotificationSoundChange}
-          onPreviewChatNotificationSound={onPreviewChatNotificationSound}
-          webReadOnly={webReadOnly}
-          selectedGroupId={selectedGroupId}
-          groupDoc={groupDoc}
-          selectedGroupRunning={selectedGroupRunning}
-          selectedGroupRuntimeStatus={selectedGroupRuntimeStatus}
-          actors={actors}
-          sseStatus={sseStatus}
-          busy={busy}
-          onOpenSidebar={onOpenSidebar}
-          onOpenGroupEdit={onOpenGroupEdit}
-          onOpenSearch={onOpenSearch}
-          onOpenContext={onOpenContext}
-          onStartGroup={onStartGroup}
-          onStopGroup={onStopGroup}
-          onSetGroupState={onSetGroupState}
-          onOpenSettings={onOpenSettings}
-          onOpenMobileMenu={onOpenMobileMenu}
-          chatDisplayMode={terminalDisplayMode}
-          hasTerminalActors={hasPtyActors}
-          onToggleChatDisplayMode={handleHeaderDisplayModeToggle}
-        />
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+            <AppHeader
+              isDark={isDark}
+              theme={theme}
+              textScale={textScale}
+              chatNotificationSound={chatNotificationSound}
+              titleOverride={
+                activeTab === "scripts"
+                  ? t("layout:scriptManagerTitle", { defaultValue: "Script Manager" })
+                  : activeTab === "notes"
+                    ? t("layout:notesToolTitle", { defaultValue: "Notes" })
+                    : undefined
+              }
+              hideGroupControls={isToolAppTab(activeTab)}
+              allowSettingsWithoutGroup={isToolAppTab(activeTab)}
+              onThemeChange={onThemeChange}
+              onTextScaleChange={onTextScaleChange}
+              onChatNotificationSoundChange={onChatNotificationSoundChange}
+              onPreviewChatNotificationSound={onPreviewChatNotificationSound}
+              webReadOnly={webReadOnly}
+              selectedGroupId={selectedGroupId}
+              groupDoc={groupDoc}
+              selectedGroupRunning={selectedGroupRunning}
+              selectedGroupRuntimeStatus={selectedGroupRuntimeStatus}
+              actors={actors}
+              sseStatus={sseStatus}
+              busy={busy}
+              onOpenSidebar={onOpenSidebar}
+              onOpenGroupEdit={onOpenGroupEdit}
+              onOpenSearch={onOpenSearch}
+              onOpenContext={onOpenContext}
+              onStartGroup={onStartGroup}
+              onStopGroup={onStopGroup}
+              onSetGroupState={onSetGroupState}
+              onOpenSettings={onOpenSettings}
+              onOpenMobileMenu={onOpenMobileMenu}
+              chatDisplayMode={terminalDisplayMode}
+              hasTerminalActors={hasPtyActors}
+              onToggleChatDisplayMode={handleHeaderDisplayModeToggle}
+              workspaceInspectorOpen={workspaceInspectorOpen}
+              onToggleWorkspaceInspector={toggleWorkspaceInspector}
+            />
 
-        <div
-          ref={contentRef}
-          className={`relative flex min-h-0 flex-1 flex-col overflow-hidden transition-opacity duration-150 ${
-            isTransitioning ? "opacity-0" : "opacity-100"
-          }`}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
+            <div
+              ref={contentRef}
+              className={`relative flex min-h-0 flex-1 flex-col overflow-hidden transition-opacity duration-150 ${
+                isTransitioning ? "opacity-0" : "opacity-100"
+              }`}
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+            >
           <div className="absolute inset-0 flex min-h-0 flex-col">
             {activeTab === "scripts" ? (
               <ErrorBoundary>
@@ -449,7 +470,37 @@ export function AppShell({
               </ModalFrame>
             );
           })}
+            </div>
+          </div>
+
+          {workspaceInspectorOpen && !isSmallScreen ? (
+            <WorkspaceInspector
+              groupId={selectedGroupId}
+              isDark={isDark}
+              width={workspaceInspectorWidth}
+              activeTab={workspaceInspectorActiveTab}
+              onTabChange={setWorkspaceInspectorActiveTab}
+              onClose={() => setWorkspaceInspectorOpen(false)}
+              onResizeWidth={setWorkspaceInspectorWidth}
+            />
+          ) : null}
         </div>
+
+        {workspaceInspectorOpen && isSmallScreen ? (
+          <div className="fixed inset-0 z-50 flex bg-black/40" onClick={() => setWorkspaceInspectorOpen(false)}>
+            <div className="ml-auto h-full w-[min(100vw,520px)]" onClick={(event) => event.stopPropagation()}>
+              <WorkspaceInspector
+                groupId={selectedGroupId}
+                isDark={isDark}
+                width={Math.min(workspaceInspectorWidth, 520)}
+                activeTab={workspaceInspectorActiveTab}
+                onTabChange={setWorkspaceInspectorActiveTab}
+                onClose={() => setWorkspaceInspectorOpen(false)}
+                onResizeWidth={setWorkspaceInspectorWidth}
+              />
+            </div>
+          </div>
+        ) : null}
       </main>
     </div>
   );

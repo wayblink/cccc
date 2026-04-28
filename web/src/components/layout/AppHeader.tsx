@@ -29,6 +29,7 @@ import {
   MenuIcon,
   TerminalIcon,
   MessageSquareTextIcon,
+  FolderIcon,
 } from "../Icons";
 
 export interface AppHeaderProps {
@@ -63,6 +64,8 @@ export interface AppHeaderProps {
   chatDisplayMode?: ChatDisplayMode;
   hasTerminalActors?: boolean;
   onToggleChatDisplayMode?: () => void;
+  workspaceInspectorOpen?: boolean;
+  onToggleWorkspaceInspector?: () => void;
 }
 
 export function AppHeader({
@@ -96,6 +99,8 @@ export function AppHeader({
   chatDisplayMode = "chat",
   hasTerminalActors = false,
   onToggleChatDisplayMode,
+  workspaceInspectorOpen = false,
+  onToggleWorkspaceInspector,
   sseStatus,
 }: AppHeaderProps) {
   const { t } = useTranslation('layout');
@@ -278,6 +283,23 @@ export function AppHeader({
 
       {/* Right Actions */}
       <div className="flex items-center gap-1.5">
+        {!hideGroupControls && (
+          <button
+            type="button"
+            onClick={onToggleWorkspaceInspector}
+            disabled={!selectedGroupId || !onToggleWorkspaceInspector}
+            className={classNames(
+              headerRailButtonClass,
+              workspaceInspectorOpen &&
+                "border-[var(--glass-tab-border-active)] bg-[var(--glass-tab-bg-active)] text-[var(--color-text-primary)] shadow-sm"
+            )}
+            title={workspaceInspectorOpen ? t("workspaceInspectorClose") : t("workspaceInspectorOpen")}
+            aria-label={workspaceInspectorOpen ? t("workspaceInspectorClose") : t("workspaceInspectorOpen")}
+            aria-pressed={workspaceInspectorOpen}
+          >
+            <FolderIcon size={17} />
+          </button>
+        )}
         {!webReadOnly && (
           <>
             {/* Desktop Actions */}
