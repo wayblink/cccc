@@ -287,41 +287,42 @@ export function AppShell({
           isDark ? "bg-black/75" : "bg-white/80"
         }`}
       >
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-            <AppHeader
-              titleOverride={
-                activeTab === "scripts"
-                  ? t("layout:scriptManagerTitle", { defaultValue: "Script Manager" })
-                  : activeTab === "notes"
-                    ? t("layout:notesToolTitle", { defaultValue: "Notes" })
-                    : undefined
-              }
-              hideGroupControls={isToolAppTab(activeTab)}
-              allowSettingsWithoutGroup={isToolAppTab(activeTab)}
-              webReadOnly={webReadOnly}
-              selectedGroupId={selectedGroupId}
-              groupDoc={groupDoc}
-              selectedGroupRunning={selectedGroupRunning}
-              selectedGroupRuntimeStatus={selectedGroupRuntimeStatus}
-              actors={actors}
-              sseStatus={sseStatus}
-              busy={busy}
-              onOpenSidebar={onOpenSidebar}
-              onOpenGroupEdit={onOpenGroupEdit}
-              onOpenSearch={onOpenSearch}
-              onOpenContext={onOpenContext}
-              onStartGroup={onStartGroup}
-              onStopGroup={onStopGroup}
-              onSetGroupState={onSetGroupState}
-              onOpenSettings={onOpenSettings}
-              onOpenMobileMenu={onOpenMobileMenu}
-              chatDisplayMode={terminalDisplayMode}
-              hasTerminalActors={hasPtyActors}
-              onToggleChatDisplayMode={handleHeaderDisplayModeToggle}
-              workspaceInspectorOpen={workspaceInspectorOpen}
-              onToggleWorkspaceInspector={toggleWorkspaceInspector}
-            />
+        <AppHeader
+          titleOverride={
+            activeTab === "scripts"
+              ? t("layout:scriptManagerTitle", { defaultValue: "Script Manager" })
+              : activeTab === "notes"
+                ? t("layout:notesToolTitle", { defaultValue: "Notes" })
+                : undefined
+          }
+          hideGroupControls={isToolAppTab(activeTab)}
+          allowSettingsWithoutGroup={isToolAppTab(activeTab)}
+          webReadOnly={webReadOnly}
+          selectedGroupId={selectedGroupId}
+          groupDoc={groupDoc}
+          selectedGroupRunning={selectedGroupRunning}
+          selectedGroupRuntimeStatus={selectedGroupRuntimeStatus}
+          actors={actors}
+          sseStatus={sseStatus}
+          busy={busy}
+          onOpenSidebar={onOpenSidebar}
+          onOpenGroupEdit={onOpenGroupEdit}
+          onOpenSearch={onOpenSearch}
+          onOpenContext={onOpenContext}
+          onStartGroup={onStartGroup}
+          onStopGroup={onStopGroup}
+          onSetGroupState={onSetGroupState}
+          onOpenSettings={onOpenSettings}
+          onOpenMobileMenu={onOpenMobileMenu}
+          chatDisplayMode={terminalDisplayMode}
+          hasTerminalActors={hasPtyActors}
+          onToggleChatDisplayMode={handleHeaderDisplayModeToggle}
+          workspaceInspectorOpen={workspaceInspectorOpen}
+          onToggleWorkspaceInspector={toggleWorkspaceInspector}
+        />
+
+        <div data-testid="app-shell-content-row" className="flex min-h-0 flex-1 overflow-hidden">
+          <div data-testid="app-shell-content-pane" className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
 
             <div
               ref={contentRef}

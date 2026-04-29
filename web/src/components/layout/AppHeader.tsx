@@ -92,8 +92,10 @@ export function AppHeader({
     "hidden md:inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-text-tertiary)] transition-all hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)]";
   const headerRailButtonClass =
     "flex items-center justify-center h-9 w-9 rounded-[14px] transition-all shrink-0 border border-transparent bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-45 disabled:text-[var(--color-text-tertiary)] disabled:hover:bg-transparent disabled:hover:text-[var(--color-text-tertiary)]";
+  const headerWorkspaceButtonClass =
+    "flex items-center justify-center h-8 w-8 rounded-xl transition-all shrink-0 border border-transparent bg-transparent text-[var(--color-text-tertiary)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)] active:scale-[0.97] disabled:opacity-45 disabled:text-[var(--color-text-tertiary)] disabled:hover:bg-transparent disabled:hover:text-[var(--color-text-tertiary)]";
   const headerWorkspaceButtonActiveClass =
-    "bg-blue-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.28)] ring-1 ring-black/5 hover:bg-blue-500 hover:text-white dark:ring-white/10 active:scale-[0.97]";
+    "!border-transparent !bg-blue-600 !text-white shadow-[0_10px_24px_rgba(37,99,235,0.28)] ring-1 ring-black/5 hover:!bg-blue-500 hover:!text-white dark:ring-white/10 active:scale-[0.97]";
   const headerUtilityButtonClass =
     "flex items-center justify-center h-8 w-8 rounded-xl transition-all shrink-0 border border-transparent bg-transparent text-[var(--color-text-tertiary)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)]";
   const headerRailDividerClass = "mx-1 h-5 w-px bg-[var(--glass-border-subtle)]";
@@ -267,7 +269,7 @@ export function AppHeader({
             onClick={onToggleWorkspaceInspector}
             disabled={!selectedGroupId || !onToggleWorkspaceInspector}
             className={classNames(
-              headerRailButtonClass,
+              headerWorkspaceButtonClass,
               workspaceInspectorOpen &&
                 headerWorkspaceButtonActiveClass
             )}
@@ -303,26 +305,6 @@ export function AppHeader({
               {!hideGroupControls && (
                 <div className={headerRailClass}>
                   <button
-                    onClick={onOpenSearch}
-                    disabled={!selectedGroupId}
-                    className={headerRailButtonClass}
-                    title={t('searchMessages')}
-                  >
-                    <span className="sr-only">{t('searchMessages')}</span>
-                    <SearchIcon size={17} />
-                  </button>
-
-                  <button
-                    onClick={onOpenContext}
-                    disabled={!selectedGroupId}
-                    className={headerRailButtonClass}
-                    title={t('context')}
-                  >
-                    <span className="sr-only">{t('context')}</span>
-                    <ClipboardIcon size={17} />
-                  </button>
-                  <span className={headerRailDividerClass} aria-hidden="true" />
-                  <button
                     onClick={handleToggleClick}
                     disabled={toggleDisabled}
                     className={classNames(
@@ -350,6 +332,28 @@ export function AppHeader({
                   >
                     <span className="sr-only">{t('stopAllAgents')}</span>
                     <StopIcon size={17} />
+                  </button>
+
+                  <span className={headerRailDividerClass} aria-hidden="true" />
+
+                  <button
+                    onClick={onOpenSearch}
+                    disabled={!selectedGroupId}
+                    className={headerRailButtonClass}
+                    title={t('searchMessages')}
+                  >
+                    <span className="sr-only">{t('searchMessages')}</span>
+                    <SearchIcon size={17} />
+                  </button>
+
+                  <button
+                    onClick={onOpenContext}
+                    disabled={!selectedGroupId}
+                    className={headerRailButtonClass}
+                    title={t('context')}
+                  >
+                    <span className="sr-only">{t('context')}</span>
+                    <ClipboardIcon size={17} />
                   </button>
                 </div>
               )}

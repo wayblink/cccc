@@ -355,7 +355,7 @@ describe("frontend settings chrome", () => {
     expect(container?.querySelector('circle[cx="17"][cy="17"]')).toBeNull();
   });
 
-  it("orders the desktop header actions with utility tools before the runtime controls", () => {
+  it("orders the desktop header actions with runtime controls before utility tools", () => {
     ({ container, root } = render(
       <AppHeader
         selectedGroupId="group-1"
@@ -387,10 +387,10 @@ describe("frontend settings chrome", () => {
     const expectedOrder = [
       "Open workspace inspector",
       "Switch to terminal",
-      "Search Messages",
-      "Context",
       "Pause delivery",
       "Stop all agents",
+      "Search Messages",
+      "Context",
       "Settings",
     ];
     const actualOrder = Array.from(container?.querySelectorAll("header button") || [])
@@ -398,16 +398,16 @@ describe("frontend settings chrome", () => {
       .filter((label) => expectedOrder.includes(label));
     expect(actualOrder).toEqual(expectedOrder);
 
-    const contextButton = Array.from(container?.querySelectorAll("header button") || []).find(
-      (button) => button.getAttribute("title") === "Context",
+    const stopButton = Array.from(container?.querySelectorAll("header button") || []).find(
+      (button) => button.getAttribute("title") === "Stop all agents",
     );
-    const separator = contextButton?.nextElementSibling;
+    const separator = stopButton?.nextElementSibling;
     expect(separator?.tagName).toBe("SPAN");
     expect(separator?.className).toContain("w-px");
-    expect(separator?.nextElementSibling?.getAttribute("title")).toBe("Pause delivery");
+    expect(separator?.nextElementSibling?.getAttribute("title")).toBe("Search Messages");
   });
 
-  it("gives the open workspace button the same pressed control affordance as Stop", () => {
+  it("gives the open workspace button a blue pressed affordance like the stop control", () => {
     ({ container, root } = render(
       <AppHeader
         selectedGroupId="group-1"
@@ -443,7 +443,9 @@ describe("frontend settings chrome", () => {
     );
     expect(workspaceButton?.getAttribute("aria-pressed")).toBe("true");
     expect(stopButton?.getAttribute("aria-pressed")).toBe("true");
-    expect(workspaceButton?.className).toContain("text-white");
+    expect(workspaceButton?.className).toContain("h-8");
+    expect(workspaceButton?.className).toContain("!bg-blue-600");
+    expect(workspaceButton?.className).toContain("!text-white");
     expect(workspaceButton?.className).toContain("ring-1");
     expect(workspaceButton?.className).toContain("shadow-[0_10px_24px_rgba");
   });
