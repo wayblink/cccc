@@ -169,6 +169,7 @@ function AddActorModalContent({
   const previewRuntime = newActorUseProfile ? selectedProfileRuntime || null : newActorRuntime;
   const previewTitle = String(newActorId || "").trim() || suggestedActorId;
   const customRunnerLockedToPty = !newActorUseProfile && !supportsStandardWebHeadlessRuntime(newActorRuntime);
+  const isEntryChoice = entryMode === "choice";
 
   const sectionCardClass = "rounded-2xl p-4 sm:p-5 glass-panel";
   const sectionTitleClass = "text-sm font-semibold text-[var(--color-text-primary)]";
@@ -206,7 +207,7 @@ function AddActorModalContent({
 
   return (
     <div
-      className={modalViewportClass("fullscreen", "backdrop-blur-sm animate-fade-in glass-overlay")}
+      className={modalViewportClass(isEntryChoice ? "centered" : "fullscreen", "backdrop-blur-sm animate-fade-in glass-overlay")}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -216,7 +217,14 @@ function AddActorModalContent({
     >
       <div
         ref={modalRef}
-        className={modalPanelClass("form", "fullscreen", "animate-scale-in text-[var(--color-text-primary)]")}
+        className={modalPanelClass(
+          isEntryChoice ? null : "form",
+          isEntryChoice ? "centered" : "fullscreen",
+          classNames(
+            isEntryChoice ? "sm:w-[min(720px,calc(100vw-2rem))] sm:h-auto sm:max-h-[calc(100dvh-2rem)]" : "",
+            "animate-scale-in text-[var(--color-text-primary)]",
+          ),
+        )}
       >
         <div className="px-6 py-4 border-b safe-area-inset-top border-[var(--glass-border-subtle)] glass-header flex-shrink-0">
           <div id="add-actor-title" className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -225,9 +233,14 @@ function AddActorModalContent({
           <div className="text-sm mt-1 text-[var(--color-text-muted)]">{t("addActorSubtitle")}</div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 safe-area-bottom-compact">
+        <div
+          className={classNames(
+            isEntryChoice ? "" : "flex-1 min-h-0",
+            "overflow-y-auto p-4 sm:p-6 safe-area-bottom-compact",
+          )}
+        >
           {entryMode === "choice" ? (
-            <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-2">
+            <div key="choice" className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 data-testid="add-actor-entry-ai"
@@ -266,7 +279,7 @@ function AddActorModalContent({
               </button>
             </div>
           ) : (
-            <div className="mx-auto max-w-2xl space-y-4">
+            <div key="agent" className="mx-auto max-w-2xl space-y-4">
               {onLaunchQuickTerminal ? (
                 <button
                   type="button"

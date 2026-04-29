@@ -157,6 +157,46 @@ describe("AddActorModal entry mode", () => {
     expect(container?.textContent).not.toContain("Agent name");
   });
 
+  it("does not reuse the AI Agent card as the Back button when switching modes", async () => {
+    await act(async () => {
+      root?.render(<AddActorModal {...defaultProps()} />);
+    });
+
+    const aiEntry = container?.querySelector('[data-testid="add-actor-entry-ai"]') as HTMLButtonElement;
+
+    await act(async () => {
+      aiEntry.click();
+    });
+
+    const backButton = container?.querySelector('[data-testid="add-actor-back-to-choice"]') as HTMLButtonElement;
+    expect(backButton).not.toBe(aiEntry);
+
+    await act(async () => {
+      backButton.click();
+    });
+
+    const returnedAiEntry = container?.querySelector('[data-testid="add-actor-entry-ai"]') as HTMLButtonElement;
+    expect(returnedAiEntry).not.toBe(backButton);
+  });
+
+  it("sizes the entry chooser to its content while matching the agent form width", async () => {
+    await act(async () => {
+      root?.render(<AddActorModal {...defaultProps()} />);
+    });
+
+    const panel = container?.querySelector('[role="dialog"] > div');
+    expect(panel?.className).toContain("sm:w-[min(720px,calc(100vw-2rem))]");
+    expect(panel?.className).toContain("sm:h-auto");
+    expect(panel?.className).not.toContain("sm:h-[min(88dvh,820px)]");
+
+    await act(async () => {
+      (container?.querySelector('[data-testid="add-actor-entry-ai"]') as HTMLButtonElement).click();
+    });
+
+    expect(panel?.className).toContain("sm:w-[min(720px,calc(100vw-2rem))]");
+    expect(panel?.className).toContain("sm:h-[min(88dvh,820px)]");
+  });
+
   it("hides coordination roles when the group is interactive", async () => {
     await act(async () => {
       root?.render(
