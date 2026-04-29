@@ -107,6 +107,7 @@
   "chat": "チャット",
   "toolsSection": "ツール",
   "scriptManagerTitle": "Script Manager",
+  "scriptManagerSubtitle": "再利用できるローカルコマンド",
   "notesToolTitle": "Notes",
   "notesToolSubtitle": "Scratchpad とローカルノート",
   "notesPageDescription": "CCCC の中で、すばやく書けるローカルノートと常設 Scratchpad を使えます。",

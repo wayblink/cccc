@@ -32,7 +32,7 @@ export function NotesPage({ isDark, readOnly = false }: NotesPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col p-4 md:p-5">
-      <div className="mb-4 flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
         <NotesList
           notes={notes}
           selectedNoteId={selectedNote?.id || null}

@@ -64,7 +64,9 @@ vi.mock("../../src/components/layout/GroupSidebar", () => ({
 }));
 
 vi.mock("../../src/components/layout/AppHeader", () => ({
-  AppHeader: () => <header data-testid="app-header" />,
+  AppHeader: (props: { titleOverride?: string; subtitleOverride?: string }) => (
+    <header data-testid="app-header" data-title={props.titleOverride || ""} data-subtitle={props.subtitleOverride || ""} />
+  ),
 }));
 
 vi.mock("../../src/features/workspaceInspector/WorkspaceInspector", () => ({
@@ -221,5 +223,25 @@ describe("AppShell workspace inspector layout", () => {
     expect(contentRow?.contains(contentPane || null)).toBe(true);
     expect(contentRow?.contains(workspaceInspector || null)).toBe(true);
     expect(contentPane?.contains(header || null)).toBe(false);
+  });
+
+  it("passes Script Manager subtitle to the page header, not the sidebar", () => {
+    const props = buildAppShellProps();
+    ({ container, root } = render(<AppShell {...props} activeTab="scripts" />));
+
+    const header = container?.querySelector('[data-testid="app-header"]');
+
+    expect(header?.getAttribute("data-title")).toBe("Script Manager");
+    expect(header?.getAttribute("data-subtitle")).toBe("Reusable local commands");
+  });
+
+  it("passes Notes subtitle to the page header, not the sidebar", () => {
+    const props = buildAppShellProps();
+    ({ container, root } = render(<AppShell {...props} activeTab="notes" />));
+
+    const header = container?.querySelector('[data-testid="app-header"]');
+
+    expect(header?.getAttribute("data-title")).toBe("Notes");
+    expect(header?.getAttribute("data-subtitle")).toBe("Scratchpad and local notes");
   });
 });

@@ -26,6 +26,7 @@ import {
 
 export interface AppHeaderProps {
   titleOverride?: string;
+  subtitleOverride?: string;
   hideGroupControls?: boolean;
   allowSettingsWithoutGroup?: boolean;
   webReadOnly?: boolean;
@@ -54,6 +55,7 @@ export interface AppHeaderProps {
 
 export function AppHeader({
   titleOverride,
+  subtitleOverride,
   hideGroupControls = false,
   allowSettingsWithoutGroup = false,
   webReadOnly,
@@ -224,28 +226,35 @@ export function AppHeader({
         </button>
 
         <div className="min-w-0 flex items-center gap-2">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <h1 className="truncate text-base font-semibold leading-tight text-[var(--color-text-primary)] md:text-[1.125rem]">
-              {title}
-            </h1>
-            {!hideGroupControls && selectedGroupId && sseStatus !== "connected" && (
-              <span
-                className={classNames(
-                  "h-2 w-2 flex-shrink-0 rounded-full",
-                  sseStatus === "connecting" ? "bg-amber-400 animate-pulse" : "bg-rose-500"
-                )}
-                title={sseStatus === "connecting" ? t('reconnecting') : t('disconnected')}
-              />
-            )}
-            {!hideGroupControls && selectedStatus && (
-              <span
-                className={classNames(
-                  "h-2.5 w-2.5 flex-shrink-0 rounded-full",
-                  selectedStatus.dotClass
-                )}
-                title={selectedStatus.label}
-              />
-            )}
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h1 className="truncate text-base font-semibold leading-tight text-[var(--color-text-primary)] md:text-[1.125rem]">
+                {title}
+              </h1>
+              {!hideGroupControls && selectedGroupId && sseStatus !== "connected" && (
+                <span
+                  className={classNames(
+                    "h-2 w-2 flex-shrink-0 rounded-full",
+                    sseStatus === "connecting" ? "bg-amber-400 animate-pulse" : "bg-rose-500"
+                  )}
+                  title={sseStatus === "connecting" ? t('reconnecting') : t('disconnected')}
+                />
+              )}
+              {!hideGroupControls && selectedStatus && (
+                <span
+                  className={classNames(
+                    "h-2.5 w-2.5 flex-shrink-0 rounded-full",
+                    selectedStatus.dotClass
+                  )}
+                  title={selectedStatus.label}
+                />
+              )}
+            </div>
+            {subtitleOverride ? (
+              <p className="mt-0.5 truncate text-xs leading-tight text-[var(--color-text-secondary)]">
+                {subtitleOverride}
+              </p>
+            ) : null}
           </div>
 
         {!hideGroupControls && selectedGroupId && !webReadOnly && onOpenGroupEdit && (

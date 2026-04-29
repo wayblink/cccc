@@ -107,6 +107,7 @@
   "chat": "Chat",
   "toolsSection": "Tools",
   "scriptManagerTitle": "Script Manager",
+  "scriptManagerSubtitle": "Reusable local commands",
   "notesToolTitle": "Notes",
   "notesToolSubtitle": "Scratchpad and local notes",
   "notesPageDescription": "Keep quick local notes and a permanent scratchpad inside CCCC.",

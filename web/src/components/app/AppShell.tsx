@@ -295,6 +295,13 @@ export function AppShell({
                 ? t("layout:notesToolTitle", { defaultValue: "Notes" })
                 : undefined
           }
+          subtitleOverride={
+            activeTab === "scripts"
+              ? t("layout:scriptManagerSubtitle", { defaultValue: "Reusable local commands" })
+              : activeTab === "notes"
+                ? t("layout:notesToolSubtitle", { defaultValue: "Scratchpad and local notes" })
+                : undefined
+          }
           hideGroupControls={isToolAppTab(activeTab)}
           allowSettingsWithoutGroup={isToolAppTab(activeTab)}
           webReadOnly={webReadOnly}

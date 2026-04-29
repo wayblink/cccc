@@ -107,6 +107,7 @@
   "chat": "聊天",
   "toolsSection": "工具",
   "scriptManagerTitle": "Script Manager",
+  "scriptManagerSubtitle": "可复用本地命令",
   "notesToolTitle": "Notes",
   "notesToolSubtitle": "Scratchpad 与本地笔记",
   "notesPageDescription": "在 CCCC 内保留快速本地笔记和一个永久 Scratchpad。",

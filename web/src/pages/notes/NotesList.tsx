@@ -31,10 +31,7 @@ export function NotesList({
     <aside className="glass-card flex min-h-[280px] w-full flex-col overflow-hidden md:min-h-0 md:w-[320px] md:max-w-[320px]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--glass-border-subtle)] px-4 py-4">
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-tertiary)]">
-            {chrome.listTitle}
-          </div>
-          <h2 className="mt-1 text-base font-semibold text-[var(--color-text-primary)]">{chrome.pageTitle}</h2>
+          <h2 className="text-base font-semibold text-[var(--color-text-primary)]">{chrome.pageTitle}</h2>
         </div>
         <button
           type="button"
