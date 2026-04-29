@@ -16,7 +16,16 @@ class TestSessionScopedMcp(unittest.TestCase):
             "cccc.kernel.runtime_session_mcp.get_cccc_mcp_stdio_command",
             return_value=["/tmp/cccc bin/cccc", "mcp"],
         ):
-            cmd = inject_session_scoped_mcp("codex", ["codex", "--search"])
+            cmd = inject_session_scoped_mcp(
+                "codex",
+                ["codex", "--search"],
+                env={
+                    "CCCC_HOME": "/tmp/cccc home",
+                    "CCCC_GROUP_ID": "g1",
+                    "CCCC_ACTOR_ID": "a1",
+                    "CCCC_WEB_PORT": "8848",
+                },
+            )
 
         self.assertEqual(cmd[0], "codex")
         self.assertIn("--search", cmd)
@@ -24,6 +33,10 @@ class TestSessionScopedMcp(unittest.TestCase):
         values = [value for _flag, value in pairs]
         self.assertIn('mcp_servers.cccc.command="/tmp/cccc bin/cccc"', values)
         self.assertIn('mcp_servers.cccc.args=["mcp"]', values)
+        self.assertIn(
+            'mcp_servers.cccc.env={CCCC_ACTOR_ID="a1",CCCC_GROUP_ID="g1",CCCC_HOME="/tmp/cccc home",CCCC_WEB_PORT="8848"}',
+            values,
+        )
 
     def test_claude_command_gets_strict_session_mcp_config(self) -> None:
         from cccc.kernel.runtime_session_mcp import inject_session_scoped_mcp

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypedDict
 
@@ -12,6 +13,7 @@ from ...kernel.group import group_heavy_mcp_enabled
 from ...kernel.ledger import append_event
 from ...kernel.runtime import runtime_start_preflight_error
 from ...kernel.runtime_session_mcp import inject_session_scoped_mcp, session_scoped_mcp_supported
+from ...paths import ensure_home
 from ..claude_app_sessions import SUPERVISOR as claude_app_supervisor
 from ..codex_app_sessions import SUPERVISOR as codex_app_supervisor
 from ...runners import headless as headless_runner
@@ -202,7 +204,13 @@ def resolve_actor_launch_spec(
 
     effective_command = normalize_runtime_command(launch_config["runtime"], list(launch_config["command"] or []))
     if launch_config["effective_runner"] != "headless":
-        effective_command = inject_session_scoped_mcp(launch_config["runtime"], effective_command)
+        mcp_env = dict(launch_config["merged_env"])
+        mcp_env["CCCC_HOME"] = str(ensure_home())
+        mcp_env["CCCC_GROUP_ID"] = str(group.group_id or "").strip()
+        mcp_env["CCCC_ACTOR_ID"] = str(actor_id or "").strip()
+        if os.environ.get("CCCC_WEB_PORT"):
+            mcp_env["CCCC_WEB_PORT"] = str(os.environ.get("CCCC_WEB_PORT") or "").strip()
+        effective_command = inject_session_scoped_mcp(launch_config["runtime"], effective_command, env=mcp_env)
     return {
         **launch_config,
         "scope_key": scope_key,

@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import json
-from typing import List
+import os
+from typing import Any, List, Mapping
 
 from .runtime import get_cccc_mcp_stdio_command
 
@@ -19,10 +20,26 @@ def _toml_array(values: List[str]) -> str:
     return "[" + ",".join(_toml_string(value) for value in values) + "]"
 
 
+def _toml_inline_table(values: Mapping[str, str]) -> str:
+    pairs = [f"{key}={_toml_string(values[key])}" for key in sorted(values)]
+    return "{" + ",".join(pairs) + "}"
+
+
+def _cccc_mcp_env(env: Mapping[str, Any] | None = None) -> dict[str, str]:
+    source: Mapping[str, Any] = env if env is not None else os.environ
+    out: dict[str, str] = {}
+    for key in ("CCCC_HOME", "CCCC_GROUP_ID", "CCCC_ACTOR_ID", "CCCC_WEB_PORT"):
+        value = str(source.get(key) or "").strip()
+        if value:
+            out[key] = value
+    return out
+
+
 def _strip_codex_mcp_overrides(command: List[str]) -> List[str]:
     strip_keys = {
         "mcp_servers.cccc.command",
         "mcp_servers.cccc.args",
+        "mcp_servers.cccc.env",
     }
     if not command:
         return []
@@ -44,12 +61,13 @@ def _strip_codex_mcp_overrides(command: List[str]) -> List[str]:
     return out
 
 
-def _inject_codex(command: List[str], mcp_cmd: List[str]) -> List[str]:
+def _inject_codex(command: List[str], mcp_cmd: List[str], env: Mapping[str, Any] | None = None) -> List[str]:
     base = _strip_codex_mcp_overrides(command)
     if not base:
         return []
     server_command = mcp_cmd[0]
     server_args = mcp_cmd[1:]
+    server_env = _cccc_mcp_env(env)
     injected = [
         base[0],
         "-c",
@@ -57,6 +75,8 @@ def _inject_codex(command: List[str], mcp_cmd: List[str]) -> List[str]:
         "-c",
         f"mcp_servers.cccc.args={_toml_array(server_args)}",
     ]
+    if server_env:
+        injected.extend(["-c", f"mcp_servers.cccc.env={_toml_inline_table(server_env)}"])
     injected.extend(base[1:])
     return injected
 
@@ -120,7 +140,7 @@ def _inject_copilot(command: List[str], mcp_cmd: List[str]) -> List[str]:
     return [base[0], "--additional-mcp-config", json.dumps(config, ensure_ascii=False, separators=(",", ":")), *base[1:]]
 
 
-def inject_session_scoped_mcp(runtime: str, command: List[str]) -> List[str]:
+def inject_session_scoped_mcp(runtime: str, command: List[str], env: Mapping[str, Any] | None = None) -> List[str]:
     """Return argv with CCCC MCP configured only for this launched session.
 
     The function intentionally does not mutate any user/global MCP config. It only
@@ -136,7 +156,7 @@ def inject_session_scoped_mcp(runtime: str, command: List[str]) -> List[str]:
     if not mcp_cmd:
         return cmd
     if rt == "codex":
-        return _inject_codex(cmd, mcp_cmd)
+        return _inject_codex(cmd, mcp_cmd, env=env)
     if rt == "claude":
         return _inject_claude(cmd, mcp_cmd)
     if rt == "copilot":
