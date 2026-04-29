@@ -101,6 +101,7 @@ _WORKSPACE_IGNORED_DIRS = {
 _WORKSPACE_FILE_MAX_BYTES = 512 * 1024
 _WORKSPACE_BINARY_SAMPLE_BYTES = 4096
 _WORKSPACE_DIFF_MAX_BYTES = 512 * 1024
+_WORKSPACE_IMAGE_MIME_TYPES = {"image/png", "image/jpeg"}
 
 
 def _actor_running_local(group_id: str, actor: Any) -> bool:
@@ -732,6 +733,14 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
     def _workspace_looks_binary(raw: bytes) -> bool:
         return b"\x00" in raw
 
+    def _workspace_mime_type(path: Path) -> str:
+        return str(mimetypes.guess_type(path.name)[0] or "")
+
+    def _workspace_preview_type(mime_type: str, is_binary: bool) -> str:
+        if mime_type in _WORKSPACE_IMAGE_MIME_TYPES:
+            return "image"
+        return "binary" if is_binary else "text"
+
     def _workspace_truncate_text(text: str, max_bytes: int) -> tuple[str, bool]:
         raw = str(text or "").encode("utf-8")
         if len(raw) <= max_bytes:
@@ -1037,8 +1046,10 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
             raise HTTPException(status_code=403, detail={"code": "workspace_permission_denied", "message": str(exc)}) from exc
 
         sample = raw[:_WORKSPACE_BINARY_SAMPLE_BYTES]
-        is_binary = _workspace_looks_binary(sample)
-        truncated = len(raw) > _WORKSPACE_FILE_MAX_BYTES
+        mime_type = _workspace_mime_type(target)
+        preview_type = _workspace_preview_type(mime_type, _workspace_looks_binary(sample))
+        is_binary = preview_type in {"binary", "image"}
+        truncated = preview_type == "text" and len(raw) > _WORKSPACE_FILE_MAX_BYTES
         content = "" if is_binary else raw[:_WORKSPACE_FILE_MAX_BYTES].decode("utf-8", errors="replace")
         return {
             "ok": True,
@@ -1046,13 +1057,34 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                 "root_path": str(root),
                 "path": _workspace_relpath(root, target),
                 "name": target.name,
-                "mime_type": str(mimetypes.guess_type(target.name)[0] or ""),
+                "mime_type": mime_type,
                 "size": size,
+                "preview_type": preview_type,
                 "is_binary": is_binary,
                 "truncated": truncated,
                 "content": content,
             },
         }
+
+    @group_router.get("/workspace/file/image")
+    async def group_workspace_file_image(group_id: str, path: str) -> FileResponse:
+        _root, target = _resolve_workspace_path(group_id, path)
+        if not target.is_file():
+            raise HTTPException(status_code=400, detail={"code": "workspace_not_file", "message": "path is not a file"})
+        mime_type = _workspace_mime_type(target)
+        if mime_type not in _WORKSPACE_IMAGE_MIME_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "workspace_unsupported_image", "message": "only PNG and JPEG previews are supported"},
+            )
+        response = FileResponse(
+            path=target,
+            media_type=mime_type,
+            filename=target.name,
+            content_disposition_type="inline",
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     @group_router.get("/workspace/git/status")
     async def group_workspace_git_status(group_id: str) -> Dict[str, Any]:

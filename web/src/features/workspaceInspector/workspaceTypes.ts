@@ -22,6 +22,7 @@ export type WorkspaceFilePreview = {
   name: string;
   mime_type: string;
   size: number;
+  preview_type: "text" | "image" | "binary" | string;
   is_binary: boolean;
   truncated: boolean;
   content: string;

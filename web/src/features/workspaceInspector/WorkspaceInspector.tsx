@@ -147,7 +147,7 @@ export function WorkspaceInspector({
         {activeTab === "files" ? (
           <WorkspaceFileTree groupId={groupId} onFileSelect={() => onTabChange("preview")} />
         ) : activeTab === "preview" ? (
-          <WorkspaceFilePreview preview={selectedFile} loading={loadingFile} selectedPath={selectedPath} />
+          <WorkspaceFilePreview groupId={groupId} preview={selectedFile} loading={loadingFile} selectedPath={selectedPath} />
         ) : (
           <WorkspaceDiffViewer
             status={gitStatus}

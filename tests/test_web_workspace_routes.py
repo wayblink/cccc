@@ -149,6 +149,95 @@ class TestWebWorkspaceRoutes(unittest.TestCase):
             workspace_ctx.__exit__(None, None, None)
             cleanup()
 
+    def test_workspace_file_marks_png_as_image_preview(self) -> None:
+        _, cleanup = self._with_home()
+        workspace_ctx = tempfile.TemporaryDirectory()
+        try:
+            workspace = Path(workspace_ctx.__enter__())
+            (workspace / "logo.png").write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + (b"0" * (512 * 1024)))
+            group_id = self._create_group_with_scope(workspace)
+
+            with self._client() as client:
+                resp = client.get(f"/api/v1/groups/{group_id}/workspace/file", params={"path": "logo.png"})
+
+            self.assertEqual(resp.status_code, 200)
+            result = (resp.json().get("result") or {})
+            self.assertEqual(result.get("mime_type"), "image/png")
+            self.assertEqual(result.get("preview_type"), "image")
+            self.assertTrue(bool(result.get("is_binary")), result)
+            self.assertFalse(bool(result.get("truncated")), result)
+            self.assertEqual(result.get("content"), "")
+        finally:
+            workspace_ctx.__exit__(None, None, None)
+            cleanup()
+
+    def test_workspace_file_image_serves_png_bytes_inline(self) -> None:
+        _, cleanup = self._with_home()
+        workspace_ctx = tempfile.TemporaryDirectory()
+        try:
+            workspace = Path(workspace_ctx.__enter__())
+            png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+            (workspace / "logo.png").write_bytes(png)
+            group_id = self._create_group_with_scope(workspace)
+
+            with self._client() as client:
+                resp = client.get(f"/api/v1/groups/{group_id}/workspace/file/image", params={"path": "logo.png"})
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.content, png)
+            self.assertTrue(str(resp.headers.get("content-type") or "").startswith("image/png"))
+            self.assertEqual(resp.headers.get("cache-control"), "no-store")
+        finally:
+            workspace_ctx.__exit__(None, None, None)
+            cleanup()
+
+    def test_workspace_file_image_serves_jpeg_bytes_inline(self) -> None:
+        _, cleanup = self._with_home()
+        workspace_ctx = tempfile.TemporaryDirectory()
+        try:
+            workspace = Path(workspace_ctx.__enter__())
+            jpeg = b"\xff\xd8\xff\xe0\x00\x10JFIF"
+            (workspace / "photo.jpg").write_bytes(jpeg)
+            group_id = self._create_group_with_scope(workspace)
+
+            with self._client() as client:
+                meta_resp = client.get(f"/api/v1/groups/{group_id}/workspace/file", params={"path": "photo.jpg"})
+                image_resp = client.get(f"/api/v1/groups/{group_id}/workspace/file/image", params={"path": "photo.jpg"})
+
+            self.assertEqual(meta_resp.status_code, 200)
+            result = (meta_resp.json().get("result") or {})
+            self.assertEqual(result.get("mime_type"), "image/jpeg")
+            self.assertEqual(result.get("preview_type"), "image")
+            self.assertTrue(bool(result.get("is_binary")), result)
+            self.assertEqual(result.get("content"), "")
+
+            self.assertEqual(image_resp.status_code, 200)
+            self.assertEqual(image_resp.content, jpeg)
+            self.assertTrue(str(image_resp.headers.get("content-type") or "").startswith("image/jpeg"))
+            self.assertEqual(image_resp.headers.get("cache-control"), "no-store")
+        finally:
+            workspace_ctx.__exit__(None, None, None)
+            cleanup()
+
+    def test_workspace_file_image_rejects_non_image_file(self) -> None:
+        _, cleanup = self._with_home()
+        workspace_ctx = tempfile.TemporaryDirectory()
+        try:
+            workspace = Path(workspace_ctx.__enter__())
+            (workspace / "notes.txt").write_text("hello\n", encoding="utf-8")
+            group_id = self._create_group_with_scope(workspace)
+
+            with self._client() as client:
+                resp = client.get(f"/api/v1/groups/{group_id}/workspace/file/image", params={"path": "notes.txt"})
+
+            self.assertEqual(resp.status_code, 400)
+            body = resp.json()
+            self.assertFalse(bool(body.get("ok")), body)
+            self.assertEqual((body.get("error") or {}).get("code"), "workspace_unsupported_image")
+        finally:
+            workspace_ctx.__exit__(None, None, None)
+            cleanup()
+
     def test_workspace_file_truncates_large_text(self) -> None:
         _, cleanup = self._with_home()
         workspace_ctx = tempfile.TemporaryDirectory()

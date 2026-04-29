@@ -1,5 +1,5 @@
 import type { ApiResponse } from "../../services/api/base";
-import { apiJson, asOptionalString, asRecord, asString } from "../../services/api/base";
+import { apiJson, asOptionalString, asRecord, asString, withAuthToken } from "../../services/api/base";
 import type {
   WorkspaceFilePreview,
   WorkspaceGitDiff,
@@ -65,19 +65,31 @@ export async function fetchWorkspaceFile(groupId: string, path: string): Promise
   const suffix = workspacePathQuery(path);
   const resp = await apiJson<WorkspaceFilePreview>(`/api/v1/groups/${encodeURIComponent(groupId)}/workspace/file${suffix}`);
   if (!resp.ok) return resp as ApiResponse<WorkspaceFilePreview>;
+  const mimeType = asString(resp.result.mime_type).trim();
+  const previewType = asString(resp.result.preview_type).trim()
+    || (mimeType === "image/png" || mimeType === "image/jpeg" ? "image" : resp.result.is_binary ? "binary" : "text");
   return {
     ok: true,
     result: {
       root_path: asString(resp.result.root_path).trim(),
       path: normalizeWorkspacePath(asString(resp.result.path)),
       name: asString(resp.result.name).trim(),
-      mime_type: asString(resp.result.mime_type).trim(),
+      mime_type: mimeType,
       size: Number.isFinite(Number(resp.result.size)) ? Number(resp.result.size) : 0,
+      preview_type: previewType,
       is_binary: !!resp.result.is_binary,
       truncated: !!resp.result.truncated,
       content: asString(resp.result.content),
     },
   };
+}
+
+export function workspaceImagePreviewUrl(groupId: string, path: string): string {
+  const params = new URLSearchParams();
+  const normalized = normalizeWorkspacePath(path);
+  if (normalized) params.set("path", normalized);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return withAuthToken(`/api/v1/groups/${encodeURIComponent(groupId)}/workspace/file/image${query}`);
 }
 
 function normalizeGitStatusItem(value: unknown): WorkspaceGitStatusItem | null {
