@@ -11,6 +11,7 @@ DEFAULT_PTY_WORKING_IDLE_SECONDS = 5.0
 DEFAULT_PTY_TERMINAL_SIGNAL_TAIL_BYTES = 12_000
 DEFAULT_PTY_ACTIVITY_SIGNAL_TAIL_BYTES = 4_000
 DEFAULT_CODEX_TERMINAL_SIGNAL_WINDOW_CHARS = 1_600
+DEFAULT_COPILOT_TERMINAL_SIGNAL_WINDOW_CHARS = 1_600
 
 
 def _clean_text(value: Any) -> str:
@@ -51,9 +52,36 @@ def _is_terminal_footer_line(line: str) -> bool:
     value = str(line or "").strip()
     if not value:
         return False
-    return bool(re.match(r"^gpt-[\w.-]+\s+default\b", value, re.IGNORECASE)) or (
-        "/Desktop/" in value and bool(re.search(r"\bleft\b", value, re.IGNORECASE))
-    )
+    if bool(re.match(r"^gpt-[\w.-]+\s+default\b", value, re.IGNORECASE)):
+        return True
+    if bool(re.match(r"^gpt-[\w.-]+$", value, re.IGNORECASE)):
+        return True
+    return "/Desktop/" in value and bool(re.search(r"\bleft\b", value, re.IGNORECASE))
+
+
+def _is_copilot_model_badge_line(line: str) -> bool:
+    value = str(line or "").strip()
+    if not value:
+        return False
+    return bool(re.match(r"^gpt-[\w.-]+$", value, re.IGNORECASE))
+
+
+def _is_copilot_composer_hint_line(line: str) -> bool:
+    value = str(line or "").strip()
+    if not value:
+        return False
+    # Typical Copilot chat composer hint row looks like: "@ files · # issues"
+    # Treat it as a readiness signal (not user-visible work output).
+    return value.startswith("@") and bool(re.search(r"\s#\s*\w", value))
+
+
+def _has_copilot_composer_ready(text: str) -> bool:
+    lines = _recent_non_empty_lines(text, max_lines=6)
+    if not lines:
+        return False
+    has_badge = any(_is_copilot_model_badge_line(line) for line in lines)
+    has_hint = any(_is_copilot_composer_hint_line(line) for line in lines)
+    return has_badge and has_hint
 
 
 def _is_terminal_prompt_line(line: str) -> bool:
@@ -106,6 +134,21 @@ def _has_visible_terminal_output(text: str) -> bool:
 def derive_pty_terminal_override(*, runtime: str, terminal_text: str) -> Optional[Dict[str, Any]]:
     runtime_id = _clean_text(runtime).lower()
     cleaned = _strip_ansi(terminal_text)
+    if runtime_id == "copilot":
+        if _has_terminal_prompt_visible(cleaned):
+            return {
+                "effective_working_state": "idle",
+                "effective_working_reason": "pty_terminal_prompt_visible",
+            }
+
+        tail_text = _tail_window(cleaned, max_chars=DEFAULT_COPILOT_TERMINAL_SIGNAL_WINDOW_CHARS)
+        if _has_copilot_composer_ready(tail_text):
+            return {
+                "effective_working_state": "idle",
+                "effective_working_reason": "pty_terminal_copilot_composer_ready",
+            }
+        return None
+
     if runtime_id != "codex":
         return None
 
