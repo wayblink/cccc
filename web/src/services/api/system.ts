@@ -33,6 +33,13 @@ export async function fetchDirContents(path: string) {
   );
 }
 
+export async function createDirectory(parent: string, name: string) {
+  return apiJson<{ path: string; parent: string | null; items: DirItem[] }>("/api/v1/fs/mkdir", {
+    method: "POST",
+    body: JSON.stringify({ parent, name }),
+  });
+}
+
 export async function resolveScopeRoot(path: string) {
   return apiJson<{ path: string; scope_root: string; scope_key: string; git_remote: string }>(
     `/api/v1/fs/scope_root?path=${encodeURIComponent(path)}`,

@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -118,6 +119,32 @@ class TestWebPrincipalGuards(unittest.TestCase):
                 self.assertEqual(resp.status_code, 200)
                 self.assertTrue(bool(resp.json().get("ok")))
                 self.assertIsInstance((resp.json().get("result") or {}).get("suggestions"), list)
+        finally:
+            cleanup()
+
+    def test_admin_can_create_directory_from_picker(self) -> None:
+        from cccc.kernel.access_tokens import create_access_token
+
+        _, cleanup = self._with_home()
+        try:
+            token = str(create_access_token("admin-a", allowed_groups=[], is_admin=True).get("token") or "")
+            parent_ctx = tempfile.TemporaryDirectory()
+            parent = parent_ctx.__enter__()
+            with patch("cccc.ports.web.app.call_daemon", side_effect=self._local_call_daemon):
+                client = self._create_client()
+                resp = client.post(
+                    "/api/v1/fs/mkdir",
+                    headers={"Authorization": f"Bearer {token}"},
+                    json={"parent": parent, "name": "fresh-workspace"},
+                )
+                self.assertEqual(resp.status_code, 200)
+                payload = resp.json()
+                self.assertTrue(bool(payload.get("ok")))
+                result = payload.get("result") or {}
+                self.assertEqual(str(result.get("path") or ""), str((Path(parent) / "fresh-workspace").resolve()))
+                self.assertEqual(str(result.get("parent") or ""), str(Path(parent).resolve()))
+                self.assertTrue((Path(parent) / "fresh-workspace").is_dir())
+            parent_ctx.__exit__(None, None, None)
         finally:
             cleanup()
 

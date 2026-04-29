@@ -14,6 +14,11 @@ vi.mock("react-i18next", () => ({
       "createGroup.pathPlaceholder": "Path to new project directory",
       "createGroup.pathAutoCreateHint": "Directory will be created if needed",
       "createGroup.browse": "Browse",
+      "createGroup.newFolder": "New folder",
+      "createGroup.newFolderNamePlaceholder": "Folder name",
+      "createGroup.createFolder": "Create folder",
+      "createGroup.creatingFolder": "Creating folder...",
+      "createGroup.folderNameRequired": "Folder name is required",
       "createGroup.groupName": "Group name",
       "createGroup.groupNamePlaceholder": "Working group name",
       "createGroup.modeLabel": "Group mode",
@@ -23,6 +28,10 @@ vi.mock("react-i18next", () => ({
       "createGroup.collaborationModeHint": "Original multi-agent collaboration semantics",
       "createGroup.blueprintLabel": "Blueprint",
       "createGroup.blueprintHint": "Optional template",
+      "createGroup.selectBlueprintFile": "Select blueprint file",
+      "createGroup.noBlueprintFile": "No blueprint selected",
+      "createGroup.directoryBrowserTitle": "Choose project directory",
+      "createGroup.useCurrentDirectory": "Use this directory",
       "createGroup.createGroup": "Create group",
       "createGroup.createFromBlueprint": "Create from blueprint",
       "createGroup.creating": "Creating...",
@@ -47,7 +56,6 @@ function Harness() {
     <CreateGroupModal
       isOpen
       busy=""
-      dirSuggestions={[]}
       dirItems={[]}
       currentDir=""
       parentDir={null}
@@ -64,6 +72,54 @@ function Harness() {
       templateBusy={false}
       onSelectTemplate={() => {}}
       onFetchDirContents={() => {}}
+      onCreateDirectory={async () => ({ ok: true, path: "" })}
+      onCloseDirBrowser={() => {}}
+      onCreateGroup={() => {}}
+      onClose={() => {}}
+      onCancelAndReset={() => {}}
+    />
+  );
+}
+
+function BrowserHarness() {
+  const [createGroupPath, setCreateGroupPath] = useState("/tmp");
+  const [createGroupName, setCreateGroupName] = useState("");
+  const [createGroupMode, setCreateGroupMode] = useState<"interactive" | "collaboration">("interactive");
+  const [currentDir, setCurrentDir] = useState("/tmp");
+  const [parentDir, setParentDir] = useState("/");
+  const [dirItems, setDirItems] = useState([{ name: "existing", path: "/tmp/existing", is_dir: true }]);
+
+  return (
+    <CreateGroupModal
+      isOpen
+      busy=""
+      dirItems={dirItems}
+      currentDir={currentDir}
+      parentDir={parentDir}
+      showDirBrowser
+      createGroupPath={createGroupPath}
+      setCreateGroupPath={setCreateGroupPath}
+      createGroupName={createGroupName}
+      setCreateGroupName={setCreateGroupName}
+      createGroupMode={createGroupMode}
+      setCreateGroupMode={setCreateGroupMode}
+      createGroupTemplateFile={null}
+      templatePreview={null}
+      templateError=""
+      templateBusy={false}
+      onSelectTemplate={() => {}}
+      onFetchDirContents={(path) => {
+        setCurrentDir(path);
+        setParentDir(path === "/" ? null : "/");
+      }}
+      onCreateDirectory={async (_parentPath, name) => {
+        const createdPath = `/tmp/${name}`;
+        setCurrentDir(createdPath);
+        setParentDir("/tmp");
+        setDirItems([]);
+        return { ok: true, path: createdPath };
+      }}
+      onCloseDirBrowser={() => {}}
       onCreateGroup={() => {}}
       onClose={() => {}}
       onCancelAndReset={() => {}}
@@ -96,11 +152,11 @@ describe("CreateGroupModal", () => {
   });
 
   function getInputs() {
-    const inputs = Array.from(container?.querySelectorAll("input") || []);
-    expect(inputs).toHaveLength(3);
+    const textInputs = Array.from(container?.querySelectorAll('input:not([type="file"])') || []);
+    expect(textInputs).toHaveLength(2);
     return {
-      pathInput: inputs[0] as HTMLInputElement,
-      nameInput: inputs[1] as HTMLInputElement,
+      pathInput: textInputs[0] as HTMLInputElement,
+      nameInput: textInputs[1] as HTMLInputElement,
     };
   }
 
@@ -129,6 +185,15 @@ describe("CreateGroupModal", () => {
       setInputValue(input, value.slice(0, index));
     }
   }
+
+
+  it("keeps the project directory before the group name and removes quick select", () => {
+    const labels = Array.from(container?.querySelectorAll("label") || []).map((label) => label.textContent || "");
+
+    expect(labels.indexOf("Project directory")).toBeLessThan(labels.indexOf("Group name"));
+    expect(container?.textContent).not.toContain("Quick select");
+    expect(container?.textContent).not.toContain("Directory will be created if needed");
+  });
 
   it("keeps the group name synced to the typed directory basename", () => {
     const { pathInput, nameInput } = getInputs();
@@ -160,5 +225,37 @@ describe("CreateGroupModal", () => {
 
     expect(interactiveButton.getAttribute("aria-pressed")).toBe("false");
     expect(collaborationButton.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("creates a new folder from the directory browser and selects it", async () => {
+    act(() => {
+      root?.render(<BrowserHarness />);
+    });
+
+    expect(container?.textContent).toContain("Choose project directory");
+
+    await act(async () => {
+      Array.from(container?.querySelectorAll("button") || [])
+        .find((button) => button.textContent === "New folder")
+        ?.click();
+    });
+
+    const folderInput = Array.from(container?.querySelectorAll("input") || []).find(
+      (input) => (input as HTMLInputElement).placeholder === "Folder name",
+    ) as HTMLInputElement | undefined;
+    expect(folderInput).toBeTruthy();
+
+    setInputValue(folderInput!, "fresh-workspace");
+
+    await act(async () => {
+      Array.from(container?.querySelectorAll("button") || [])
+        .find((button) => button.textContent === "Create folder")
+        ?.click();
+    });
+
+    const { pathInput, nameInput } = getInputs();
+    expect(pathInput.value).toBe("/tmp/fresh-workspace");
+    expect(nameInput.value).toBe("fresh-workspace");
+    expect(container?.textContent).toContain("/tmp/fresh-workspace");
   });
 });

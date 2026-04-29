@@ -143,6 +143,7 @@
   "destGroupDifferent": "目标工作组必须与源工作组不同。",
   "relayTextEmpty": "转发消息内容为空。",
   "failedToListDir": "列出目录失败",
+  "failedToCreateDir": "创建目录失败",
   "invalidTemplate": "无效模板",
   "failedToLoadTemplate": "加载模板失败",
   "failedToAddAgent": "添加智能体失败",

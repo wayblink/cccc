@@ -245,7 +245,6 @@ export function AppModals({
     createGroupMode,
     createGroupTemplateFile,
     dirItems,
-    dirSuggestions,
     currentDir,
     parentDir,
     showDirBrowser,
@@ -920,6 +919,20 @@ export function AppModals({
     } else {
       setDirBrowseError(resp.error?.message || t('failedToListDir'));
     }
+  };
+
+  const handleCreateDirectory = async (parentPath: string, name: string) => {
+    setDirBrowseError("");
+    const resp = await api.createDirectory(parentPath, name);
+    if (!resp.ok) {
+      const message = resp.error?.message || t("failedToCreateDir");
+      return { ok: false as const, message };
+    }
+
+    setDirItems(resp.result.items || []);
+    setCurrentDir(resp.result.path || parentPath);
+    setParentDir(resp.result.parent || null);
+    return { ok: true as const, path: resp.result.path || parentPath };
   };
 
   const handleSelectCreateGroupTemplate = async (file: File | null) => {
@@ -1718,7 +1731,6 @@ export function AppModals({
       <CreateGroupModal
         isOpen={modals.createGroup}
         busy={busy}
-        dirSuggestions={dirSuggestions}
         dirItems={dirItems}
         currentDir={currentDir}
         parentDir={parentDir}
@@ -1736,6 +1748,8 @@ export function AppModals({
         onSelectTemplate={handleSelectCreateGroupTemplate}
         dirBrowseError={dirBrowseError}
         onFetchDirContents={handleFetchDirContents}
+        onCreateDirectory={handleCreateDirectory}
+        onCloseDirBrowser={() => setShowDirBrowser(false)}
         onCreateGroup={handleCreateGroup}
         onClose={() => closeModal("createGroup")}
         onCancelAndReset={() => {
@@ -1745,6 +1759,7 @@ export function AppModals({
           setCreateTemplateError("");
           setCreateTemplateBusy(false);
           setDirBrowseError("");
+          setShowDirBrowser(false);
         }}
       />
 

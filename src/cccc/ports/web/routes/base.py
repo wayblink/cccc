@@ -32,6 +32,7 @@ from ..branding import (
 from ..schemas import (
     BrandingUpdateRequest,
     DebugClearLogsRequest,
+    FsMkdirRequest,
     ObservabilityUpdateRequest,
     RegistryReconcileRequest,
     RemoteAccessConfigureRequest,
@@ -797,6 +798,65 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
                     "items": items[:100],  # Limit to 100 items
                 },
             }
+        except Exception as e:
+            return {"ok": False, "error": {"code": "ERROR", "message": str(e)}}
+
+    @global_router.post("/api/v1/fs/mkdir", dependencies=[Depends(require_admin)])
+    async def fs_mkdir(req: FsMkdirRequest) -> Dict[str, Any]:
+        """Create a child directory from the path picker UI and list it."""
+        if ctx.read_only:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "read_only",
+                    "message": "File system endpoints are disabled in read-only (exhibit) mode.",
+                    "details": {"endpoint": "fs_mkdir"},
+                },
+            )
+        try:
+            name = str(req.name or "").strip()
+            if not name:
+                return {"ok": False, "error": {"code": "INVALID_NAME", "message": "Folder name is required."}}
+            if name in {".", ".."} or "/" in name or "\\" in name:
+                return {"ok": False, "error": {"code": "INVALID_NAME", "message": "Folder name must be a single directory name."}}
+
+            parent = Path(req.parent or "~").expanduser().resolve()
+            if not parent.exists():
+                return {"ok": False, "error": {"code": "NOT_FOUND", "message": f"Path not found: {req.parent}"}}
+            if not parent.is_dir():
+                return {"ok": False, "error": {"code": "NOT_DIR", "message": f"Not a directory: {req.parent}"}}
+
+            target = (parent / name).resolve()
+            if parent not in target.parents:
+                return {"ok": False, "error": {"code": "INVALID_NAME", "message": "Folder name escapes the parent directory."}}
+            if target.exists() and not target.is_dir():
+                return {"ok": False, "error": {"code": "FILE_EXISTS", "message": f"A file already exists: {name}"}}
+
+            target.mkdir(exist_ok=True)
+
+            items = []
+            try:
+                for entry in sorted(target.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+                    if entry.name.startswith("."):
+                        continue
+                    items.append({
+                        "name": entry.name,
+                        "path": str(entry),
+                        "is_dir": entry.is_dir(),
+                    })
+            except PermissionError:
+                return {"ok": False, "error": {"code": "PERMISSION_DENIED", "message": f"Permission denied: {target}"}}
+
+            return {
+                "ok": True,
+                "result": {
+                    "path": str(target),
+                    "parent": str(target.parent) if target.parent != target else None,
+                    "items": items[:100],
+                },
+            }
+        except PermissionError:
+            return {"ok": False, "error": {"code": "PERMISSION_DENIED", "message": f"Permission denied: {req.parent}"}}
         except Exception as e:
             return {"ok": False, "error": {"code": "ERROR", "message": str(e)}}
 
