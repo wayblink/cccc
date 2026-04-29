@@ -44,6 +44,7 @@ export interface ChatSessionState {
   presentationDockOpen: boolean;
   presentationDisplayMode: "modal" | "split";
   chatDisplayMode: "chat" | "terminal";
+  chatDisplayModeExplicit: boolean;
 }
 
 const DEFAULT_CHAT_SLOT_STATE: ChatSlotState = {
@@ -62,6 +63,7 @@ const DEFAULT_CHAT_SESSION: ChatSessionState = {
   presentationDockOpen: false,
   presentationDisplayMode: "modal",
   chatDisplayMode: "chat",
+  chatDisplayModeExplicit: false,
 };
 
 export function buildAgentChatSlotId(actorId: string | null | undefined): ChatSlotId {
@@ -344,7 +346,9 @@ function sanitizeChatSessions(value: unknown): Record<string, ChatSessionState> 
       presentationDockOpen?: unknown;
       presentationDisplayMode?: unknown;
       chatDisplayMode?: unknown;
+      chatDisplayModeExplicit?: unknown;
     };
+    const rawDisplayMode = session.chatDisplayMode === "terminal" ? "terminal" : "chat";
     const slotStates = sanitizeChatSlotStates(session.slotStates);
     const legacyScrollSnapshot = sanitizeChatScrollSnapshot(session.scrollSnapshot);
     if (legacyScrollSnapshot) {
@@ -366,7 +370,11 @@ function sanitizeChatSessions(value: unknown): Record<string, ChatSessionState> 
       mobileSurface: session.mobileSurface === "presentation" ? "presentation" : "messages",
       presentationDockOpen: Boolean(session.presentationDockOpen),
       presentationDisplayMode: session.presentationDisplayMode === "split" ? "split" : "modal",
-      chatDisplayMode: session.chatDisplayMode === "terminal" ? "terminal" : "chat",
+      chatDisplayMode: rawDisplayMode,
+      chatDisplayModeExplicit:
+        typeof session.chatDisplayModeExplicit === "boolean"
+          ? session.chatDisplayModeExplicit
+          : rawDisplayMode === "terminal",
     });
   }
   return next;
@@ -396,6 +404,7 @@ function saveChatSessions(sessions: Record<string, ChatSessionState>): void {
           presentationDockOpen: session.presentationDockOpen,
           presentationDisplayMode: session.presentationDisplayMode,
           chatDisplayMode: session.chatDisplayMode,
+          chatDisplayModeExplicit: session.chatDisplayModeExplicit,
         },
       ]),
     );
@@ -635,6 +644,7 @@ export const useUIStore = create<UIState>((set) => ({
       const chatSessions = updateChatSession(state.chatSessions, groupId, (session) => ({
         ...session,
         chatDisplayMode: mode,
+        chatDisplayModeExplicit: true,
       }));
       saveChatSessions(chatSessions);
       return { chatSessions };

@@ -8,6 +8,7 @@ import type { Actor, GroupDoc, GroupMeta } from "../../src/types";
 
 const uiState = vi.hoisted(() => ({
   chatDisplayMode: "chat" as "chat" | "terminal",
+  chatDisplayModeExplicit: false,
   workspaceInspectorOpen: true,
   workspaceInspectorWidth: 420,
   workspaceInspectorActiveTab: "files" as const,
@@ -32,7 +33,10 @@ vi.mock("../../src/stores", () => ({
 
 vi.mock("../../src/stores/useUIStore", () => ({
   SIDEBAR_COLLAPSED_WIDTH: 60,
-  getChatSession: () => ({ chatDisplayMode: uiState.chatDisplayMode }),
+  getChatSession: () => ({
+    chatDisplayMode: uiState.chatDisplayMode,
+    chatDisplayModeExplicit: uiState.chatDisplayModeExplicit,
+  }),
   useUIStore: (
     selector: (state: {
       chatSessions: Record<string, unknown>;
@@ -193,6 +197,7 @@ describe("AppShell workspace inspector layout", () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     uiState.chatDisplayMode = "chat";
+    uiState.chatDisplayModeExplicit = false;
     uiState.workspaceInspectorOpen = true;
     uiState.workspaceInspectorWidth = 420;
     uiState.workspaceInspectorActiveTab = "files";
@@ -243,5 +248,27 @@ describe("AppShell workspace inspector layout", () => {
 
     expect(header?.getAttribute("data-title")).toBe("Notes");
     expect(header?.getAttribute("data-subtitle")).toBe("Scratchpad and local notes");
+  });
+
+  it("shows terminal direct view by default for interactive groups with PTY actors", () => {
+    const props = buildAppShellProps();
+    props.groupDoc = { ...props.groupDoc!, mode: "interactive" };
+    props.runtimeActors = [{ id: "coder", title: "Coder", runner_effective: "pty" } as Actor];
+
+    ({ container, root } = render(<AppShell {...props} />));
+
+    expect(container?.querySelector('[data-testid="terminal-direct-view"]')).not.toBeNull();
+  });
+
+  it("respects an explicit chat display choice for interactive groups", () => {
+    uiState.chatDisplayMode = "chat";
+    uiState.chatDisplayModeExplicit = true;
+    const props = buildAppShellProps();
+    props.groupDoc = { ...props.groupDoc!, mode: "interactive" };
+    props.runtimeActors = [{ id: "coder", title: "Coder", runner_effective: "pty" } as Actor];
+
+    ({ container, root } = render(<AppShell {...props} />));
+
+    expect(container?.querySelector('[data-testid="terminal-direct-view"]')).toBeNull();
   });
 });

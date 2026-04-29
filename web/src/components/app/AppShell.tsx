@@ -13,6 +13,7 @@ import {
   getNextChatDisplayMode,
   getTerminalDirectShellClassName,
   hasPtyRuntimeActor,
+  resolveChatDisplayMode,
   type ChatDisplayMode,
 } from "../../features/chatDisplay/chatDisplayMode";
 import { WorkspaceInspector } from "../../features/workspaceInspector/WorkspaceInspector";
@@ -180,6 +181,9 @@ export function AppShell({
   const chatDisplayMode = useUIStore((s) =>
     selectedGroupId ? getChatSession(selectedGroupId, s.chatSessions).chatDisplayMode : "chat"
   );
+  const chatDisplayModeExplicit = useUIStore((s) =>
+    selectedGroupId ? getChatSession(selectedGroupId, s.chatSessions).chatDisplayModeExplicit : false
+  );
   const workspaceInspectorOpen = useUIStore((s) => s.workspaceInspectorOpen);
   const workspaceInspectorWidth = useUIStore((s) => s.workspaceInspectorWidth);
   const workspaceInspectorActiveTab = useUIStore((s) => s.workspaceInspectorActiveTab);
@@ -188,9 +192,17 @@ export function AppShell({
   const setWorkspaceInspectorActiveTab = useUIStore((s) => s.setWorkspaceInspectorActiveTab);
   const toggleWorkspaceInspector = useUIStore((s) => s.toggleWorkspaceInspector);
   const hasForeman = actors.some((actor) => actor.role === "foreman");
-  const showCoordinationRoles = getGroupMode(groupDoc) === "collaboration";
+  const selectedGroupMeta = groups.find((group) => group.group_id === selectedGroupId) || null;
+  const selectedGroupMode = getGroupMode(groupDoc || selectedGroupMeta);
+  const showCoordinationRoles = selectedGroupMode === "collaboration";
   const hasPtyActors = hasPtyRuntimeActor(runtimeActors);
-  const showTerminalDirect = chatDisplayMode === "terminal" && hasPtyActors && !isToolAppTab(activeTab);
+  const resolvedChatDisplayMode = resolveChatDisplayMode({
+    requestedMode: chatDisplayMode,
+    groupMode: selectedGroupMode,
+    hasTerminalActors: hasPtyActors,
+    isExplicit: chatDisplayModeExplicit,
+  });
+  const showTerminalDirect = resolvedChatDisplayMode === "terminal" && hasPtyActors && !isToolAppTab(activeTab);
   const terminalDisplayMode: ChatDisplayMode = showTerminalDirect ? "terminal" : "chat";
   const handleHeaderDisplayModeToggle = () => {
     if (!selectedGroupId || !hasPtyActors) return;
