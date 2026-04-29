@@ -1,26 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import {
   Actor,
-  ChatNotificationSoundId,
-  ChatNotificationSoundPreference,
   GroupDoc,
-  TextScale,
-  Theme,
 } from "../../types";
 import { getGroupStatusFromSource } from "../../utils/groupStatus";
 import { getGroupControlVisual, getLaunchControlMode, resolveGroupControls } from "../../utils/groupControls";
 import { classNames } from "../../utils/classNames";
 import { useModalA11y } from "../../hooks/useModalA11y";
-import { ChatNotificationSoundSwitcher } from "../ChatNotificationSoundSwitcher";
-import { LanguageSwitcher } from "../LanguageSwitcher";
-import { TextScaleSwitcher } from "../TextScaleSwitcher";
 import {
   SearchIcon,
   ClipboardIcon,
   SettingsIcon,
-  MonitorIcon,
-  SunIcon,
-  MoonIcon,
   EditIcon,
   RocketIcon,
   StopIcon,
@@ -30,20 +20,12 @@ import {
 
 export interface MobileMenuSheetProps {
   isOpen: boolean;
-  isDark: boolean;
-  theme: Theme;
-  textScale: TextScale;
-  chatNotificationSound: ChatNotificationSoundPreference;
   selectedGroupId: string;
   groupDoc: GroupDoc | null;
   selectedGroupRunning: boolean;
   actors: Actor[];
   busy: string;
   onClose: () => void;
-  onThemeChange: (theme: Theme) => void;
-  onTextScaleChange: (scale: TextScale) => void;
-  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
-  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   onOpenSearch: () => void;
   onOpenContext: () => void;
   onOpenSettings: () => void;
@@ -55,20 +37,12 @@ export interface MobileMenuSheetProps {
 
 export function MobileMenuSheet({
   isOpen,
-  isDark,
-  theme,
-  textScale,
-  chatNotificationSound,
   selectedGroupId,
   groupDoc,
   selectedGroupRunning,
   actors,
   busy,
   onClose,
-  onThemeChange,
-  onTextScaleChange,
-  onChatNotificationSoundChange,
-  onPreviewChatNotificationSound,
   onOpenSearch,
   onOpenContext,
   onOpenSettings,
@@ -102,9 +76,6 @@ export function MobileMenuSheet({
     statusKey: selectedStatusKey,
     busy,
   });
-  const themeLabel = theme === "system" ? t('themeSystem') : theme === "dark" ? t('themeDark') : t('themeLight');
-  const ThemeIcon = theme === "system" ? MonitorIcon : theme === "dark" ? MoonIcon : SunIcon;
-  const nextTheme: Theme = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
   const runtimeHint = selectedStatusKey === "paused"
     ? t('runtimeHintPaused')
     : selectedStatusKey === "stop"
@@ -252,35 +223,6 @@ export function MobileMenuSheet({
                 </div>
               </button>
             ) : null}
-          </section>
-
-          <section className={sectionCardClass}>
-            <div className={sectionTitleClass}>{t('appearanceSection')}</div>
-            <button
-              className={rowButtonClass}
-              onClick={() => onThemeChange(nextTheme)}
-            >
-              <div className="flex items-center gap-3">
-                <ThemeIcon size={18} />
-                <span>{t('themeLabel')}</span>
-              </div>
-              <span className="text-[13px] font-medium text-[var(--color-text-tertiary)]">{themeLabel}</span>
-            </button>
-            <TextScaleSwitcher
-              textScale={textScale}
-              onTextScaleChange={onTextScaleChange}
-              variant="row"
-            />
-            <ChatNotificationSoundSwitcher
-              preference={chatNotificationSound}
-              onPreferenceChange={onChatNotificationSoundChange}
-              onPreviewSound={onPreviewChatNotificationSound}
-              variant="row"
-            />
-            <LanguageSwitcher
-              isDark={isDark}
-              variant="row"
-            />
           </section>
 
           <section className={sectionCardClass}>

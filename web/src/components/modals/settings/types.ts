@@ -12,7 +12,7 @@ export type GroupTabId =
   | "im"
   | "transcript"
   | "blueprint";
-export type GlobalTabId = "capabilities" | "actorProfiles" | "myProfiles" | "branding" | "webAccess" | "developer";
+export type GlobalTabId = "frontend" | "capabilities" | "actorProfiles" | "myProfiles" | "branding" | "webAccess" | "developer";
 
 // Shared style class helpers — glass design system
 export const inputClass = (_isDark?: boolean) =>

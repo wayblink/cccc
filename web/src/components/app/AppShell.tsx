@@ -18,13 +18,10 @@ import {
 import { WorkspaceInspector } from "../../features/workspaceInspector/WorkspaceInspector";
 import type {
   Actor,
-  ChatNotificationSoundId,
-  ChatNotificationSoundPreference,
   GroupContext,
   GroupDoc,
   GroupMeta,
   GroupRuntimeStatus,
-  TextScale,
 } from "../../types";
 import { useFormStore, useModalStore } from "../../stores";
 import { SIDEBAR_COLLAPSED_WIDTH, getChatSession, useUIStore } from "../../stores/useUIStore";
@@ -56,9 +53,6 @@ type AppShellProps = {
   selectedGroupRunning: boolean;
   selectedGroupRuntimeStatus: GroupRuntimeStatus | null;
   selectedGroupActorsHydrating: boolean;
-  theme: "light" | "dark" | "system";
-  textScale: TextScale;
-  chatNotificationSound: ChatNotificationSoundPreference;
   sseStatus: "connected" | "connecting" | "disconnected";
   groupLabelById: Record<string, string>;
   mentionSelectedIndex: number;
@@ -68,10 +62,6 @@ type AppShellProps = {
   eventContainerRef: React.MutableRefObject<HTMLDivElement | null>;
   contentRef: React.MutableRefObject<HTMLDivElement | null>;
   chatAtBottomRef: React.MutableRefObject<boolean>;
-  onThemeChange: (theme: "light" | "dark" | "system") => void;
-  onTextScaleChange: (scale: TextScale) => void;
-  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
-  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   onSelectGroup: (groupId: string) => void;
   onWarmGroup: (groupId: string) => void;
   onCreateGroup: (() => void) | undefined;
@@ -134,9 +124,6 @@ export function AppShell({
   selectedGroupRunning,
   selectedGroupRuntimeStatus,
   selectedGroupActorsHydrating,
-  theme,
-  textScale,
-  chatNotificationSound,
   sseStatus,
   groupLabelById,
   mentionSelectedIndex,
@@ -146,10 +133,6 @@ export function AppShell({
   eventContainerRef,
   contentRef,
   chatAtBottomRef,
-  onThemeChange,
-  onTextScaleChange,
-  onChatNotificationSoundChange,
-  onPreviewChatNotificationSound,
   onSelectGroup,
   onWarmGroup,
   onCreateGroup,
@@ -307,10 +290,6 @@ export function AppShell({
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
             <AppHeader
-              isDark={isDark}
-              theme={theme}
-              textScale={textScale}
-              chatNotificationSound={chatNotificationSound}
               titleOverride={
                 activeTab === "scripts"
                   ? t("layout:scriptManagerTitle", { defaultValue: "Script Manager" })
@@ -320,10 +299,6 @@ export function AppShell({
               }
               hideGroupControls={isToolAppTab(activeTab)}
               allowSettingsWithoutGroup={isToolAppTab(activeTab)}
-              onThemeChange={onThemeChange}
-              onTextScaleChange={onTextScaleChange}
-              onChatNotificationSoundChange={onChatNotificationSoundChange}
-              onPreviewChatNotificationSound={onPreviewChatNotificationSound}
               webReadOnly={webReadOnly}
               selectedGroupId={selectedGroupId}
               groupDoc={groupDoc}

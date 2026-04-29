@@ -13,10 +13,25 @@
     "blueprint": "蓝图",
     "actorProfiles": "智能体配置库",
     "myProfiles": "我的配置",
+    "frontend": "前端设置",
     "branding": "品牌",
     "developer": "开发者",
     "webAccess": "Web 访问",
     "assistants": "Assistant"
+  },
+  "frontend": {
+    "title": "前端设置",
+    "description": "管理主题、文字大小、通知音和语言。这些偏好只影响当前浏览器。",
+    "localOnlyTitle": "保存在当前浏览器",
+    "localOnlyDescription": "这些设置不会写入 CCCC 守护进程，也不会影响其他设备或其他用户。",
+    "themeTitle": "主题",
+    "themeDescription": "选择浅色、深色，或跟随系统外观。",
+    "textScaleTitle": "文字大小",
+    "textScaleDescription": "调整聊天、列表和弹窗的整体文字缩放。",
+    "notificationSoundTitle": "通知音",
+    "notificationSoundDescription": "选择聊天通知音并可即时试听。",
+    "languageTitle": "语言",
+    "languageDescription": "切换 Web 界面语言。"
   },
   "navigation": {
     "targetScope": "目标范围",

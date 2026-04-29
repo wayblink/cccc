@@ -13,10 +13,25 @@
     "blueprint": "Blueprint",
     "actorProfiles": "Actor Profiles",
     "myProfiles": "My Profiles",
+    "frontend": "Frontend Settings",
     "branding": "Branding",
     "developer": "Developer",
     "webAccess": "Web Access",
     "assistants": "Assistant"
+  },
+  "frontend": {
+    "title": "Frontend Settings",
+    "description": "Manage theme, text scale, notification sound, and language. These preferences only affect this browser.",
+    "localOnlyTitle": "Stored in this browser",
+    "localOnlyDescription": "These settings are not written to the CCCC daemon and do not affect other devices or users.",
+    "themeTitle": "Theme",
+    "themeDescription": "Choose light, dark, or follow the system appearance.",
+    "textScaleTitle": "Text Scale",
+    "textScaleDescription": "Adjust the overall text scale for chats, lists, and dialogs.",
+    "notificationSoundTitle": "Notification Sound",
+    "notificationSoundDescription": "Choose a chat notification sound and preview it instantly.",
+    "languageTitle": "Language",
+    "languageDescription": "Switch the Web interface language."
   },
   "navigation": {
     "targetScope": "Target Scope",

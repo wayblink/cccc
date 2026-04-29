@@ -13,10 +13,25 @@
     "blueprint": "ブループリント",
     "actorProfiles": "Actor プロファイル",
     "myProfiles": "自分のプロファイル",
+    "frontend": "フロントエンド設定",
     "branding": "ブランド",
     "developer": "開発者",
     "webAccess": "Web アクセス",
     "assistants": "Assistant"
+  },
+  "frontend": {
+    "title": "フロントエンド設定",
+    "description": "テーマ、文字サイズ、通知音、言語を管理します。これらの設定は現在のブラウザにのみ適用されます。",
+    "localOnlyTitle": "このブラウザに保存",
+    "localOnlyDescription": "これらの設定は CCCC daemon には書き込まれず、他の端末やユーザーには影響しません。",
+    "themeTitle": "テーマ",
+    "themeDescription": "ライト、ダーク、またはシステム設定に合わせる外観を選択します。",
+    "textScaleTitle": "文字サイズ",
+    "textScaleDescription": "チャット、リスト、ダイアログ全体の文字サイズを調整します。",
+    "notificationSoundTitle": "通知音",
+    "notificationSoundDescription": "チャット通知音を選択し、すぐにプレビューできます。",
+    "languageTitle": "言語",
+    "languageDescription": "Web インターフェースの言語を切り替えます。"
   },
   "navigation": {
     "targetScope": "対象範囲",

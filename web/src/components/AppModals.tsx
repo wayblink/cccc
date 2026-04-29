@@ -524,7 +524,6 @@ export function AppModals({
     const linkedProfileId = String(editingActor?.profile_id || "").trim();
     if (!linkedProfileId) return;
     void loadActorProfiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modals.addActor, editingActor?.profile_id, loadActorProfiles]);
 
   // Handlers
@@ -1485,20 +1484,12 @@ export function AppModals({
     <>
       <MobileMenuSheet
         isOpen={modals.mobileMenu}
-        isDark={isDark}
-        theme={theme}
-        textScale={textScale}
-        chatNotificationSound={chatNotificationSound}
         selectedGroupId={selectedGroupId}
         groupDoc={groupDoc}
         selectedGroupRunning={selectedGroupRunning}
         actors={actors}
         busy={busy}
         onClose={() => closeModal("mobileMenu")}
-        onThemeChange={onThemeChange}
-        onTextScaleChange={onTextScaleChange}
-        onChatNotificationSoundChange={onChatNotificationSoundChange}
-        onPreviewChatNotificationSound={onPreviewChatNotificationSound}
         onOpenSearch={() => openModal("search")}
         onOpenContext={() => {
           openModal("context");
@@ -1644,6 +1635,13 @@ export function AppModals({
             onRegistryChanged={refreshGroups}
             busy={busy.startsWith("settings")}
             isDark={isDark}
+            theme={theme}
+            onThemeChange={onThemeChange}
+            textScale={textScale}
+            onTextScaleChange={onTextScaleChange}
+            chatNotificationSound={chatNotificationSound}
+            onChatNotificationSoundChange={onChatNotificationSoundChange}
+            onPreviewChatNotificationSound={onPreviewChatNotificationSound}
             groupId={selectedGroupId}
             groupDoc={groupDoc}
           />

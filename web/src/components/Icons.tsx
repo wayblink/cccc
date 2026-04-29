@@ -3,7 +3,7 @@ import {
   type LucideIcon,
   Clipboard, Check, Copy, Rocket,
   Play, Pause, Square,
-  Clock3, Settings2, Pencil, EllipsisVertical, Menu, X, Search,
+  Clock3, Settings, Pencil, EllipsisVertical, Menu, X, Search,
   LayoutPanelLeft, AppWindow, Maximize2, Minimize2, Monitor,
   TextCursorInput, Compass, Plus, House, Folder, Download,
   Sun, Moon, SquareTerminal, Bookmark, Inbox, RefreshCw, Trash2,
@@ -290,7 +290,7 @@ export const PlayIcon = createControlIcon(Play);
 export const PauseIcon = createControlIcon(Pause);
 export const StopIcon = createControlIcon(Square);
 export const ClockIcon = createIcon(Clock3);
-export const SettingsIcon = createIcon(Settings2);
+export const SettingsIcon = createIcon(Settings);
 export const EditIcon = createIcon(Pencil);
 export const MoreIcon = createIcon(EllipsisVertical);
 export const MenuIcon = createIcon(Menu);

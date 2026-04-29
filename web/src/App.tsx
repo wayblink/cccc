@@ -378,9 +378,6 @@ export default function App() {
         selectedGroupRunning={selectedGroupRunning}
         selectedGroupRuntimeStatus={selectedGroupRuntimeStatus}
         selectedGroupActorsHydrating={selectedGroupActorsHydrating}
-        theme={theme}
-        textScale={textScale}
-        chatNotificationSound={chatNotificationSound}
         sseStatus={sseStatus}
         groupLabelById={groupLabelById}
         mentionSelectedIndex={mentionSelectedIndex}
@@ -390,10 +387,6 @@ export default function App() {
         eventContainerRef={eventContainerRef}
         contentRef={contentRef}
         chatAtBottomRef={chatAtBottomRef}
-        onThemeChange={setTheme}
-        onTextScaleChange={setTextScale}
-        onChatNotificationSoundChange={setChatNotificationSound}
-        onPreviewChatNotificationSound={previewChatNotificationSound}
         onSelectGroup={setSelectedGroupId}
         onWarmGroup={(gid) => void warmGroup(gid)}
         onCreateGroup={

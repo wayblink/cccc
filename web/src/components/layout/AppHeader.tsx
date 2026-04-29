@@ -2,21 +2,13 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Actor,
-  ChatNotificationSoundId,
-  ChatNotificationSoundPreference,
   GroupDoc,
   GroupRuntimeStatus,
-  TextScale,
-  Theme,
 } from "../../types";
 import { getGroupStatusFromSource } from "../../utils/groupStatus";
 import { getGroupControlVisual, getLaunchControlMode, resolveGroupControls } from "../../utils/groupControls";
 import type { ChatDisplayMode } from "../../features/chatDisplay/chatDisplayMode";
 import { classNames } from "../../utils/classNames";
-import { ChatNotificationSoundSwitcher } from "../ChatNotificationSoundSwitcher";
-import { TextScaleSwitcher } from "../TextScaleSwitcher";
-import { ThemeToggleCompact } from "../ThemeToggle";
-import { LanguageSwitcher } from "../LanguageSwitcher";
 import {
   ClipboardIcon,
   SearchIcon,
@@ -33,17 +25,9 @@ import {
 } from "../Icons";
 
 export interface AppHeaderProps {
-  isDark: boolean;
-  theme: Theme;
-  textScale: TextScale;
-  chatNotificationSound: ChatNotificationSoundPreference;
   titleOverride?: string;
   hideGroupControls?: boolean;
   allowSettingsWithoutGroup?: boolean;
-  onThemeChange: (theme: Theme) => void;
-  onTextScaleChange: (scale: TextScale) => void;
-  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
-  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   webReadOnly?: boolean;
   selectedGroupId: string;
   groupDoc: GroupDoc | null;
@@ -69,17 +53,9 @@ export interface AppHeaderProps {
 }
 
 export function AppHeader({
-  isDark,
-  theme,
-  textScale,
-  chatNotificationSound,
   titleOverride,
   hideGroupControls = false,
   allowSettingsWithoutGroup = false,
-  onThemeChange,
-  onTextScaleChange,
-  onChatNotificationSoundChange,
-  onPreviewChatNotificationSound,
   webReadOnly,
   selectedGroupId,
   groupDoc,
@@ -377,32 +353,6 @@ export function AppHeader({
               )}
 
               <div className={headerUtilityRailClass}>
-                <ThemeToggleCompact
-                  theme={theme}
-                  onThemeChange={onThemeChange}
-                  isDark={isDark}
-                  variant="rail"
-                  className={headerUtilityButtonClass}
-                />
-                <TextScaleSwitcher
-                  textScale={textScale}
-                  onTextScaleChange={onTextScaleChange}
-                  variant="rail"
-                  className={headerUtilityButtonClass}
-                />
-                <ChatNotificationSoundSwitcher
-                  preference={chatNotificationSound}
-                  onPreferenceChange={onChatNotificationSoundChange}
-                  onPreviewSound={onPreviewChatNotificationSound}
-                  variant="rail"
-                  className={headerUtilityButtonClass}
-                />
-                <LanguageSwitcher
-                  isDark={isDark}
-                  variant="rail"
-                  className={classNames(headerUtilityButtonClass, "text-[10px] font-semibold tracking-[0.04em]")}
-                />
-                <span className="mx-0.5 h-4 w-px bg-[var(--glass-border-subtle)]" aria-hidden="true" />
                 <button
                   onClick={onOpenSettings}
                   disabled={!selectedGroupId && !allowSettingsWithoutGroup}

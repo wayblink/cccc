@@ -1,7 +1,19 @@
 // SettingsModal renders the settings modal.
 import { lazy, Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Actor, GroupDoc, GroupSettings, IMStatus, IMPlatform, WebAccessSession, WeixinLoginStatus } from "../types";
+import {
+  Actor,
+  ChatNotificationSoundId,
+  ChatNotificationSoundPreference,
+  GroupDoc,
+  GroupSettings,
+  IMStatus,
+  IMPlatform,
+  TextScale,
+  Theme,
+  WebAccessSession,
+  WeixinLoginStatus,
+} from "../types";
 import * as api from "../services/api";
 import { useObservabilityStore } from "../stores";
 import type { RuntimeVisibilityMode } from "../utils/runtimeVisibility";
@@ -31,6 +43,9 @@ const ActorProfilesTab = lazy(() => import("./modals/settings/ActorProfilesTab")
 const BrandingTab = lazy(() => import("./modals/settings/BrandingTab").then((module) => ({ default: module.BrandingTab })));
 const WebAccessTab = lazy(() => import("./modals/settings/WebAccessTab").then((module) => ({ default: module.WebAccessTab })));
 const DeveloperTab = lazy(() => import("./modals/settings/DeveloperTab").then((module) => ({ default: module.DeveloperTab })));
+const FrontendSettingsTab = lazy(() =>
+  import("./modals/settings/FrontendSettingsTab").then((module) => ({ default: module.FrontendSettingsTab })),
+);
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -40,6 +55,13 @@ interface SettingsModalProps {
   onRegistryChanged?: () => Promise<void> | void;
   busy: boolean;
   isDark: boolean;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
+  textScale: TextScale;
+  onTextScaleChange: (scale: TextScale) => void;
+  chatNotificationSound: ChatNotificationSoundPreference;
+  onChatNotificationSoundChange: (preference: ChatNotificationSoundPreference) => void;
+  onPreviewChatNotificationSound: (soundId: ChatNotificationSoundId) => void | Promise<unknown>;
   groupId?: string;
   groupDoc?: GroupDoc | null;
 }
@@ -64,14 +86,21 @@ export function SettingsModal({
   onRegistryChanged,
   busy,
   isDark,
+  theme,
+  onThemeChange,
+  textScale,
+  onTextScaleChange,
+  chatNotificationSound,
+  onChatNotificationSoundChange,
+  onPreviewChatNotificationSound,
   groupId,
   groupDoc,
 }: SettingsModalProps) {
   const { t } = useTranslation("settings");
   const { modalRef } = useModalA11y(isOpen, onClose);
-  const [scope, setScope] = useState<SettingsScope>(groupId ? "group" : "global");
+  const [scope, setScope] = useState<SettingsScope>("global");
   const [groupTab, setGroupTab] = useState<GroupTabId>("guidance");
-  const [globalTab, setGlobalTab] = useState<GlobalTabId>("capabilities");
+  const [globalTab, setGlobalTab] = useState<GlobalTabId>("frontend");
   const [canAccessGlobalSettings, setCanAccessGlobalSettings] = useState<boolean | null>(null);
   const [webAccessSession, setWebAccessSession] = useState<WebAccessSession | null>(null);
 
@@ -199,8 +228,9 @@ export function SettingsModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setScope(groupId ? "group" : "global");
-  }, [isOpen, groupId]);
+    setScope("global");
+    setGlobalTab("frontend");
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -213,8 +243,6 @@ export function SettingsModal({
         setWebAccessSession(session);
         const allowed = Boolean(session?.can_access_global_settings ?? !(session?.login_active ?? false));
         setCanAccessGlobalSettings(allowed);
-        const allowGlobalScope = Boolean(allowed || session?.current_browser_signed_in);
-        if (!allowGlobalScope && groupId) setScope("group");
       } catch {
         if (!cancelled) {
           setWebAccessSession(null);
@@ -226,7 +254,7 @@ export function SettingsModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, groupId]);
+  }, [isOpen]);
 
   const resetIMState = () => {
     setImStatus(null);
@@ -927,9 +955,10 @@ export function SettingsModal({
 
   const globalSettingsEnabled = canAccessGlobalSettings === true;
   const currentBrowserSignedIn = Boolean(webAccessSession?.current_browser_signed_in);
-  const globalScopeEnabled = globalSettingsEnabled || currentBrowserSignedIn;
+  const globalScopeEnabled = true;
 
   const globalTabs = useMemo<{ id: GlobalTabId; label: string }[]>(() => [
+    { id: "frontend" as const, label: t("tabs.frontend") },
     ...(globalSettingsEnabled ? [
       { id: "capabilities" as const, label: t("tabs.capabilities") },
       { id: "actorProfiles" as const, label: t("tabs.actorProfiles") },
@@ -964,6 +993,7 @@ export function SettingsModal({
   ];
   const tabs = scope === "group" ? groupTabs : (globalScopeEnabled ? globalTabs : []);
   const activeTab = scope === "group" ? groupTab : globalTab;
+  const showingFrontendSettings = scope === "global" && activeTab === "frontend";
   const setActiveTab = (tab: GroupTabId | GlobalTabId) => {
     if (scope === "group") setGroupTab(tab as GroupTabId);
     else setGlobalTab(tab as GlobalTabId);
@@ -1006,7 +1036,9 @@ export function SettingsModal({
           <div className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">
             {scope === "group"
               ? t("navigation.groupScopeContent", { scopeRoot: scopeRootUrl || groupId || "—" })
-              : (globalScopeEnabled ? t("navigation.globalScopeContent") : t("navigation.globalLockedContent"))}
+              : (showingFrontendSettings
+                ? t("frontend.description")
+                : (globalScopeEnabled ? t("navigation.globalScopeContent") : t("navigation.globalLockedContent")))}
           </div>
         </div>
       )}
@@ -1050,7 +1082,7 @@ export function SettingsModal({
           }`}
         >
           <div className="p-4 pb-6 sm:p-5 lg:p-6 sm:pb-7 space-y-4 lg:space-y-5">
-            {scope === "global" && !globalSettingsEnabled && !currentBrowserSignedIn ? (
+            {scope === "global" && !globalSettingsEnabled && !currentBrowserSignedIn && !showingFrontendSettings ? (
               <div className={`rounded-xl border p-6 ${isDark ? "border-amber-700/40 bg-amber-900/10 text-amber-200" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
                 <div className="text-sm font-semibold">{t("navigation.globalLockedTitle")}</div>
                 <div className="mt-2 text-sm leading-6">{t("navigation.globalLockedContent")}</div>
@@ -1066,7 +1098,20 @@ export function SettingsModal({
               </div>
             ) : !tabs.some((tab) => tab.id === activeTab) ? null : (
               <Suspense fallback={<SettingsTabFallback isDark={isDark} />}>
-              {activeTab === "automation" && (
+                {activeTab === "frontend" && (
+                  <FrontendSettingsTab
+                    isDark={isDark}
+                    theme={theme}
+                    onThemeChange={onThemeChange}
+                    textScale={textScale}
+                    onTextScaleChange={onTextScaleChange}
+                    chatNotificationSound={chatNotificationSound}
+                    onChatNotificationSoundChange={onChatNotificationSoundChange}
+                    onPreviewChatNotificationSound={onPreviewChatNotificationSound}
+                  />
+                )}
+
+                {activeTab === "automation" && (
                 <AutomationTab
                   isDark={isDark}
                   groupId={groupId}
