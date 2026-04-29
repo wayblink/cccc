@@ -195,12 +195,6 @@ export function ChatComposer({
 
   const chipBaseClass =
     "flex h-6 flex-shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2 text-[10px] font-medium leading-none transition-all sm:px-2.5 sm:text-[11px]";
-  const chipActiveClass = isDark
-    ? "border-white bg-white text-[rgb(20,20,22)] shadow-none"
-    : "border-[rgb(35,36,37)] bg-[rgb(35,36,37)] text-white shadow-none";
-  const chipInactiveClass = isDark
-    ? "bg-white/[0.06] text-[var(--color-text-secondary)] border-white/[0.08] hover:bg-white/[0.1] hover:border-white/[0.14] hover:text-[var(--color-text-primary)]"
-    : "bg-[rgb(245,245,245)] text-[rgb(35,36,37)] border-transparent hover:bg-[rgb(237,237,237)] hover:border-black/5 hover:text-[rgb(20,20,22)]";
   const composerToolButtonClass =
     "glass-btn flex flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-[var(--glass-border-subtle)] text-[var(--color-text-secondary)] transition-[background-color,border-color,color,transform,box-shadow] duration-200 disabled:cursor-not-allowed disabled:text-[var(--color-text-tertiary)] disabled:opacity-70";
   const composerInlineToolButtonClass =

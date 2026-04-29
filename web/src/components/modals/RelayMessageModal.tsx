@@ -17,6 +17,17 @@ export interface RelayMessageModalProps {
   onSubmit: (dstGroupId: string, to: string[], note: string) => void;
 }
 
+function resolveRelayRecipientTokens(
+  tokens: string[],
+  availableTokens: string[],
+  dstGroupAgentLinkMode: ReturnType<typeof getGroupAgentLinkMode>,
+): string[] {
+  const validTokens = new Set(availableTokens);
+  const next = tokens.filter((token) => validTokens.has(token));
+  if (next.length > 0) return next;
+  return dstGroupAgentLinkMode === "connected" ? ["@all"] : [];
+}
+
 export function RelayMessageModal({
   isOpen,
   busy,
@@ -99,23 +110,19 @@ export function RelayMessageModal({
     return [...specialRecipientTokens, ...actorIds];
   }, [dstActors, specialRecipientTokens]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const validTokens = new Set(availableTokens);
-    setToTokens((prev) => {
-      const next = prev.filter((token) => validTokens.has(token));
-      if (next.length > 0) return next;
-      return dstGroupAgentLinkMode === "connected" ? ["@all"] : [];
-    });
-  }, [availableTokens, dstGroupAgentLinkMode, isOpen]);
+  const selectedToTokens = useMemo(
+    () => resolveRelayRecipientTokens(toTokens, availableTokens, dstGroupAgentLinkMode),
+    [availableTokens, dstGroupAgentLinkMode, toTokens],
+  );
 
   const toggleToken = (token: string) => {
     const t = token.trim();
     if (!t) return;
     setToTokens((prev) => {
-      const exists = prev.includes(t);
-      if (exists) return prev.filter((x) => x !== t);
-      return prev.concat([t]);
+      const next = resolveRelayRecipientTokens(prev, availableTokens, dstGroupAgentLinkMode);
+      const exists = next.includes(t);
+      if (exists) return next.filter((x) => x !== t);
+      return next.concat([t]);
     });
   };
 
@@ -214,7 +221,7 @@ export function RelayMessageModal({
 
                 <div className={classNames("mt-2 flex flex-wrap gap-2", dstActorsBusy ? "opacity-60" : "")}>
                   {availableTokens.map((tok) => {
-                    const active = toTokens.includes(tok);
+                    const active = selectedToTokens.includes(tok);
                     return (
                       <button
                         key={tok}
@@ -235,8 +242,8 @@ export function RelayMessageModal({
                   })}
                 </div>
                 <div className="mt-2 text-xs text-[var(--color-text-muted)]">
-                  {toTokens.length
-                    ? t("relay.selectedTokens", { tokens: toTokens.join(", ") })
+                  {selectedToTokens.length
+                    ? t("relay.selectedTokens", { tokens: selectedToTokens.join(", ") })
                     : dstGroupAgentLinkMode === "connected"
                       ? t("relay.selectedBroadcast")
                       : t("relay.selectedExplicit", { defaultValue: "Selected: (choose recipients)" })}
@@ -270,7 +277,7 @@ export function RelayMessageModal({
             </button>
             <button
               className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold shadow-lg disabled:opacity-50 transition-all min-h-[44px]"
-              onClick={() => onSubmit(dstGroupId, toTokens, note)}
+              onClick={() => onSubmit(dstGroupId, selectedToTokens, note)}
               disabled={!canSubmit}
             >
               {busy ? t("relay.sending") : t("relay.relay")}

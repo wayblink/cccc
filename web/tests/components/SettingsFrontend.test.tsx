@@ -354,4 +354,97 @@ describe("frontend settings chrome", () => {
     expect(container?.querySelector('circle[cx="7"][cy="7"]')).toBeNull();
     expect(container?.querySelector('circle[cx="17"][cy="17"]')).toBeNull();
   });
+
+  it("orders the desktop header actions with utility tools before the runtime controls", () => {
+    ({ container, root } = render(
+      <AppHeader
+        selectedGroupId="group-1"
+        groupDoc={{ group_id: "group-1", title: "Group One" }}
+        selectedGroupRunning
+        selectedGroupRuntimeStatus={{
+          lifecycle_state: "active",
+          runtime_running: true,
+          running_actor_count: 1,
+          has_running_foreman: false,
+        }}
+        actors={[{ id: "actor-1" }] as Actor[]}
+        sseStatus="connected"
+        busy=""
+        onOpenSidebar={vi.fn()}
+        onOpenSearch={vi.fn()}
+        onOpenContext={vi.fn()}
+        onStartGroup={vi.fn()}
+        onStopGroup={vi.fn()}
+        onSetGroupState={vi.fn()}
+        onOpenSettings={vi.fn()}
+        onOpenMobileMenu={vi.fn()}
+        hasTerminalActors
+        onToggleChatDisplayMode={vi.fn()}
+        onToggleWorkspaceInspector={vi.fn()}
+      />,
+    ));
+
+    const expectedOrder = [
+      "Open workspace inspector",
+      "Switch to terminal",
+      "Search Messages",
+      "Context",
+      "Pause delivery",
+      "Stop all agents",
+      "Settings",
+    ];
+    const actualOrder = Array.from(container?.querySelectorAll("header button") || [])
+      .map((button) => button.getAttribute("title") || button.getAttribute("aria-label") || "")
+      .filter((label) => expectedOrder.includes(label));
+    expect(actualOrder).toEqual(expectedOrder);
+
+    const contextButton = Array.from(container?.querySelectorAll("header button") || []).find(
+      (button) => button.getAttribute("title") === "Context",
+    );
+    const separator = contextButton?.nextElementSibling;
+    expect(separator?.tagName).toBe("SPAN");
+    expect(separator?.className).toContain("w-px");
+    expect(separator?.nextElementSibling?.getAttribute("title")).toBe("Pause delivery");
+  });
+
+  it("gives the open workspace button the same pressed control affordance as Stop", () => {
+    ({ container, root } = render(
+      <AppHeader
+        selectedGroupId="group-1"
+        groupDoc={{ group_id: "group-1", title: "Group One" }}
+        selectedGroupRunning={false}
+        selectedGroupRuntimeStatus={{
+          lifecycle_state: "stopped",
+          runtime_running: false,
+          running_actor_count: 0,
+          has_running_foreman: false,
+        }}
+        actors={[] as Actor[]}
+        sseStatus="connected"
+        busy=""
+        onOpenSidebar={vi.fn()}
+        onOpenSearch={vi.fn()}
+        onOpenContext={vi.fn()}
+        onStartGroup={vi.fn()}
+        onStopGroup={vi.fn()}
+        onSetGroupState={vi.fn()}
+        onOpenSettings={vi.fn()}
+        onOpenMobileMenu={vi.fn()}
+        workspaceInspectorOpen
+        onToggleWorkspaceInspector={vi.fn()}
+      />,
+    ));
+
+    const workspaceButton = Array.from(container?.querySelectorAll("header button") || []).find(
+      (button) => button.getAttribute("aria-label") === "Close workspace inspector",
+    );
+    const stopButton = Array.from(container?.querySelectorAll("header button") || []).find(
+      (button) => button.getAttribute("title") === "Stop all agents",
+    );
+    expect(workspaceButton?.getAttribute("aria-pressed")).toBe("true");
+    expect(stopButton?.getAttribute("aria-pressed")).toBe("true");
+    expect(workspaceButton?.className).toContain("text-white");
+    expect(workspaceButton?.className).toContain("ring-1");
+    expect(workspaceButton?.className).toContain("shadow-[0_10px_24px_rgba");
+  });
 });

@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { MessageAttachment } from "../../types";
 import { withAuthToken } from "../../services/api";
 import { classNames } from "../../utils/classNames";
-import { deriveAttachmentTitle, isImageAttachment, isSvgAttachment, isTextEditableAttachment } from "../../utils/messageAttachments";
+import { deriveAttachmentTitle, isImageAttachment, isSvgAttachment } from "../../utils/messageAttachments";
 import { FileIcon } from "../Icons";
 import { ImagePreview } from "./ImagePreview";
 import { TextDocumentViewerModal } from "./TextDocumentViewerModal";
@@ -14,7 +14,7 @@ export function MessageAttachments({
   isUserMessage,
   isDark,
   attachmentKeyPrefix,
-  downloadTitle,
+  downloadTitle: _downloadTitle,
 }: {
   attachments: MessageAttachment[];
   blobGroupId: string;
@@ -59,11 +59,7 @@ export function MessageAttachments({
           {fileAttachments.map((attachment, index) => {
             const parts = String(attachment.path || "").split("/");
             const blobName = parts[parts.length - 1] || "";
-            const href = attachment.local_preview_url || withAuthToken(
-              `/api/v1/groups/${encodeURIComponent(blobGroupId)}/blobs/${encodeURIComponent(blobName)}`
-            );
             const label = attachment.title || deriveAttachmentTitle(blobName) || "file";
-            const editable = isTextEditableAttachment(attachment);
             return (
               <div
                 key={`file:${attachmentKeyPrefix}:${index}`}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { PlusIcon } from "../../components/Icons";
 import { classNames } from "../../utils/classNames";
 import { getTerminalDirectActorFrameClassName } from "../../features/chatDisplay/chatDisplayMode";
@@ -52,21 +52,23 @@ export function TerminalDirectView({
     () => runtimeActors.filter((a) => getEffectiveActorRunner(a) === "pty"),
     [runtimeActors]
   );
-  const [activeActorId, setActiveActorId] = useState<string>(() => {
-    return ptyActors[0]?.id || "";
-  });
+  const [activeSelection, setActiveSelection] = useState<{ actorId: string; appliedHint: string }>(() => ({
+    actorId: "",
+    appliedHint: "",
+  }));
 
-  // When actors change, fall back to first available if current is gone
-  const resolvedActiveId =
-    ptyActors.some((a) => a.id === activeActorId)
-      ? activeActorId
-      : (ptyActors[0]?.id || "");
-
-  useEffect(() => {
+  const hintedActiveActorId = useMemo(() => {
     const nextActiveId = String(activeActorIdHint || "").trim();
-    if (!nextActiveId || !ptyActors.some((actor) => actor.id === nextActiveId)) return;
-    setActiveActorId(nextActiveId);
+    if (!nextActiveId || !ptyActors.some((actor) => actor.id === nextActiveId)) return "";
+    return nextActiveId;
   }, [activeActorIdHint, ptyActors]);
+  const selectedActiveActorId = ptyActors.some((a) => a.id === activeSelection.actorId)
+    ? activeSelection.actorId
+    : "";
+  const resolvedActiveId =
+    hintedActiveActorId && activeSelection.appliedHint !== hintedActiveActorId
+      ? hintedActiveActorId
+      : (selectedActiveActorId || ptyActors[0]?.id || "");
 
   const agentStateFor = (actorId: string): AgentState | null =>
     (groupContext?.agent_states || []).find((s) => s.id === actorId) || null;
@@ -104,7 +106,7 @@ export function TerminalDirectView({
                 <button
                   key={actor.id}
                   type="button"
-                  onClick={() => setActiveActorId(actor.id)}
+                  onClick={() => setActiveSelection({ actorId: actor.id, appliedHint: hintedActiveActorId })}
                   className={classNames(
                     "flex-shrink-0 text-xs px-3 py-1 rounded transition-colors whitespace-nowrap",
                     active

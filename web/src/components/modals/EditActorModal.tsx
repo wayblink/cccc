@@ -329,7 +329,6 @@ export function EditActorModal({
     setSecretsClearAll(false);
     setSecretKeys([]);
     setSecretSource("none");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, actorId, isOpen, linkedProfileId, linkedProfileOwner, linkedProfileScope]);
 
   useEffect(() => {

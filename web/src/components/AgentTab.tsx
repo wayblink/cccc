@@ -17,7 +17,7 @@ import { StopIcon, RefreshIcon, InboxIcon, TrashIcon, PlayIcon, EditIcon, Termin
 import { ScrollFade } from "./ScrollFade";
 import { getTerminalSignalFromChunk } from "../utils/terminalWorkingState";
 import { getRuntimeIndicatorState } from "../utils/statusIndicators";
-import { getEffectiveActorRunner, supportsStandardWebHeadlessRuntime } from "../utils/headlessRuntimeSupport";
+import { getEffectiveActorRunner } from "../utils/headlessRuntimeSupport";
 import { copyTextToClipboard } from "../utils/copy";
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
@@ -209,13 +209,6 @@ export function AgentTab({
     if (workingState === "working") return t("working");
     return t("running");
   })();
-  const primaryActionButtonClass =
-    "inline-flex items-center gap-1.5 rounded-xl border border-[rgb(35,36,37)] bg-[rgb(35,36,37)] px-3.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed dark:border-white dark:bg-white dark:text-[rgb(35,36,37)] dark:hover:bg-white/92";
-  const secondaryActionButtonClass =
-    "inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--glass-tab-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed";
-  const ghostActionButtonClass =
-    "inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--color-text-tertiary)] transition-colors hover:border-[var(--glass-border-subtle)] hover:bg-[var(--glass-tab-bg-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-50 disabled:cursor-not-allowed";
-
   // Send interrupt (Ctrl+C)
   const sendInterrupt = () => {
     if (readOnly) return;

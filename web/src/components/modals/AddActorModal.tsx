@@ -97,6 +97,13 @@ function modeButtonClass(selected: boolean): string {
 
 export function AddActorModal({
   isOpen,
+  ...props
+}: AddActorModalProps) {
+  if (!isOpen) return null;
+  return <AddActorModalContent {...props} />;
+}
+
+function AddActorModalContent({
   isDark,
   busy,
   hasForeman,
@@ -138,9 +145,9 @@ export function AddActorModal({
   onSaveAsProfile,
   onClose,
   onCancelAndReset,
-}: AddActorModalProps) {
+}: Omit<AddActorModalProps, "isOpen">) {
   const { t } = useTranslation("actors");
-  const { modalRef } = useModalA11y(isOpen, onClose);
+  const { modalRef } = useModalA11y(true, onClose);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [entryMode, setEntryMode] = useState<"choice" | "agent">(() => (onLaunchQuickTerminal ? "choice" : "agent"));
   const avatarPreviewUrl = useMemo(() => (avatarFile ? URL.createObjectURL(avatarFile) : null), [avatarFile]);
@@ -150,12 +157,6 @@ export function AddActorModal({
       if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     };
   }, [avatarPreviewUrl]);
-
-  useEffect(() => {
-    if (isOpen) setEntryMode(onLaunchQuickTerminal ? "choice" : "agent");
-  }, [isOpen, onLaunchQuickTerminal]);
-
-  if (!isOpen) return null;
 
   const runtimeInfo = runtimes.find((r) => r.name === newActorRuntime);
   const runtimeAvailable = runtimeInfo?.available ?? false;

@@ -33,8 +33,6 @@ import {
 } from "../utils/groupMode";
 import { hasRenderableChatMessageContent } from "../utils/ledgerEventHandlers";
 import {
-  buildQuickTerminalActorId,
-  getQuickTerminalCommand,
   isQuickTerminalActor,
   launchQuickTerminalForGroup,
 } from "../features/quickTerminal/quickTerminal";

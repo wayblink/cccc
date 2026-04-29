@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseUnifiedDiffLines } from "../../../src/features/workspaceInspector/WorkspaceDiffViewer";
+import { parseUnifiedDiffLines } from "../../../src/features/workspaceInspector/workspaceDiffUtils";
 
 describe("parseUnifiedDiffLines", () => {
   it("classifies unified diff lines for rendering", () => {
