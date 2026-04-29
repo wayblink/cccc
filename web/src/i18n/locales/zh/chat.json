@@ -92,6 +92,7 @@
   "attachProjectFolder": "关联项目文件夹",
   "addAgent": "添加智能体",
   "addForemanFirst": "先添加一个领班，再添加协作者。",
+  "addFirstAgentHint": "先添加第一个智能体。",
   "addAgentButton": "添加智能体",
   "startGroup": "启动工作组",
   "launchAgents": "启动智能体并开始对话。",

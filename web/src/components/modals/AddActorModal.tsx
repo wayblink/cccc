@@ -23,6 +23,7 @@ export interface AddActorModalProps {
   isDark: boolean;
   busy: string;
   hasForeman: boolean;
+  showCoordinationRoles?: boolean;
   runtimes: RuntimeInfo[];
 
   suggestedActorId: string;
@@ -98,6 +99,7 @@ export function AddActorModal({
   isDark,
   busy,
   hasForeman,
+  showCoordinationRoles = true,
   runtimes,
   suggestedActorId,
   newActorId,
@@ -277,7 +279,9 @@ export function AddActorModal({
 
               <section className={sectionCardClass}>
               <div className={sectionTitleClass}>{t("sectionBasics")}</div>
-              <div className={sectionHintClass}>{t("addSectionBasicsHint")}</div>
+              <div className={sectionHintClass}>
+                {showCoordinationRoles ? t("addSectionBasicsHint") : t("addSectionBasicsHintInteractive")}
+              </div>
 
               <div className="mt-4 space-y-4">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
@@ -316,6 +320,7 @@ export function AddActorModal({
                   </div>
                 </div>
 
+                {showCoordinationRoles ? (
                 <div>
                   <label className="block text-xs font-medium mb-2 text-[var(--color-text-muted)]">{t("role")}</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -358,6 +363,7 @@ export function AddActorModal({
                     {hasForeman ? t("foremanLeads") : t("firstAgentForeman")}
                   </div>
                 </div>
+                ) : null}
 
                 <RolePresetPicker
                   draftValue={newActorRoleNotes}

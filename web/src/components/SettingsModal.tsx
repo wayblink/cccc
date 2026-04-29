@@ -170,6 +170,7 @@ export function SettingsModal({
   const groupMode = useMemo(() => getGroupMode(groupDoc), [groupDoc]);
   const groupAgentLinkMode = useMemo(() => getGroupAgentLinkMode(groupDoc, settings), [groupDoc, settings]);
   const canConfigureDefaultSendTo = useMemo(() => supportsGroupDefaultSendTo(groupDoc, settings), [groupDoc, settings]);
+  const showCoordinationRoles = groupMode === "collaboration";
 
   // ============ Effects ============
 
@@ -1174,6 +1175,7 @@ export function SettingsModal({
                   busy={busy}
                   groupId={groupId}
                   devActors={devActors}
+                  showCoordinationRoles={showCoordinationRoles}
                   terminalVisibility={terminalVisibility}
                   setTerminalVisibility={setTerminalVisibility}
                   terminalNotifyTail={terminalNotifyTail}
@@ -1200,7 +1202,13 @@ export function SettingsModal({
                 />
               )}
 
-              {activeTab === "guidance" && <GuidanceTab isDark={isDark} groupId={groupId} />}
+              {activeTab === "guidance" && (
+                <GuidanceTab
+                  isDark={isDark}
+                  groupId={groupId}
+                  showCoordinationRoles={showCoordinationRoles}
+                />
+              )}
 
               {activeTab === "assistants" && (
                 <AssistantsTab

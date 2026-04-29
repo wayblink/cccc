@@ -260,6 +260,7 @@ export function ChatTab({
 
   const preferredPresentationSurface = !isSmallScreen && presentationDisplayMode === "split" ? "split" : "modal";
   const selectedGroupMode = getGroupMode(selectedGroupMeta);
+  const showCoordinationRoles = selectedGroupMode === "collaboration";
   const emptyStateDescription = selectedGroupMode === "interactive"
     ? t("interactiveEmptyHint", {
         defaultValue: "Start with the current agent. Each agent stays separate until you message it directly.",
@@ -511,6 +512,7 @@ export function ChatTab({
                   needsStart={needsStart}
                   onAddAgent={addAgent}
                   onStartGroup={onStartGroup}
+                  showCoordinationRoles={showCoordinationRoles}
                   variant="compact"
                 />
               </Suspense>
@@ -637,6 +639,7 @@ export function ChatTab({
                             needsStart={needsStart}
                             onAddAgent={addAgent}
                             onStartGroup={onStartGroup}
+                            showCoordinationRoles={showCoordinationRoles}
                             variant="full"
                           />
                         </Suspense>

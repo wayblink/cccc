@@ -50,6 +50,7 @@ interface AgentTabProps {
   busy: string;
   isDark: boolean;
   isSmallScreen: boolean;
+  showCoordinationRoles?: boolean;
   /** Called when the component detects actor status may have changed (e.g., process exited) */
   onStatusChange?: () => void;
 }
@@ -70,6 +71,7 @@ export function AgentTab({
   busy,
   isDark,
   isSmallScreen,
+  showCoordinationRoles = true,
   onStatusChange,
 }: AgentTabProps) {
   const { t } = useTranslation('actors');
@@ -735,7 +737,7 @@ export function AgentTab({
           <div className="min-w-0">
             <div className="flex items-center gap-2 min-w-0">
               <span className={classNames("font-semibold truncate min-w-0", color.text)}>{actor.title || actor.id}</span>
-              {actor.role === "foreman" && (
+              {showCoordinationRoles && actor.role === "foreman" && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300 font-medium">
                   {t('foreman')}
                 </span>

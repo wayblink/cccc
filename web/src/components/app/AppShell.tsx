@@ -29,6 +29,7 @@ import type {
 import { useFormStore, useModalStore } from "../../stores";
 import { SIDEBAR_COLLAPSED_WIDTH, getChatSession, useUIStore } from "../../stores/useUIStore";
 import { isToolAppTab, isFixedAppTab } from "../../utils/appTabs";
+import { getGroupMode } from "../../utils/groupMode";
 
 type AppShellProps = {
   orderedGroups: GroupMeta[];
@@ -204,6 +205,7 @@ export function AppShell({
   const setWorkspaceInspectorActiveTab = useUIStore((s) => s.setWorkspaceInspectorActiveTab);
   const toggleWorkspaceInspector = useUIStore((s) => s.toggleWorkspaceInspector);
   const hasForeman = actors.some((actor) => actor.role === "foreman");
+  const showCoordinationRoles = getGroupMode(groupDoc) === "collaboration";
   const hasPtyActors = hasPtyRuntimeActor(runtimeActors);
   const showTerminalDirect = chatDisplayMode === "terminal" && hasPtyActors && !isToolAppTab(activeTab);
   const terminalDisplayMode: ChatDisplayMode = showTerminalDirect ? "terminal" : "chat";
@@ -413,6 +415,7 @@ export function AppShell({
                         isDark={isDark}
                         isSmallScreen={isSmallScreen}
                         readOnly={webReadOnly}
+                        showCoordinationRoles={showCoordinationRoles}
                         activeActorId={activeTab}
                         onAddAgent={!webReadOnly ? handleAddAgent : undefined}
                         onToggleActorEnabled={onToggleActorEnabled}
@@ -458,6 +461,7 @@ export function AppShell({
                       isSmallScreen={isSmallScreen}
                       isVisible={isVisible}
                       readOnly={webReadOnly}
+                      showCoordinationRoles={showCoordinationRoles}
                       onToggleEnabled={() => actor && onToggleActorEnabled(actor)}
                       onRelaunch={() => actor && onRelaunchActor(actor)}
                       onEdit={() => actor && onEditActor(actor)}

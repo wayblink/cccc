@@ -28,6 +28,7 @@ vi.mock("react-i18next", () => ({
       newActorRoleNotesHint: "Hint",
       sectionBasics: "Basics",
       addSectionBasicsHint: "Basics hint",
+      addSectionBasicsHintInteractive: "Interactive basics hint",
       "common:cancel": "Cancel",
       sectionRuntime: "Runtime",
       sectionRuntimeHint: "Runtime hint",
@@ -109,6 +110,7 @@ describe("AddActorModal entry mode", () => {
 
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    window.scrollTo = vi.fn();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -153,5 +155,43 @@ describe("AddActorModal entry mode", () => {
     expect(container?.querySelector('[data-testid="add-actor-entry-ai"]')).toBeTruthy();
     expect(container?.querySelector('[data-testid="add-actor-entry-terminal"]')).toBeTruthy();
     expect(container?.textContent).not.toContain("Agent name");
+  });
+
+  it("hides coordination roles when the group is interactive", async () => {
+    await act(async () => {
+      root?.render(
+        <AddActorModal
+          {...defaultProps({
+            onLaunchQuickTerminal: undefined,
+            showCoordinationRoles: false,
+          })}
+        />
+      );
+    });
+
+    expect(container?.textContent).toContain("Agent name");
+    expect(container?.textContent).toContain("Interactive basics hint");
+    expect(container?.textContent).not.toContain("Foreman");
+    expect(container?.textContent).not.toContain("Peer");
+    expect(container?.textContent).not.toContain("First agent is foreman");
+    expect(container?.querySelector('[data-testid="role-preset-picker"]')).toBeTruthy();
+  });
+
+  it("keeps coordination roles visible when the group is collaboration mode", async () => {
+    await act(async () => {
+      root?.render(
+        <AddActorModal
+          {...defaultProps({
+            onLaunchQuickTerminal: undefined,
+            showCoordinationRoles: true,
+          })}
+        />
+      );
+    });
+
+    expect(container?.textContent).toContain("Role");
+    expect(container?.textContent).toContain("Foreman");
+    expect(container?.textContent).toContain("Peer");
+    expect(container?.textContent).toContain("Foreman leads");
   });
 });

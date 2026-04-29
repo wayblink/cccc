@@ -87,6 +87,7 @@
   "changeSettings": "Change settings for this agent",
   "sectionBasics": "Basics",
   "addSectionBasicsHint": "Set the actor name, team role, and long-lived work stance before choosing how it runs.",
+  "addSectionBasicsHintInteractive": "Set the actor name and long-lived work stance before choosing how it runs.",
   "sectionBasicsHint": "Edit the actor label, built-in role preset seed, and stable actor-scoped role notes here.",
   "sectionRuntime": "Runtime Setup",
   "sectionRuntimeHint": "Choose a runtime profile or custom runtime config. Role presets above only affect role notes.",

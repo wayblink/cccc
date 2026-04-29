@@ -14,6 +14,7 @@ export interface ActorTabProps {
   isSmallScreen: boolean;
   isVisible: boolean;
   readOnly?: boolean;
+  showCoordinationRoles?: boolean;
   onToggleEnabled: () => void;
   onRelaunch: () => void;
   onEdit: () => void;
@@ -33,6 +34,7 @@ export function ActorTab({
   isSmallScreen,
   isVisible,
   readOnly,
+  showCoordinationRoles = true,
   onToggleEnabled,
   onRelaunch,
   onEdit,
@@ -66,6 +68,7 @@ export function ActorTab({
         busy={busy}
         isDark={isDark}
         isSmallScreen={isSmallScreen}
+        showCoordinationRoles={showCoordinationRoles}
         onStatusChange={onStatusChange}
       />
     </Suspense>

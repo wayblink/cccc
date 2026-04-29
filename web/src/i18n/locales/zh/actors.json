@@ -87,6 +87,7 @@
   "changeSettings": "修改这个 actor 的设置",
   "sectionBasics": "基础信息",
   "addSectionBasicsHint": "先确定 actor 名称、团队角色和长期工作姿态，再决定它如何运行。",
+  "addSectionBasicsHintInteractive": "先设置智能体名称和长期工作姿态，再选择运行方式。",
   "sectionBasicsHint": "在这里编辑 actor 的显示名、内置角色预置起点，以及稳定的 actor 级 role notes。",
   "sectionRuntime": "运行时设置",
   "sectionRuntimeHint": "这里决定 runtime profile 或自定义运行配置。上面的 role preset 只影响 role notes。",

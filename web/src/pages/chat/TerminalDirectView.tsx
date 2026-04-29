@@ -18,6 +18,7 @@ interface TerminalDirectViewProps {
   isDark: boolean;
   isSmallScreen: boolean;
   readOnly?: boolean;
+  showCoordinationRoles?: boolean;
   activeActorId?: string;
   onAddAgent?: () => void;
   onToggleActorEnabled: (actor: Actor) => void;
@@ -37,6 +38,7 @@ export function TerminalDirectView({
   isDark,
   isSmallScreen,
   readOnly,
+  showCoordinationRoles = true,
   activeActorId: activeActorIdHint,
   onAddAgent,
   onToggleActorEnabled,
@@ -177,6 +179,7 @@ export function TerminalDirectView({
                   busy={busy}
                   isDark={isDark}
                   isSmallScreen={isSmallScreen}
+                  showCoordinationRoles={showCoordinationRoles}
                   onStatusChange={onRefreshActors}
                 />
               </Suspense>

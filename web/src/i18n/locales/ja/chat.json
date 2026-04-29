@@ -92,6 +92,7 @@
   "attachProjectFolder": "プロジェクトフォルダを添付",
   "addAgent": "エージェントを追加",
   "addForemanFirst": "先に Foreman を追加し、その後 Peer を追加してください。",
+  "addFirstAgentHint": "最初のエージェントを追加してください。",
   "addAgentButton": "エージェントを追加",
   "startGroup": "グループを開始",
   "launchAgents": "エージェントを起動してチャットを開始します。",

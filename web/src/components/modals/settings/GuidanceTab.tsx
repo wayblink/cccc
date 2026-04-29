@@ -46,9 +46,10 @@ function uniqueChangedBlocks(blocks: HelpChangedBlock[]): HelpChangedBlock[] {
   return out;
 }
 
-export function GuidanceTab({ isDark, groupId }: {
+export function GuidanceTab({ isDark, groupId, showCoordinationRoles = true }: {
   isDark: boolean;
   groupId?: string;
+  showCoordinationRoles?: boolean;
 }) {
   const { t } = useTranslation("settings");
   const [busy, setBusy] = useState(false);
@@ -442,7 +443,9 @@ export function GuidanceTab({ isDark, groupId }: {
   const actorScopes = actors.map((actor) => {
     const actorId = String(actor.id || "").trim();
     const note = String(helpStructured.actorNotes[actorId] || "");
-    const roleLabel = String(actor.role || t("guidance.unknownRole", "Unknown")).trim() || t("guidance.unknownRole", "Unknown");
+    const roleLabel = showCoordinationRoles
+      ? String(actor.role || t("guidance.unknownRole", "Unknown")).trim() || t("guidance.unknownRole", "Unknown")
+      : undefined;
     return {
       id: `actor:${actorId}` as HelpScopeId,
       title: displayActorName(actor),
@@ -467,7 +470,12 @@ export function GuidanceTab({ isDark, groupId }: {
     };
   });
 
-  const selectedHelpScopeItem = [commonScope, foremanScope, peerScope, petScope, ...actorScopes, ...orphanActorScopes].find(
+  const primaryHelpScopes = showCoordinationRoles
+    ? [commonScope, foremanScope, peerScope, petScope]
+    : [commonScope, petScope];
+  const helpScopeItems = [...primaryHelpScopes, ...actorScopes, ...orphanActorScopes];
+
+  const selectedHelpScopeItem = helpScopeItems.find(
     (item) => item.id === selectedHelpScope
   ) || commonScope;
 
@@ -557,7 +565,9 @@ export function GuidanceTab({ isDark, groupId }: {
         <div className={`flex items-start justify-between gap-3 ${expanded ? "pb-3" : ""}`}>
           <div className="min-w-0">
             <div className={`text-[11px] leading-5 ${isDark ? "text-slate-500" : "text-gray-500"}`}>
-              {t("guidance.helpEditorHint", "Structured mode edits common, role, and actor notes; raw mode keeps full-file control.")}
+              {showCoordinationRoles
+                ? t("guidance.helpEditorHint", "Structured mode edits common, role, and actor notes; raw mode keeps full-file control.")
+                : t("guidance.helpEditorHintInteractive", "Structured mode edits common and actor notes; raw mode keeps full-file control.")}
             </div>
           </div>
           <div className={`inline-flex rounded-lg border p-1 ${isDark ? "border-slate-800 bg-slate-900" : "border-gray-200 bg-gray-50"} ${expanded ? "shrink-0" : ""}`}>
@@ -601,10 +611,7 @@ export function GuidanceTab({ isDark, groupId }: {
               <div className={`rounded-xl border p-2.5 ${isDark ? "border-slate-800 bg-slate-950/40" : "border-gray-200 bg-gray-50"} ${expanded ? "min-h-0 flex flex-col" : "space-y-2.5"}`}>
               <div className={expanded ? `min-h-0 flex-1 space-y-3 ${settingsScrollAreaClass}` : "space-y-2.5"}>
                 <div className="space-y-2">
-                  {renderHelpScopeButton(commonScope)}
-                  {renderHelpScopeButton(foremanScope)}
-                  {renderHelpScopeButton(peerScope)}
-                  {renderHelpScopeButton(petScope)}
+                  {primaryHelpScopes.map((item) => renderHelpScopeButton(item))}
                 </div>
 
                 <div className={`pt-1 border-t ${isDark ? "border-slate-800" : "border-gray-200"}`}>

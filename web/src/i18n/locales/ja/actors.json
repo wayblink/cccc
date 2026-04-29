@@ -87,6 +87,7 @@
   "changeSettings": "この actor の設定を変更",
   "sectionBasics": "基本情報",
   "addSectionBasicsHint": "まず actor 名、チーム内の役割、長期的な作業スタンスを決めてから、実行方法を選びます。",
+  "addSectionBasicsHintInteractive": "まずエージェント名と長期的な作業スタンスを決めてから、実行方法を選びます。",
   "sectionBasicsHint": "ここでは actor の表示名、内蔵ロールプリセットの起点、安定した actor ごとの Role Notes を編集します。",
   "sectionRuntime": "ランタイム設定",
   "sectionRuntimeHint": "ここでは runtime profile かカスタム実行設定を決めます。上の role preset は role notes だけに影響します。",

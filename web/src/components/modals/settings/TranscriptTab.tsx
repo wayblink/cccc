@@ -8,6 +8,7 @@ interface TranscriptTabProps {
   busy: boolean;
   groupId?: string;
   devActors: Actor[];
+  showCoordinationRoles?: boolean;
   // Policy settings
   terminalVisibility: "off" | "foreman" | "all";
   setTerminalVisibility: (v: "off" | "foreman" | "all") => void;
@@ -40,6 +41,7 @@ export function TranscriptTab({
   busy,
   groupId,
   devActors,
+  showCoordinationRoles = true,
   terminalVisibility,
   setTerminalVisibility,
   terminalNotifyTail,
@@ -91,7 +93,9 @@ export function TranscriptTab({
               className={inputClass()}
             >
               <option value="off">{t("transcript.visibilityOff")}</option>
-              <option value="foreman">{t("transcript.visibilityForeman")}</option>
+              <option value="foreman">
+                {showCoordinationRoles ? t("transcript.visibilityForeman") : t("transcript.visibilityDefaultActor")}
+              </option>
               <option value="all">{t("transcript.visibilityAll")}</option>
             </select>
             <div className="mt-1 text-[11px] text-[var(--color-text-muted)]">
@@ -169,7 +173,7 @@ export function TranscriptTab({
           >
             {devActors.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.id}{a.role ? ` (${a.role})` : ""}
+                {a.id}{showCoordinationRoles && a.role ? ` (${a.role})` : ""}
               </option>
             ))}
             {!devActors.length && <option value="">{t("transcript.noActors")}</option>}

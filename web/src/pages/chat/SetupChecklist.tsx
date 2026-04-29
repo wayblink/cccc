@@ -12,6 +12,7 @@ export interface SetupChecklistProps {
   needsStart: boolean;
   onAddAgent: () => void;
   onStartGroup: () => void;
+  showCoordinationRoles?: boolean;
   /** Compact mode is used above the message list. */
   variant?: "compact" | "full";
 }
@@ -25,6 +26,7 @@ export function SetupChecklist({
   needsStart,
   onAddAgent,
   onStartGroup,
+  showCoordinationRoles = true,
   variant = "compact",
 }: SetupChecklistProps) {
   const isCompact = variant === "compact";
@@ -108,7 +110,7 @@ export function SetupChecklist({
               isCompact ? "text-xs truncate" : "mt-1 text-xs",
               isDark ? "text-slate-500" : "text-gray-500"
             )}>
-              {t('addForemanFirst')}
+              {showCoordinationRoles ? t('addForemanFirst') : t('addFirstAgentHint')}
             </div>
           </div>
           <button

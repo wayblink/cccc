@@ -30,6 +30,7 @@ import { actorProfileIdentityKey, actorProfileMatchesRef } from "../utils/actorP
 import { findPresentationSlot } from "../utils/presentation";
 import { buildPresentationRefForSlot } from "../utils/presentationRefs";
 import { formatGroupSettingsUpdateError } from "../utils/groupSettingsErrors";
+import { groupAgentCoordinationEnabled } from "../utils/groupMode";
 import { getEffectiveActorRunner, normalizeActorRunner } from "../utils/headlessRuntimeSupport";
 import {
   useGroupStore,
@@ -416,6 +417,7 @@ export function AppModals({
     (s) => s.groups.find((g) => String(g.group_id || "") === s.selectedGroupId)?.running ?? false
   );
   const hasForeman = actors.some((a) => a.role === "foreman");
+  const showCoordinationRoles = groupAgentCoordinationEnabled(groupDoc, groupSettings);
 
   // Compute messageMeta for RecipientsModal (moved from App.tsx)
   const messageMetaEvent = useMemo(() => {
@@ -1768,6 +1770,7 @@ export function AppModals({
         isDark={isDark}
         busy={busy}
         hasForeman={hasForeman}
+        showCoordinationRoles={showCoordinationRoles}
         runtimes={runtimes}
         suggestedActorId={suggestedActorId}
         newActorId={newActorId}

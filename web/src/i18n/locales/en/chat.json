@@ -92,6 +92,7 @@
   "attachProjectFolder": "Attach a project folder",
   "addAgent": "Add an agent",
   "addForemanFirst": "Add a foreman first, then peers.",
+  "addFirstAgentHint": "Add your first agent.",
   "addAgentButton": "Add Agent",
   "startGroup": "Start the group",
   "launchAgents": "Launch your agents and begin chatting.",
