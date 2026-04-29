@@ -240,15 +240,6 @@ export function AppHeader({
                   title={sseStatus === "connecting" ? t('reconnecting') : t('disconnected')}
                 />
               )}
-              {!hideGroupControls && selectedStatus && (
-                <span
-                  className={classNames(
-                    "h-2.5 w-2.5 flex-shrink-0 rounded-full",
-                    selectedStatus.dotClass
-                  )}
-                  title={selectedStatus.label}
-                />
-              )}
             </div>
             {subtitleOverride ? (
               <p className="mt-0.5 truncate text-xs leading-tight text-[var(--color-text-secondary)]">

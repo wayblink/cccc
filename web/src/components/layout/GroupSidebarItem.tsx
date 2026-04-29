@@ -105,7 +105,6 @@ export function GroupSidebarItem({
             >
               <GroupModeIcon mode={groupMode} size={12} />
             </span>
-            <span className={classNames("w-2.5 h-2.5 rounded-full flex-shrink-0", status.dotClass)} />
             <span
               className={classNames(
                 "text-sm font-medium truncate",
