@@ -47,7 +47,7 @@ RUN npm install -g \
 
 # Install CCCC
 WORKDIR /app
-COPY pyproject.toml MANIFEST.in LICENSE README.md README.zh-CN.md README.ja.md ./
+COPY pyproject.toml MANIFEST.in LICENSE README.md README.en.md README.zh-CN.md README.ja.md ./
 COPY src/ ./src/
 
 # Copy built WebUI (vite outputs to ../src/cccc/ports/web/dist)

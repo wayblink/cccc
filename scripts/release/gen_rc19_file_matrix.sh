@@ -25,7 +25,7 @@ fi
 classify_tier() {
   local p="$1"
   case "$p" in
-    src/cccc/*|web/src/*|.github/workflows/*|pyproject.toml|README.md|README.zh-CN.md|README.ja.md)
+    src/cccc/*|web/src/*|.github/workflows/*|pyproject.toml|README.md|README.en.md|README.zh-CN.md|README.ja.md)
       echo "A"
       ;;
     tests/*|scripts/*|docker/*|docs/guide/*|docs/reference/*|docs/standards/*|docs/index.md|docs/.vitepress/*|docs/vnext/RELEASE.md|docs/vnext/STATUS.md|docs/vnext/FEATURES.md|docs/vnext/README.md)
