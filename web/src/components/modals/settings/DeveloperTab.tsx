@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 import { inputClass, labelClass, primaryButtonClass, cardClass, preClass } from "./types";
 import type { RuntimeVisibilityMode } from "../../../utils/runtimeVisibility";
+import { TranscriptTailViewer, type TranscriptTailViewerProps } from "./TranscriptTab";
 
 interface DeveloperTabProps {
   isDark: boolean;
@@ -39,6 +40,8 @@ interface DeveloperTabProps {
   logBusy: boolean;
   onLoadLogTail: () => void;
   onClearLogs: () => void;
+  // Group transcript diagnostics
+  transcriptTail: TranscriptTailViewerProps;
   // Registry maintenance
   registryBusy: boolean;
   registryErr: string;
@@ -88,6 +91,7 @@ export function DeveloperTab({
   logBusy,
   onLoadLogTail,
   onClearLogs,
+  transcriptTail,
   registryBusy,
   registryErr,
   registryResult,
@@ -391,6 +395,9 @@ export function DeveloperTab({
           <code>{debugSnapshot || "—"}</code>
         </pre>
       </div>
+
+      {/* Transcript Tail */}
+      <TranscriptTailViewer {...transcriptTail} />
 
       {/* Log Tail */}
       <div className={cardClass()}>

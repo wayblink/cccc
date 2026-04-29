@@ -8,12 +8,14 @@ import type { Actor } from "../../src/types";
 
 const fetchWebAccessSession = vi.fn();
 const fetchIMStatus = vi.fn();
+const fetchIMConfig = vi.fn();
 const fetchActors = vi.fn();
 const changeLanguage = vi.fn();
 
 vi.mock("../../src/services/api", () => ({
   fetchWebAccessSession: (...args: unknown[]) => fetchWebAccessSession(...args),
   fetchIMStatus: (...args: unknown[]) => fetchIMStatus(...args),
+  fetchIMConfig: (...args: unknown[]) => fetchIMConfig(...args),
   fetchActors: (...args: unknown[]) => fetchActors(...args),
 }));
 
@@ -42,6 +44,16 @@ vi.mock("react-i18next", () => ({
         title: "Settings",
         closeAriaLabel: "Close settings",
         "tabs.frontend": "Frontend Settings",
+        "tabs.guidance": "Guidance",
+        "tabs.assistants": "Assistant",
+        "tabs.automation": "Automation",
+        "tabs.delivery": "Delivery",
+        "tabs.space": "Notebook",
+        "tabs.messaging": "Messaging",
+        "tabs.im": "IM Bridge",
+        "tabs.transcript": "Transcript",
+        "tabs.blueprint": "Blueprint",
+        "tabs.advanced": "Advanced",
         "tabs.capabilities": "Capability Governance",
         "tabs.actorProfiles": "Actor Profiles",
         "tabs.myProfiles": "My Profiles",
@@ -66,6 +78,34 @@ vi.mock("react-i18next", () => ({
         "frontend.textScaleTitle": "Text scale",
         "frontend.notificationSoundTitle": "Notification sound",
         "frontend.languageTitle": "Language",
+        "advanced.title": "Advanced Group Settings",
+        "advanced.description": "Group-specific policies and maintenance tools.",
+        "delivery.title": "Delivery",
+        "delivery.description": "Configure read cursor behavior.",
+        "delivery.autoMarkRead": "Auto mark on delivery",
+        "delivery.autoMarkReadHelp": "Mark delivered items as read automatically.",
+        "delivery.saveDelivery": "Save delivery settings",
+        "transcript.title": "Terminal transcript",
+        "transcript.description": "Readable tail for troubleshooting.",
+        "transcript.policy": "Policy",
+        "transcript.visibilityLabel": "Visibility to agents",
+        "transcript.visibilityOff": "off",
+        "transcript.visibilityForeman": "foreman",
+        "transcript.visibilityDefaultActor": "default actor",
+        "transcript.visibilityAll": "all",
+        "transcript.visibilityTip": "Only affects agents.",
+        "transcript.includeTail": "Include tail in idle notifications",
+        "transcript.notificationLines": "Notification lines",
+        "transcript.saveTranscript": "Save transcript settings",
+        "blueprint.exportTitle": "Export blueprint",
+        "blueprint.title": "Blueprint maintenance",
+        "blueprint.description": "Export or replace this group from a portable blueprint file.",
+        "blueprint.exportDescription": "Download this group as a blueprint.",
+        "blueprint.importTitle": "Import blueprint",
+        "blueprint.importDescription": "Preview and replace this group from a blueprint.",
+        "blueprint.blueprintFile": "Blueprint file",
+        "blueprint.exportBlueprint": "Export blueprint",
+        "blueprint.applyReplace": "Apply replace",
         themeLight: "Light",
         themeDark: "Dark",
         themeSystem: "System",
@@ -127,6 +167,7 @@ describe("frontend settings chrome", () => {
     Element.prototype.scrollTo = vi.fn();
     fetchWebAccessSession.mockReset();
     fetchIMStatus.mockReset();
+    fetchIMConfig.mockReset();
     fetchActors.mockReset();
     fetchWebAccessSession.mockResolvedValue({
       ok: true,
@@ -139,6 +180,7 @@ describe("frontend settings chrome", () => {
       },
     });
     fetchIMStatus.mockResolvedValue({ ok: true, result: { status: null } });
+    fetchIMConfig.mockResolvedValue({ ok: true, result: { im: null } });
     fetchActors.mockResolvedValue({ ok: true, result: { actors: [] } });
   });
 
@@ -203,6 +245,67 @@ describe("frontend settings chrome", () => {
 
     expect(container?.textContent).toContain("Frontend Settings");
     expect(container?.textContent).toContain("Local browser preferences.");
+  });
+
+  it("groups technical group-only controls under Advanced", async () => {
+    ({ container, root } = render(
+      <SettingsModal
+        isOpen
+        onClose={vi.fn()}
+        settings={null}
+        onUpdateSettings={vi.fn()}
+        busy={false}
+        isDark={false}
+        theme="light"
+        onThemeChange={vi.fn()}
+        textScale={100}
+        onTextScaleChange={vi.fn()}
+        chatNotificationSound={{ enabled: true, soundId: "abstract-sound1" }}
+        onChatNotificationSoundChange={vi.fn()}
+        onPreviewChatNotificationSound={vi.fn()}
+        groupId="group-1"
+        groupDoc={{ group_id: "group-1", title: "Group One" }}
+      />,
+    ));
+
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
+
+    await act(async () => {
+      const groupButton = Array.from(container?.querySelectorAll("button") || []).find(
+        (button) => button.textContent?.includes("This group"),
+      );
+      groupButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const navLabels = Array.from(container?.querySelectorAll("nav button") || []).map((button) => button.textContent?.trim());
+    expect(navLabels).toContain("Advanced");
+    expect(navLabels).not.toContain("Delivery");
+    expect(navLabels).not.toContain("Transcript");
+    expect(navLabels).not.toContain("Blueprint");
+
+    await act(async () => {
+      const advancedButton = Array.from(container?.querySelectorAll("button") || []).find(
+        (button) => button.textContent?.trim() === "Advanced",
+      );
+      advancedButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(container?.textContent).toContain("Advanced Group Settings");
+    expect(container?.textContent).toContain("Delivery");
+    expect(container?.textContent).toContain("Policy");
+    expect(container?.textContent).toContain("Export blueprint");
+    expect(container?.textContent).not.toContain("Tail viewer");
   });
 
   it("removes quick frontend controls from the header while keeping Settings", () => {

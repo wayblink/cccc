@@ -11,6 +11,7 @@
     "im": "IM Bridge",
     "transcript": "Transcript",
     "blueprint": "Blueprint",
+    "advanced": "Advanced",
     "actorProfiles": "Actor Profiles",
     "myProfiles": "My Profiles",
     "frontend": "Frontend Settings",
@@ -44,6 +45,10 @@
     "globalLockedTitle": "Admin access required",
     "globalLockedContent": "Global settings are admin-only. Open Settings from a group to manage group-scoped settings, or sign in with an admin Access Token.",
     "sections": "Sections"
+  },
+  "advanced": {
+    "title": "Advanced Group Settings",
+    "description": "Group-specific policies and maintenance tools that are useful but not part of daily setup."
   },
   "actorProfiles": {
     "searchPlaceholder": "Search profiles by name/id/runtime",
@@ -751,6 +756,8 @@
     "noScopeWarning": "No scope attached to this group yet. Guidance overrides still work because they are stored under CCCC_HOME, but repo-linked features may stay unavailable until a scope is attached."
   },
   "blueprint": {
+    "title": "Blueprint maintenance",
+    "description": "Export or replace this group from a portable blueprint file.",
     "openFromGroup": "Open this tab from a group.",
     "exportTitle": "Export",
     "exportDescription": "Save this group's actors, settings, automation rules, and guidance as a single portable file.",

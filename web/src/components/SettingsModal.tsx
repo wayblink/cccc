@@ -30,14 +30,12 @@ import { useModalA11y } from "../hooks/useModalA11y";
 import { copyTextToClipboard } from "../utils/copy";
 
 const AutomationTab = lazy(() => import("./modals/settings/AutomationTab").then((module) => ({ default: module.AutomationTab })));
-const DeliveryTab = lazy(() => import("./modals/settings/DeliveryTab").then((module) => ({ default: module.DeliveryTab })));
 const MessagingTab = lazy(() => import("./modals/settings/MessagingTab").then((module) => ({ default: module.MessagingTab })));
 const IMBridgeTab = lazy(() => import("./modals/settings/IMBridgeTab").then((module) => ({ default: module.IMBridgeTab })));
-const TranscriptTab = lazy(() => import("./modals/settings/TranscriptTab").then((module) => ({ default: module.TranscriptTab })));
 const GuidanceTab = lazy(() => import("./modals/settings/GuidanceTab").then((module) => ({ default: module.GuidanceTab })));
 const AssistantsTab = lazy(() => import("./modals/settings/AssistantsTab").then((module) => ({ default: module.AssistantsTab })));
 const GroupSpaceTab = lazy(() => import("./modals/settings/GroupSpaceTab").then((module) => ({ default: module.GroupSpaceTab })));
-const BlueprintTab = lazy(() => import("./modals/settings/BlueprintTab").then((module) => ({ default: module.BlueprintTab })));
+const AdvancedTab = lazy(() => import("./modals/settings/AdvancedTab").then((module) => ({ default: module.AdvancedTab })));
 const CapabilitiesTab = lazy(() => import("./modals/settings/CapabilitiesTab").then((module) => ({ default: module.CapabilitiesTab })));
 const ActorProfilesTab = lazy(() => import("./modals/settings/ActorProfilesTab").then((module) => ({ default: module.ActorProfilesTab })));
 const BrandingTab = lazy(() => import("./modals/settings/BrandingTab").then((module) => ({ default: module.BrandingTab })));
@@ -984,12 +982,10 @@ export function SettingsModal({
     { id: "guidance", label: t("tabs.guidance") },
     { id: "assistants", label: t("tabs.assistants") },
     { id: "automation", label: t("tabs.automation") },
-    { id: "delivery", label: t("tabs.delivery") },
     { id: "space", label: t("tabs.space") },
     { id: "messaging", label: t("tabs.messaging") },
     { id: "im", label: t("tabs.im") },
-    { id: "transcript", label: t("tabs.transcript") },
-    { id: "blueprint", label: t("tabs.blueprint") },
+    { id: "advanced", label: t("tabs.advanced") },
   ];
   const tabs = scope === "group" ? groupTabs : (globalScopeEnabled ? globalTabs : []);
   const activeTab = scope === "group" ? groupTab : globalTab;
@@ -1150,17 +1146,6 @@ export function SettingsModal({
                 />
               )}
 
-              {activeTab === "delivery" && (
-                <DeliveryTab
-                  isDark={isDark}
-                  busy={busy}
-                  autoMarkOnDelivery={autoMarkOnDelivery}
-                  setAutoMarkOnDelivery={setAutoMarkOnDelivery}
-                  onSave={handleSaveDeliverySettings}
-                  onAutoSave={handleAutoSave}
-                />
-              )}
-
               {activeTab === "messaging" && (
                 <MessagingTab
                   isDark={isDark}
@@ -1215,39 +1200,6 @@ export function SettingsModal({
                 />
               )}
 
-              {activeTab === "transcript" && (
-                <TranscriptTab
-                  isDark={isDark}
-                  busy={busy}
-                  groupId={groupId}
-                  devActors={devActors}
-                  showCoordinationRoles={showCoordinationRoles}
-                  terminalVisibility={terminalVisibility}
-                  setTerminalVisibility={setTerminalVisibility}
-                  terminalNotifyTail={terminalNotifyTail}
-                  setTerminalNotifyTail={setTerminalNotifyTail}
-                  terminalNotifyLines={terminalNotifyLines}
-                  setTerminalNotifyLines={setTerminalNotifyLines}
-                  onSaveTranscriptSettings={handleSaveTranscriptSettings}
-                  tailActorId={tailActorId}
-                  setTailActorId={setTailActorId}
-                  tailMaxChars={tailMaxChars}
-                  setTailMaxChars={setTailMaxChars}
-                  tailStripAnsi={tailStripAnsi}
-                  setTailStripAnsi={setTailStripAnsi}
-                  tailCompact={tailCompact}
-                  setTailCompact={setTailCompact}
-                  tailText={tailText}
-                  tailHint={tailHint}
-                  tailErr={tailErr}
-                  tailBusy={tailBusy}
-                  tailCopyInfo={tailCopyInfo}
-                  onLoadTail={loadTerminalTail}
-                  onCopyTail={copyTailLastLines}
-                  onClearTail={clearTail}
-                />
-              )}
-
               {activeTab === "guidance" && (
                 <GuidanceTab
                   isDark={isDark}
@@ -1275,7 +1227,36 @@ export function SettingsModal({
                 />
               )}
 
-              {activeTab === "blueprint" && <BlueprintTab isDark={isDark} groupId={groupId} groupTitle={groupDoc?.title || ""} />}
+              {activeTab === "advanced" && (
+                <AdvancedTab
+                  isDark={isDark}
+                  delivery={{
+                    isDark,
+                    busy,
+                    autoMarkOnDelivery,
+                    setAutoMarkOnDelivery,
+                    onSave: handleSaveDeliverySettings,
+                    onAutoSave: handleAutoSave,
+                  }}
+                  transcript={{
+                    isDark,
+                    busy,
+                    showCoordinationRoles,
+                    terminalVisibility,
+                    setTerminalVisibility,
+                    terminalNotifyTail,
+                    setTerminalNotifyTail,
+                    terminalNotifyLines,
+                    setTerminalNotifyLines,
+                    onSaveTranscriptSettings: handleSaveTranscriptSettings,
+                  }}
+                  blueprint={{
+                    isDark,
+                    groupId,
+                    groupTitle: groupDoc?.title || "",
+                  }}
+                />
+              )}
 
               {activeTab === "capabilities" && (
                 <CapabilitiesTab
@@ -1353,6 +1334,27 @@ export function SettingsModal({
                   logBusy={logBusy}
                   onLoadLogTail={loadLogTail}
                   onClearLogs={handleClearLogs}
+                  transcriptTail={{
+                    groupId,
+                    devActors,
+                    showCoordinationRoles,
+                    tailActorId,
+                    setTailActorId,
+                    tailMaxChars,
+                    setTailMaxChars,
+                    tailStripAnsi,
+                    setTailStripAnsi,
+                    tailCompact,
+                    setTailCompact,
+                    tailText,
+                    tailHint,
+                    tailErr,
+                    tailBusy,
+                    tailCopyInfo,
+                    onLoadTail: loadTerminalTail,
+                    onCopyTail: copyTailLastLines,
+                    onClearTail: clearTail,
+                  }}
                   registryBusy={registryBusy}
                   registryErr={registryErr}
                   registryResult={registryResult}

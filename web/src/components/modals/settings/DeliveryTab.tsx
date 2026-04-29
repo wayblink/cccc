@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { labelClass, primaryButtonClass } from "./types";
 
-interface DeliveryTabProps {
+export interface DeliveryTabProps {
   isDark: boolean;
   busy: boolean;
   autoMarkOnDelivery: boolean;

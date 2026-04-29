@@ -11,6 +11,7 @@
     "im": "IMブリッジ",
     "transcript": "ターミナルログ",
     "blueprint": "ブループリント",
+    "advanced": "詳細",
     "actorProfiles": "Actor プロファイル",
     "myProfiles": "自分のプロファイル",
     "frontend": "フロントエンド設定",
@@ -44,6 +45,10 @@
     "globalLockedTitle": "管理者権限が必要です",
     "globalLockedContent": "グローバル設定は管理者専用です。グループ設定を変更したい場合は対象グループから Settings を開き、グローバル設定を管理したい場合は管理者アクセストークンでサインインしてください。",
     "sections": "セクション"
+  },
+  "advanced": {
+    "title": "作業グループ詳細設定",
+    "description": "日常設定からは外しつつ残しておきたい、グループ単位のポリシーとメンテナンス機能です。"
   },
   "actorProfiles": {
     "searchPlaceholder": "名前/ID/runtimeで検索",
@@ -751,6 +756,8 @@
     "noScopeWarning": "このグループにはまだ scope が紐づいていません。guidance override 自体は CCCC_HOME 配下に保存されるため機能しますが、repo 連携が必要な機能は scope を紐づけるまで利用できない場合があります。"
   },
   "blueprint": {
+    "title": "ブループリント保守",
+    "description": "このグループをエクスポートするか、ポータブルなブループリントファイルで置き換えます。",
     "openFromGroup": "グループからこのタブを開きます。",
     "exportTitle": "エクスポート",
     "exportDescription": "このグループのエージェント、設定、自動化ルール、およびガイダンスを 1 つのポータブルファイルとして保存します。",

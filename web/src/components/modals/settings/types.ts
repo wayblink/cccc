@@ -4,14 +4,12 @@ import { settingsDialogPanelClassFromSize } from "../modalFrameStyles";
 export type SettingsScope = "group" | "global";
 export type GroupTabId =
   | "automation"
-  | "delivery"
   | "guidance"
   | "assistants"
   | "space"
   | "messaging"
   | "im"
-  | "transcript"
-  | "blueprint";
+  | "advanced";
 export type GlobalTabId = "frontend" | "capabilities" | "actorProfiles" | "myProfiles" | "branding" | "webAccess" | "developer";
 
 // Shared style class helpers — glass design system

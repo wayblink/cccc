@@ -1,5 +1,6 @@
 // Settings modal exports.
 export { AutomationTab } from "./AutomationTab";
+export { AdvancedTab } from "./AdvancedTab";
 export { DeliveryTab } from "./DeliveryTab";
 export { MessagingTab } from "./MessagingTab";
 export { IMBridgeTab } from "./IMBridgeTab";

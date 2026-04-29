@@ -5,7 +5,7 @@ import { cardClass, labelClass, primaryButtonClass } from "./types";
 import { TemplatePreviewDetails } from "../../TemplatePreviewDetails";
 import type { TemplatePreviewDetailsProps } from "../../TemplatePreviewDetails";
 
-interface BlueprintTabProps {
+export interface BlueprintTabProps {
   isDark: boolean;
   groupId?: string;
   groupTitle?: string;

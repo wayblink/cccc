@@ -11,6 +11,7 @@
     "im": "IM 桥接",
     "transcript": "终端日志",
     "blueprint": "蓝图",
+    "advanced": "高级",
     "actorProfiles": "智能体配置库",
     "myProfiles": "我的配置",
     "frontend": "前端设置",
@@ -44,6 +45,10 @@
     "globalLockedTitle": "需要管理员权限",
     "globalLockedContent": "全局设置仅限管理员使用。若要调整工作组内设置，请从某个工作组打开设置；若要管理全局设置，请使用管理员访问令牌登录。",
     "sections": "设置项"
+  },
+  "advanced": {
+    "title": "工作组高级设置",
+    "description": "收纳工作组级策略和维护工具，保留能力但减少常用设置里的干扰。"
   },
   "actorProfiles": {
     "searchPlaceholder": "按名称/ID/runtime 搜索",
@@ -751,6 +756,8 @@
     "noScopeWarning": "这个工作组目前还没有绑定 scope。由于 guidance override 是存放在 CCCC_HOME 下的，所以仍然可以工作；但依赖仓库作用域的功能在绑定 scope 之前可能不可用。"
   },
   "blueprint": {
+    "title": "蓝图维护",
+    "description": "导出当前工作组，或用可移植蓝图文件替换当前工作组。",
     "openFromGroup": "请从工作组中打开此标签页。",
     "exportTitle": "导出",
     "exportDescription": "将此工作组的 Actor、设置、自动化规则和引导保存为单个可移植文件。",
