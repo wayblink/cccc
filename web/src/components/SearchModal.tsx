@@ -6,6 +6,8 @@ import { formatFullTime, formatTime } from "../utils/time";
 import { classNames } from "../utils/classNames";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { useModalA11y } from "../hooks/useModalA11y";
+import { CloseIcon, CopyIcon, MessageSquareTextIcon, ReplyIcon, SearchIcon } from "./Icons";
+import { modalPanelClass, modalViewportClass } from "./modals/modalFrameStyles";
 
 type KindFilter = "all" | "chat" | "notify";
 
@@ -65,6 +67,10 @@ function highlightText(text: string, query: string, _isDark?: boolean): ReactNod
   }
   if (from < text.length) out.push(text.slice(from));
   return out;
+}
+
+function stripLeadingActionGlyph(label: string): string {
+  return label.replace(/^[\s↩↗⧉]+/, "").trim();
 }
 
 export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply, onJumpToMessage }: SearchModalProps) {
@@ -156,7 +162,7 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+    <div className={modalViewportClass("fullscreen", "animate-fade-in")}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 glass-overlay"
@@ -169,9 +175,8 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
       {/* Modal */}
       <div
         className={classNames(
-          "relative w-full h-full sm:h-auto sm:max-h-[80vh] sm:max-w-3xl flex flex-col border shadow-2xl animate-scale-in",
-          "rounded-none sm:rounded-xl",
-          "glass-modal"
+          modalPanelClass("wide", "fullscreen"),
+          "animate-scale-in"
         )}
         ref={modalRef}
         role="dialog"
@@ -181,8 +186,20 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
         {/* Header */}
         <div className={classNames("flex items-center justify-between px-4 pt-4 pb-3 border-b safe-area-inset-top", "border-[var(--glass-border-subtle)]")}>
           <div className="min-w-0">
-            <h2 id="search-modal-title" className={classNames("text-lg font-semibold truncate", "text-[var(--color-text-primary)]")}>
-              {"🔍 "}{t('searchMessages')}
+            <h2
+              id="search-modal-title"
+              className={classNames(
+                "flex min-w-0 items-center gap-2 text-lg font-semibold",
+                "text-[var(--color-text-primary)]"
+              )}
+            >
+              <span
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl glass-card"
+                aria-hidden="true"
+              >
+                <SearchIcon size={17} />
+              </span>
+              <span className="truncate">{t('searchMessages')}</span>
             </h2>
             <div className={classNames("text-xs mt-0.5 truncate", "text-[var(--color-text-muted)]")}>
               {groupId}
@@ -196,7 +213,9 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
             )}
             aria-label={t('closeSearchModal')}
           >
-            ×
+            <span aria-hidden="true">
+              <CloseIcon size={18} />
+            </span>
           </button>
         </div>
 
@@ -224,11 +243,14 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
                 onClick={() => void doSearch({ mode: "replace" })}
                 disabled={busy}
                 className={classNames(
-                  "px-4 py-2 rounded-lg text-sm font-medium min-h-[44px] disabled:opacity-50",
-                  "bg-emerald-600 hover:bg-emerald-500 text-white"
+                  "inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold min-h-[44px] shadow-lg transition-all disabled:opacity-50",
+                  "bg-blue-600 hover:bg-blue-500 text-white"
                 )}
               >
-                {busy ? "…" : t('common:search')}
+                <span aria-hidden="true">
+                  <SearchIcon size={16} className={busy ? "animate-pulse" : undefined} />
+                </span>
+                <span>{t('common:search')}</span>
               </button>
             </div>
           </div>
@@ -361,7 +383,10 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
                         aria-label={`Reply to ${getDisplayName(ev.by || "") || "message"}`}
                         title={t('reply')}
                       >
-                        {t('replyTo')}
+                        <span className="inline-flex items-center gap-1.5">
+                          <ReplyIcon size={13} />
+                          <span>{stripLeadingActionGlyph(t('replyTo'))}</span>
+                        </span>
                       </button>
                     )}
                     {isChat && evId && onJumpToMessage ? (
@@ -372,9 +397,12 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
                         )}
                         onClick={() => onJumpToMessage(evId)}
                         aria-label={t('openMessageContext')}
-                        title={t('openMessage').replace('↗ ', '')}
+                        title={stripLeadingActionGlyph(t('openMessage'))}
                       >
-                        {t('openMessage')}
+                        <span className="inline-flex items-center gap-1.5">
+                          <MessageSquareTextIcon size={13} />
+                          <span>{stripLeadingActionGlyph(t('openMessage'))}</span>
+                        </span>
                       </button>
                     ) : null}
                     {evId && (
@@ -392,7 +420,10 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
                         aria-label={t('copyEventId')}
                         title={t('copyEventId')}
                       >
-                        {t('copyId')}
+                        <span className="inline-flex items-center gap-1.5">
+                          <CopyIcon size={13} />
+                          <span>{stripLeadingActionGlyph(t('copyId'))}</span>
+                        </span>
                       </button>
                     )}
                   </div>
@@ -403,7 +434,12 @@ export function SearchModal({ isOpen, onClose, groupId, actors, isDark, onReply,
 
           {!busy && results.length === 0 && (
             <div className="text-center py-10">
-              <div className="text-3xl mb-2">🔎</div>
+              <div
+                className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl glass-card text-[var(--color-text-muted)]"
+                aria-hidden="true"
+              >
+                <SearchIcon size={22} />
+              </div>
               <div className={classNames("text-sm", "text-[var(--color-text-secondary)]")}>{t('noResults')}</div>
               <div className={classNames("text-xs mt-1", "text-[var(--color-text-muted)]")}>
                 {t('noResultsHint')}

@@ -18,6 +18,7 @@ import {
 } from "./types";
 import { CapabilityPicker } from "../../CapabilityPicker";
 import { BodyPortal } from "../../ui/BodyPortal";
+import { modalPanelClass, modalViewportClass } from "../modalFrameStyles";
 
 interface ActorProfilesTabProps {
   isDark: boolean;
@@ -202,7 +203,7 @@ export function ActorProfilesTab({ isDark, isActive, scope }: ActorProfilesTabPr
 
   const editorModal = editorOpen ? (
     <div
-      className="fixed inset-0 z-[1000] flex items-stretch justify-center p-3 sm:items-center"
+      className={modalViewportClass("centered", "!z-[1000]")}
       role="dialog"
       aria-modal="true"
       onPointerDown={(e) => {
@@ -212,7 +213,7 @@ export function ActorProfilesTab({ isDark, isActive, scope }: ActorProfilesTabPr
       }}
     >
       <div className="absolute inset-0 glass-overlay" />
-      <div className="glass-modal relative flex h-full w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-[var(--glass-border-subtle)] shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-2rem)]">
+      <div className={modalPanelClass("form", "centered")}>
         <div className={settingsDialogHeaderClass}>
           <div className="text-base font-semibold text-[var(--color-text-primary)]">
             {editor.id ? t("actorProfiles.editTitle") : t("actorProfiles.newTitle")}

@@ -18,6 +18,7 @@ import {
 } from "./types";
 import { useModalA11y } from "../../../hooks/useModalA11y";
 import { copyTextToClipboard } from "../../../utils/copy";
+import { modalPanelClass, modalViewportClass } from "../modalFrameStyles";
 
 interface WebAccessTabProps {
   isDark: boolean;
@@ -820,14 +821,14 @@ export function WebAccessTab({ isDark, isActive = true }: WebAccessTabProps) {
 
   const createDialog =
     canAccessGlobalSettings && createDialogOpen ? (
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+      <div className={modalViewportClass("centered", "!z-[1000] animate-fade-in")}>
         <button type="button" aria-label={t("webAccess.close")} onClick={() => closeCreateDialog()} className="absolute inset-0 glass-overlay" />
         <div
           ref={createDialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={newToken ? t("webAccess.newTokenTitle") : t("webAccess.createAccessToken")}
-          className="glass-modal relative z-[1001] flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--glass-border-subtle)] shadow-2xl text-[var(--color-text-primary)]"
+          className={modalPanelClass("form", "centered", "z-[1001] text-[var(--color-text-primary)]")}
         >
           <div className={settingsDialogHeaderClass}>
             <div>
@@ -957,14 +958,14 @@ export function WebAccessTab({ isDark, isActive = true }: WebAccessTabProps) {
     ) : null;
 
   const restartRequiredDialog = restartDialog ? (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+    <div className={modalViewportClass("centered", "!z-[1000] animate-fade-in")}>
       <button type="button" aria-label={t("webAccess.close")} onClick={closeRestartDialog} className="absolute inset-0 glass-overlay" />
       <div
         ref={restartDialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={t("webAccess.restartDialogTitle")}
-        className="glass-modal relative z-[1001] flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--glass-border-subtle)] shadow-2xl text-[var(--color-text-primary)]"
+        className={modalPanelClass("form", "centered", "z-[1001] text-[var(--color-text-primary)]")}
       >
         <div className={settingsDialogHeaderClass}>
           <div>

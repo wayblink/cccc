@@ -292,7 +292,8 @@ export function PresentationPinModal({
             })
       }
       closeAriaLabel={t("presentationClosePinModal", { defaultValue: "Close presentation pin dialog" })}
-      panelClassName="h-full w-full sm:h-auto sm:max-w-3xl"
+      size="wide"
+      panelClassName="h-full w-full"
       modalRef={modalRef}
     >
       <div className="flex min-h-0 flex-1 flex-col">

@@ -1,4 +1,5 @@
 // Shared types/helpers for the Settings modal.
+import { settingsDialogPanelClassFromSize } from "../modalFrameStyles";
 
 export type SettingsScope = "group" | "global";
 export type GroupTabId =
@@ -34,11 +35,7 @@ export const dangerButtonClass = (size: "sm" | "md" = "md") =>
   } cursor-pointer font-medium text-rose-700 dark:text-rose-300 shadow-sm transition-[background-color,border-color,box-shadow] disabled:opacity-50 disabled:cursor-not-allowed`;
 
 export const settingsDialogPanelClass = (size: "lg" | "xl" = "lg") =>
-  `glass-modal absolute inset-0 sm:inset-auto sm:left-1/2 sm:top-1/2 ${
-    size === "xl"
-      ? "sm:w-[min(1200px,calc(100vw-2rem))] sm:h-[min(90dvh,920px)]"
-      : "sm:w-[min(1040px,calc(100vw-2rem))] sm:h-[min(88dvh,860px)]"
-  } sm:-translate-x-1/2 sm:-translate-y-1/2 rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden`;
+  settingsDialogPanelClassFromSize(size === "xl" ? "workspace" : "wide");
 
 export const settingsDialogHeaderClass =
   `flex shrink-0 items-start gap-3 border-b border-[var(--glass-border-subtle)] px-4 py-3 sm:px-5 sm:py-4`;

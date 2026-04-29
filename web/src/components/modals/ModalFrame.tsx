@@ -1,4 +1,12 @@
 import type { ReactNode, Ref } from "react";
+import { classNames } from "../../utils/classNames";
+import { CloseIcon } from "../Icons";
+import {
+  modalPanelClass,
+  modalViewportClass,
+  type ModalFrameMobileMode,
+  type ModalFrameSize,
+} from "./modalFrameStyles";
 
 interface ModalFrameProps {
   isOpen?: boolean;
@@ -7,7 +15,10 @@ interface ModalFrameProps {
   titleId: string;
   title: ReactNode;
   closeAriaLabel: string;
-  panelClassName: string;
+  size?: ModalFrameSize | null;
+  mobileMode?: ModalFrameMobileMode;
+  panelClassName?: string;
+  viewportClassName?: string;
   headerActions?: ReactNode;
   modalRef?: Ref<HTMLDivElement>;
   children: ReactNode;
@@ -20,7 +31,10 @@ export function ModalFrame({
   titleId,
   title,
   closeAriaLabel,
+  size = null,
+  mobileMode = "fullscreen",
   panelClassName,
+  viewportClassName,
   headerActions,
   modalRef,
   children,
@@ -28,9 +42,11 @@ export function ModalFrame({
   const hasHeaderContent = !!(title || headerActions);
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-stretch justify-center p-0 transition-[opacity,visibility] duration-200 sm:items-center sm:p-4 ${
-        isOpen ? "visible opacity-100 animate-fade-in" : "pointer-events-none invisible opacity-0"
-      }`}
+      className={classNames(
+        modalViewportClass(mobileMode, viewportClassName),
+        "transition-[opacity,visibility] duration-200",
+        isOpen ? "visible opacity-100 animate-fade-in" : "pointer-events-none invisible opacity-0",
+      )}
       style={isOpen ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" } : undefined}
       aria-hidden={isOpen ? undefined : true}
     >
@@ -41,9 +57,11 @@ export function ModalFrame({
       />
 
       <div
-        className={`relative flex flex-col rounded-none border shadow-2xl transition-[opacity,transform] duration-200 sm:rounded-xl glass-modal ${panelClassName} ${
-          isOpen ? "opacity-100 animate-scale-in" : "pointer-events-none translate-y-2 scale-[0.985] opacity-0"
-        }`}
+        className={classNames(
+          modalPanelClass(size, mobileMode, panelClassName),
+          "transition-[opacity,transform] duration-200",
+          isOpen ? "opacity-100 animate-scale-in" : "pointer-events-none translate-y-2 scale-[0.985] opacity-0",
+        )}
         ref={modalRef}
         role="dialog"
         aria-modal={isOpen ? "true" : undefined}
@@ -71,18 +89,18 @@ export function ModalFrame({
                 }`}
                 aria-label={closeAriaLabel}
               >
-                ×
+                <CloseIcon size={18} />
               </button>
             </div>
           </div>
         ) : (
-          <div className="pointer-events-none absolute right-4 top-4 z-10 sm:right-5 sm:top-5">
+          <div className="absolute right-4 top-4 z-10 sm:right-5 sm:top-5">
             <button
               onClick={onClose}
               className="text-xl leading-none min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors glass-btn text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
               aria-label={closeAriaLabel}
             >
-              ×
+              <CloseIcon size={18} />
             </button>
           </div>
         )}

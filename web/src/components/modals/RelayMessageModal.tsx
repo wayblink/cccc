@@ -5,6 +5,7 @@ import { classNames } from "../../utils/classNames";
 import { getGroupAgentLinkMode, getSpecialRecipientTokens } from "../../utils/groupMode";
 import * as api from "../../services/api";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { modalPanelClass, modalViewportClass } from "./modalFrameStyles";
 
 export interface RelayMessageModalProps {
   isOpen: boolean;
@@ -126,7 +127,7 @@ export function RelayMessageModal({
 
   return (
     <div
-      className="fixed inset-0 backdrop-blur-sm flex items-stretch sm:items-start justify-center p-0 sm:p-6 z-50 animate-fade-in glass-overlay"
+      className={modalViewportClass("fullscreen", "backdrop-blur-sm animate-fade-in glass-overlay")}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
@@ -136,7 +137,7 @@ export function RelayMessageModal({
     >
       <div
         ref={modalRef}
-        className="w-full h-full min-h-0 sm:h-auto sm:max-h-[calc(100dvh-7rem)] sm:max-w-2xl sm:mt-14 shadow-2xl animate-scale-in overflow-hidden flex flex-col rounded-none sm:rounded-2xl glass-modal"
+        className={modalPanelClass("form", "fullscreen", "min-h-0 animate-scale-in")}
       >
         <div className="px-6 py-4 border-b safe-area-inset-top border-[var(--glass-border-subtle)]">
           <div id="relay-modal-title" className="text-lg font-semibold text-[var(--color-text-primary)]">

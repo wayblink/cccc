@@ -17,6 +17,7 @@ import { ChevronLeftIcon, SparklesIcon, TerminalIcon } from "../Icons";
 import { formatCapabilityIdInput, parseCapabilityIdInput } from "../../utils/capabilityAutoload";
 import { actorProfileIdentityKey } from "../../utils/actorProfiles";
 import { supportsStandardWebHeadlessRuntime } from "../../utils/headlessRuntimeSupport";
+import { modalPanelClass, modalViewportClass } from "./modalFrameStyles";
 
 export interface AddActorModalProps {
   isOpen: boolean;
@@ -204,7 +205,7 @@ export function AddActorModal({
 
   return (
     <div
-      className="fixed inset-0 backdrop-blur-sm flex items-stretch sm:items-start justify-center p-0 sm:p-6 z-50 animate-fade-in glass-overlay"
+      className={modalViewportClass("fullscreen", "backdrop-blur-sm animate-fade-in glass-overlay")}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -214,7 +215,7 @@ export function AddActorModal({
     >
       <div
         ref={modalRef}
-        className="w-full h-full sm:h-auto sm:max-w-2xl sm:mt-10 sm:max-h-[calc(100vh-5rem)] border border-[var(--glass-border-subtle)] shadow-2xl animate-scale-in rounded-none sm:rounded-2xl glass-modal flex flex-col overflow-hidden text-[var(--color-text-primary)]"
+        className={modalPanelClass("form", "fullscreen", "animate-scale-in text-[var(--color-text-primary)]")}
       >
         <div className="px-6 py-4 border-b safe-area-inset-top border-[var(--glass-border-subtle)] glass-header flex-shrink-0">
           <div id="add-actor-title" className="text-lg font-semibold text-[var(--color-text-primary)]">

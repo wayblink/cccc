@@ -1011,7 +1011,8 @@ export function SettingsModal({
         </div>
       )}
       closeAriaLabel={t("closeAriaLabel")}
-      panelClassName="w-full h-full sm:h-[min(90dvh,920px)] sm:max-w-[min(1280px,calc(100vw-2rem))] sm:max-h-[90dvh]"
+      size="workspace"
+      panelClassName="h-full w-full"
       headerActions={(
         <div className="hidden sm:flex items-center gap-2">
           <span className="rounded-full border border-[var(--glass-border-subtle)] bg-[var(--glass-tab-bg)] px-3 py-1 text-[11px] font-medium text-[var(--color-text-secondary)]">

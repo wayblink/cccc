@@ -447,7 +447,8 @@ export function AppShell({
                 titleId={`runtime-inspector-${actorId}`}
                 title={t("runtimeInspectorTitle", { defaultValue: "Runtime inspector" })}
                 closeAriaLabel={t("runtimeInspectorClose", { defaultValue: "Close runtime inspector" })}
-                panelClassName="h-full w-full max-w-none overflow-hidden sm:h-[92vh] sm:w-[min(1480px,98vw)] sm:max-w-[98vw]"
+                size="workspace"
+                panelClassName="h-full w-full max-w-none overflow-hidden"
               >
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <ErrorBoundary>

@@ -4,6 +4,7 @@ import { DirItem } from "../../types";
 import { TemplatePreviewDetails } from "../TemplatePreviewDetails";
 import type { TemplatePreviewDetailsProps } from "../TemplatePreviewDetails";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { modalPanelClass, modalViewportClass } from "./modalFrameStyles";
 
 function getPathLeaf(path: string): string {
   return path.split("/").filter(Boolean).pop() || "";
@@ -145,7 +146,7 @@ export function CreateGroupModal({
 
   return (
     <div
-      className="fixed inset-0 backdrop-blur-sm flex items-stretch sm:items-start justify-center p-0 sm:p-6 z-50 animate-fade-in glass-overlay"
+      className={modalViewportClass("fullscreen", "backdrop-blur-sm animate-fade-in glass-overlay")}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -155,7 +156,7 @@ export function CreateGroupModal({
     >
       <div
         ref={modalRef}
-        className="w-full h-full sm:h-auto sm:max-w-lg sm:mt-16 shadow-2xl animate-scale-in overflow-hidden flex flex-col sm:max-h-[calc(100vh-8rem)] rounded-none sm:rounded-2xl glass-modal"
+        className={modalPanelClass("standard", "fullscreen", "animate-scale-in")}
       >
         <div className="px-6 py-4 border-b safe-area-inset-top border-[var(--glass-border-subtle)]">
           <div id="create-group-title" className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -308,7 +309,7 @@ export function CreateGroupModal({
       </div>
       {showDirBrowser && (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/20 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+          className={modalViewportClass("sheet", "!z-[60] bg-black/20 backdrop-blur-sm")}
           onPointerDown={(e) => {
             if (e.target === e.currentTarget) onCloseDirBrowser();
           }}
@@ -316,7 +317,7 @@ export function CreateGroupModal({
           aria-modal="true"
           aria-label={t("createGroup.directoryBrowserTitle")}
         >
-          <div className="flex h-[82vh] max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl shadow-2xl glass-modal sm:h-[560px] sm:rounded-3xl">
+          <div className={modalPanelClass("wide", "sheet", "h-[82vh] max-h-[calc(100vh-2rem)] sm:rounded-3xl")}>
             <div className="flex items-start justify-between gap-4 border-b border-[var(--glass-border-subtle)] px-5 py-4">
               <div className="min-w-0">
                 <div className="text-base font-semibold text-[var(--color-text-primary)]">{t("createGroup.directoryBrowserTitle")}</div>

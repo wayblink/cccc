@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useIMEComposition } from "../../hooks/useIMEComposition";
+import { modalPanelClass, modalViewportClass } from "./modalFrameStyles";
 
 export interface GroupEditModalProps {
   isOpen: boolean;
@@ -51,7 +52,7 @@ export function GroupEditModal({
 
   return (
     <div
-      className="fixed inset-0 backdrop-blur-sm flex items-stretch sm:items-start justify-center p-0 sm:p-6 z-50 animate-fade-in glass-overlay"
+      className={modalViewportClass("fullscreen", "backdrop-blur-sm animate-fade-in glass-overlay")}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
@@ -61,7 +62,7 @@ export function GroupEditModal({
     >
       <div
         ref={modalRef}
-        className="w-full h-full sm:h-auto sm:max-w-2xl sm:mt-12 sm:max-h-[calc(100dvh-6rem)] shadow-2xl animate-scale-in flex flex-col overflow-hidden rounded-none sm:rounded-2xl glass-modal"
+        className={modalPanelClass("form", "fullscreen", "animate-scale-in")}
       >
         <div className="px-6 py-5 sm:px-8 border-b safe-area-inset-top border-[var(--glass-border-subtle)]">
           <div id="group-edit-title" className="text-xl font-semibold text-[var(--color-text-primary)]">

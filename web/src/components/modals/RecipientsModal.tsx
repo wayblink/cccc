@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { classNames } from "../../utils/classNames";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { modalPanelClass, modalViewportClass, type ModalFrameMobileMode } from "./modalFrameStyles";
 
 export type RecipientEntry = readonly [string, boolean];
 
@@ -21,10 +22,11 @@ export function RecipientsModal({ isOpen, isSmallScreen, toLabel, statusKind, en
   const isAck = statusKind === "ack";
   const isReply = statusKind === "reply";
   const title = isReply ? t("recipients.replyStatus") : isAck ? t("recipients.acknowledgements") : t("recipients.recipients");
+  const mobileMode: ModalFrameMobileMode = isSmallScreen ? "sheet" : "centered";
 
   return (
     <div
-      className={classNames("fixed inset-0 z-50 flex animate-fade-in", isSmallScreen ? "items-end justify-center" : "items-center justify-center p-4")}
+      className={modalViewportClass(mobileMode, "animate-fade-in")}
       role="dialog"
       aria-modal="true"
       aria-label={t("recipients.recipientStatusAria")}
@@ -33,9 +35,9 @@ export function RecipientsModal({ isOpen, isSmallScreen, toLabel, statusKind, en
       <div
         ref={modalRef}
         className={classNames(
-          "relative w-full shadow-2xl",
-          isSmallScreen ? "rounded-t-2xl max-h-[80vh] animate-slide-up safe-area-inset-bottom" : "max-w-md rounded-2xl animate-scale-in",
-          "glass-modal text-[var(--color-text-primary)]"
+          modalPanelClass("compact", mobileMode),
+          isSmallScreen ? "animate-slide-up safe-area-inset-bottom" : "animate-scale-in",
+          "text-[var(--color-text-primary)]"
         )}
       >
         <div className="px-5 py-4 border-b flex items-center justify-between gap-3 border-[var(--glass-border-subtle)]">

@@ -11,6 +11,7 @@ import { CapabilityPicker } from "../CapabilityPicker";
 import { RolePresetPicker } from "../RolePresetPicker";
 import { ActorAvatarField } from "../ActorAvatarField";
 import { normalizeActorRunner, supportsStandardWebHeadlessRuntime } from "../../utils/headlessRuntimeSupport";
+import { modalPanelClass, modalViewportClass } from "./modalFrameStyles";
 
 type EditMode = "custom" | "profile";
 
@@ -548,7 +549,7 @@ export function EditActorModal({
 
   return (
     <div
-      className="fixed inset-0 flex items-stretch sm:items-start justify-center p-0 sm:p-6 z-50 animate-fade-in glass-overlay"
+      className={modalViewportClass("fullscreen", "animate-fade-in glass-overlay")}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
@@ -558,7 +559,7 @@ export function EditActorModal({
     >
       <div
         ref={modalRef}
-        className="w-full h-full sm:h-auto sm:max-w-2xl sm:mt-10 border border-[var(--glass-border-subtle)] shadow-2xl animate-scale-in flex flex-col sm:max-h-[calc(100vh-5rem)] rounded-none sm:rounded-2xl glass-modal text-[var(--color-text-primary)]"
+        className={modalPanelClass("form", "fullscreen", "animate-scale-in text-[var(--color-text-primary)]")}
       >
         <div className="px-6 py-4 border-b safe-area-inset-top border-[var(--glass-border-subtle)] glass-header">
           <div id="edit-actor-title" className="text-lg font-semibold text-[var(--color-text-primary)]">

@@ -4,6 +4,7 @@ import { Actor, LedgerEvent } from "../../types";
 import { formatFullTime, formatTime } from "../../utils/time";
 import { MarkdownRenderer } from "../MarkdownRenderer";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { modalPanelClass, modalViewportClass } from "./modalFrameStyles";
 
 function formatEventLine(
   ev: LedgerEvent,
@@ -58,7 +59,7 @@ export function InboxModal({ isOpen, actorId, actors, messages, busy, onClose, o
 
   return (
     <div
-      className="fixed inset-0 backdrop-blur-sm flex items-stretch sm:items-start justify-center p-0 sm:p-6 z-50 animate-fade-in glass-overlay"
+      className={modalViewportClass("fullscreen", "backdrop-blur-sm animate-fade-in glass-overlay")}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -68,7 +69,7 @@ export function InboxModal({ isOpen, actorId, actors, messages, busy, onClose, o
     >
       <div
         ref={modalRef}
-        className="w-full h-full sm:h-auto sm:max-h-[calc(100dvh-8rem)] sm:max-w-2xl sm:mt-16 shadow-2xl animate-scale-in flex flex-col rounded-none sm:rounded-2xl glass-modal"
+        className={modalPanelClass("form", "fullscreen", "animate-scale-in")}
       >
         <div className="px-4 sm:px-6 py-4 border-b flex items-center justify-between gap-3 safe-area-inset-top border-[var(--glass-border-subtle)]">
           <div className="min-w-0">

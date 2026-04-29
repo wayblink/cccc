@@ -995,7 +995,8 @@ export function ContextModal({
         titleId="context-modal-title"
         title={tr("context.title", "Project Context")}
         closeAriaLabel={tr("context.closeAria", "Close context modal")}
-        panelClassName="h-full w-full overflow-hidden rounded-none sm:h-[94vh] sm:max-w-[96vw]"
+        size="workspace"
+        panelClassName="h-full w-full overflow-hidden"
         modalRef={modalRef}
       >
         <div className="min-h-0 flex-1 overflow-y-auto">

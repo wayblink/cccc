@@ -96,7 +96,8 @@ export function TextDocumentViewerModal({
       titleId="text-document-viewer-title"
       title={String(currentAttachment.title || deriveAttachmentTitle(String(currentAttachment.path || "")) || "Document")}
       closeAriaLabel="Close document viewer"
-      panelClassName="h-full w-full max-w-4xl sm:h-[82vh]"
+      size="wide"
+      panelClassName="h-full w-full"
       headerActions={(
         <div className="flex items-center gap-2">
           {isEditing ? (
