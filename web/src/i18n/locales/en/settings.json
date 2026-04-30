@@ -416,7 +416,7 @@
     "failedToClearTranscript": "Failed to clear terminal transcript",
     "resetGuidanceConfirm": "Reset {{kind}}? This will delete {{filename}} override under CCCC_HOME. This cannot be undone.",
     "removeRegistryConfirm": "Remove {{count}} missing group entries from registry?",
-    "interactiveRecipientHint": "This group is in Solo mode, so only explicit actor recipients and targets are available here. Team selector tokens are disabled."
+    "soloRecipientHint": "This group is in Solo mode, so only explicit actor recipients and targets are available here. Team selector tokens are disabled."
   },
   "policies": {
     "title": "Collaboration Follow-ups",
@@ -570,11 +570,11 @@
     "saveMessaging": "Save Messaging Settings",
     "modeTitle": "Group Mode",
     "modeDescription": "Messaging behavior now follows the current group mode. There is no separate routing toggle here anymore.",
-    "modeInteractive": "Solo mode",
-    "modeInteractiveHint": "Multiple agents can exist in parallel, but they stay isolated. Choose recipients explicitly when sending messages.",
+    "modeSolo": "Solo mode",
+    "modeSoloHint": "Multiple agents can exist in parallel, but they stay isolated. Choose recipients explicitly when sending messages.",
     "modeCollaboration": "Collaboration mode",
     "modeCollaborationHint": "Keeps the original collaboration path, including default team routing and @all / @foreman / @peers.",
-    "interactiveHint": "Solo mode does not auto-route empty recipients. Choose one or more agents explicitly when sending messages."
+    "soloHint": "Solo mode does not auto-route empty recipients. Choose one or more agents explicitly when sending messages."
   },
   "imBridge": {
     "title": "IM Bridge",

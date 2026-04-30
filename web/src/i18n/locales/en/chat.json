@@ -2,7 +2,7 @@
   "nextSteps": "Next steps",
   "noMessagesYet": "No messages yet.",
   "collaborationEmptyHint": "Start the conversation with your AI group.",
-  "interactiveEmptyHint": "Start with the current agent. Each agent stays separate until you message it directly.",
+  "soloEmptyHint": "Start with the current agent. Each agent stays separate until you message it directly.",
   "viewingMessage": "Viewing a message",
   "loadingContext": "Loading context…",
   "contextTruncated": "Context is truncated.",

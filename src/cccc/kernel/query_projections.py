@@ -11,7 +11,7 @@ from .group import Group, get_group_agent_link_mode, get_group_mode, load_group
 from .registry import Registry, load_registry
 
 
-_GROUPS_SCHEMA = 2
+_GROUPS_SCHEMA = 3
 _ACTORS_SCHEMA = 1
 
 

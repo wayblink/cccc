@@ -29,7 +29,7 @@ class TestSystemPromptMemory(unittest.TestCase):
 
         return handle_request(DaemonRequest.model_validate({"op": op, "args": args}))
 
-    def _create_group_with_actor(self, *, title: str, mode: str = "interactive") -> tuple[str, str]:
+    def _create_group_with_actor(self, *, title: str, mode: str = "solo") -> tuple[str, str]:
         create, _ = self._call("group_create", {"title": title, "topic": "", "mode": mode, "by": "user"})
         self.assertTrue(create.ok, getattr(create, "error", None))
         gid = str((create.result or {}).get("group_id") or "").strip()
@@ -84,14 +84,14 @@ class TestSystemPromptMemory(unittest.TestCase):
         finally:
             cleanup()
 
-    def test_isolated_prompt_uses_direct_interaction_wording(self) -> None:
+    def test_isolated_prompt_uses_solo_interaction_wording(self) -> None:
         from cccc.kernel.actors import find_actor
         from cccc.kernel.group import load_group
         from cccc.kernel.system_prompt import render_system_prompt
 
         _, cleanup = self._with_home()
         try:
-            gid, aid = self._create_group_with_actor(title="prompt-isolated", mode="interactive")
+            gid, aid = self._create_group_with_actor(title="prompt-isolated", mode="solo")
             group = load_group(gid)
             self.assertIsNotNone(group)
             assert group is not None
@@ -99,7 +99,7 @@ class TestSystemPromptMemory(unittest.TestCase):
             self.assertIsNotNone(actor)
             prompt = render_system_prompt(group=group, actor=actor or {})
 
-            self.assertIn("Treat this as direct user interaction, not a multi-agent coordination workflow.", prompt)
+            self.assertIn("Treat this as a solo user interaction, not a multi-agent coordination workflow.", prompt)
             self.assertIn(
                 "Other agents may exist in the same group, but you do not message, route to, or synchronize with them.",
                 prompt,

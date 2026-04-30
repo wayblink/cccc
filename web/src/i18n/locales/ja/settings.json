@@ -416,7 +416,7 @@
     "failedToClearTranscript": "ターミナルログのクリアに失敗しました",
     "resetGuidanceConfirm": "{{kind}}をリセットしますか？これにより、CCCC_HOME の下の {{filename}} オーバーライドが削除されます。これを元に戻すことはできません。",
     "removeRegistryConfirm": "欠損しているグループエントリを {{count}} 件レジストリから削除しますか？",
-    "interactiveRecipientHint": "この Group はソロモードのため、ここでは明示的な Actor 宛先のみ選べます。チーム向け selector token は利用できません。"
+    "soloRecipientHint": "この Group はソロモードのため、ここでは明示的な Actor 宛先のみ選べます。チーム向け selector token は利用できません。"
   },
   "policies": {
     "title": "コラボレーションフォローアップ",
@@ -570,11 +570,11 @@
     "saveMessaging": "メッセージルーティング設定を保存",
     "modeTitle": "Group モード",
     "modeDescription": "メッセージの挙動は現在の Group モードに従います。ここで別のルーティング切り替えは行いません。",
-    "modeInteractive": "ソロモード",
-    "modeInteractiveHint": "複数 agent を並行で置けますが、既定では互いに独立します。送信時は宛先を明示してください。",
+    "modeSolo": "ソロモード",
+    "modeSoloHint": "複数 agent を並行で置けますが、既定では互いに独立します。送信時は宛先を明示してください。",
     "modeCollaboration": "協調モード",
     "modeCollaborationHint": "従来の協調パスを維持し、既定のチーム向けルーティングや @all / @foreman / @peers を利用できます。",
-    "interactiveHint": "ソロモードでは、宛先未指定時の自動ルーティングは行いません。送信時に 1 つ以上の agent を明示的に選択してください。"
+    "soloHint": "ソロモードでは、宛先未指定時の自動ルーティングは行いません。送信時に 1 つ以上の agent を明示的に選択してください。"
   },
   "imBridge": {
     "title": "IMブリッジ",

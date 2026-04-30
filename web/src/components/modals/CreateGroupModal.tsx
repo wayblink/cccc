@@ -101,8 +101,8 @@ export function CreateGroupModal({
   }> = [
     {
       value: "solo",
-      title: t("createGroup.interactiveMode"),
-      description: t("createGroup.interactiveModeHint"),
+      title: t("createGroup.soloMode"),
+      description: t("createGroup.soloModeHint"),
     },
     {
       value: "collaboration",

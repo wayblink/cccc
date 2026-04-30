@@ -23,7 +23,7 @@
   "createNewGroup": "Create new working group",
   "newGroup": "+ New",
   "workingGroups": "Working Groups",
-  "groupModeInteractive": "Solo mode",
+  "groupModeSolo": "Solo mode",
   "groupModeCollaboration": "Collaboration mode",
   "archivedGroups": "Archived",
   "groupActions": "Group actions",

@@ -2,18 +2,15 @@
 
 <img src="screenshots/logo.png" width="160" />
 
-# CCCC · Personal Fork
+# CCCC+ · CCCC Personal Fork
 
-### 基于 CCCC 的个人工作台实验
+### 基于 CCCC 的个人实验工作台
 
-**CCCC是一个轻量级、却具备基础设施级可靠性的多智能体框架。**
+**CCCC是一个开源轻量级、本地优先、支持聊天式交互的多智能体协作框架。为了满足个人需求进行了二次开发,做着做着还挺上头......**
 
 原版项目介绍、安装方式、架构说明和完整文档请看：
 
 [原版 README（ChesterRa/cccc）](https://github.com/ChesterRa/cccc#readme) · [本仓库保留的英文 README](README.en.md) · [中文完整版镜像](README.zh-CN.md) · [日本語](README.ja.md)
-
-[![Upstream](https://img.shields.io/badge/upstream-ChesterRa%2Fcccc-blue)](https://github.com/ChesterRa/cccc)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
 **当前 README 仅记录本分支的二次开发说明。**
 
@@ -23,44 +20,52 @@
 
 ## 为什么基于 CCCC 二次开发
 
-我选择基于 CCCC 二次开发，是因为原版已经把多 agent 协作里最难、也最容易被低估的底座问题处理得足够清楚：它不是简单地把几个终端窗口拼在一起，而是提供了一套可以长期运行、可恢复、可追踪的协作内核。
+我一直希望建立自己的工作台，相比从零重新造一个，我更希望站在一个可靠内核上，把产品打磨成更贴近日常使用的样子。接触CCCC是源自公司同事分享，是我在众多类似产品中这个用得最顺手一个：入门门槛低，前端UI友好，功能丰富。不是最好的，但刚好适合我。
 
-| 原版 CCCC 的核心能力 | 它解决的问题 | 我基于它继续做什么 |
-|----------------------|--------------|--------------------|
-| **Append-only ledger** | 协作记录不再散落在终端 scrollback 里，消息和事件可以回放、审计、恢复。 | 把长期 agent 工作流沉淀成可追踪的工作台历史，而不是一次性会话。 |
-| **可靠消息语义** | 支持路由、已读游标、ACK、reply-required、回复引用，能知道谁看到了什么、谁还欠回复。 | 在多人 / 多 agent 场景里减少“我以为它收到了”的不确定性。 |
-| **Daemon 单写者模型** | 所有状态变更经由同一 daemon，避免 Web、CLI、MCP、IM 各管一套状态。 | 在它上面继续叠加 UI、终端、脚本、笔记等能力，而不拆散事实源。 |
-| **统一控制面** | Web UI、CLI、MCP 工具、IM bridge 都围绕同一套 daemon 状态工作。 | 把 CCCC 从协作内核扩展成日常可用的 agent 工作台。 |
-| **多运行时 actor 抽象** | Claude Code、Codex CLI、Gemini CLI 等运行时可以在同一 group 里协作。 | 让不同模型 / 工具各自做擅长的事，而不是被单一 runtime 绑定。 |
-| **本地优先运行方式** | 单机即可启动，运行时状态放在 `CCCC_HOME`，需要时再暴露 Web / IM 远程值守。 | 保持个人开发环境可控，同时支持长任务和远程查看。 |
+### 原本CCCC的核心能力
 
-相比从零重新造一个 orchestrator，我更希望站在这个可靠内核上，把产品方向推进到更贴近日常使用的 **agent 工作台**。
+- **聊天式交互**：以聊天室方式进行人-agent和agent-agent交互。
 
-这个分支的重点不是替代上游，而是把 CCCC 从“可靠协作内核”继续扩展成适合我自己长期使用的个人 / 小团队操作台：中文优先、终端可见、工作区可浏览、脚本与笔记可沉淀，并让 Claude Code、Codex CLI、GitHub Copilot CLI 等运行时在同一工作流里更顺手地协作。
+- **角色化份工**：支持创建多个可设置角色的agent在同一协作组内协同工作。
+
+- **持久化协作**：构建了完整的消息路由、消息队列，状态追踪实现可靠的消息语义。
+
+- **多模型支持**：支持包括Claude Code、Codex CLI、Gemini CLI 等其他一线LLM Provider。
+
+- **统一控制面**：Web UI、CLI、MCP、IM 桥接全部围绕同一 daemon 运作，不会出现多套状态。
+
+- **多样使用方式**：支持Web UI、CLI、MCP等多种控制方式，支持多种主流 IM 桥接：Telegram，slack，discord，微信，飞书等。
+
 
 ## 本分支的差异化功能
 
-| 方向 | 差异化能力 |
-|------|------------|
-| **中文默认入口** | 根目录 `README.md` 改为中文优先，只保留本分支二开说明；原版 README 通过链接访问。 |
-| **Direct / 直连工作台** | 强化 Terminal Direct Mode、快速终端入口、直连模式 group 默认终端显示，减少“先建协作组再找终端”的摩擦。 |
-| **工作区洞察** | 增加 Workspace Inspector、图片预览、文本文档查看等能力，让 agent 协作时能直接围绕仓库文件、diff 和素材沟通。 |
-| **本地生产力组件** | 增加 Notes / Script Manager / 通知音 / 全局字号等工作台功能，把临时经验、常用脚本和长任务提醒沉淀下来。 |
-| **运行时适配与稳定性** | 增强 Codex session-scoped MCP 上下文、GitHub Copilot CLI 支持、PTY composer-ready 检测、headless trace recovery 等细节。 |
-| **UI 与操作流优化** | 重组 Settings、统一 Modal、优化搜索 / mention / reply quote / group mode 等交互，让日常高频操作更少打断。 |
+- **Solo模式**：相比于多agent协作，更多开发者喜欢开多窗口/终端并行，况且Claude code，CodeX等已经内嵌了MultiAgent能力，Vibe coding的多agent的需求在被大厂快速覆盖，没必要重复造轮子。因此提供一种类似于多开终端或多session会话的交互模式，称为Solo模式。
+
+- **临时终端**：提供临时终端入口，当你需要临时使用命令行，不用再切出呼唤终端。
+
+- **工具箱-笔记**：工具箱提供笔记功能，方便随时记录想法或备忘，不用再切出打开笔记软件。
+
+- **工具箱-脚本**：工具箱提供脚本管理功能，可视化、持久化地管理常用脚本，比如开启远程隧穿，启动本地服务，编译发版项目。一次编写，长期提效。
+
+- **文件工作区**：支持文件树，文件预览，Diff等IDE能力。
+
+- **通知音**：借鉴Vibe-kanban项目，Agent回复时可以发通知音，提醒你给Agent发送下一步指令，榨干人的调度能力。多种音效：牛叫，马叫，鸡叫等，提供情绪价值。
+
+- **MCP侵入去除**：原版会将CCCC的MCP永久插入本地的Agent配置，导致在其他地方使用Agent也会加载CCCC MCP。将其修改为Session级注入，避免污染。
+
+- **LLM Provider**：（实验中）新增支持Github Copilot Agent。
+
+- **UI 与操作流优化**： 重组 Settings、统一 Modal、优化搜索 / mention / reply quote / group mode 等交互，让日常高频操作更少打断。 
 
 ## TODO Roadmap
 
-- [x] 中文默认 README 与多语言入口重排。
-- [x] Direct / 直连模式 group 默认终端视图、快速终端入口、Terminal Direct Mode。
-- [x] Workspace Inspector、图片预览、文本文档预览。
-- [x] Notes、Script Manager、通知音、全局字号等本地工作台能力。
-- [x] Codex / Copilot 等运行时的 MCP 注入、投递链路和 PTY 可用性修复。
-- [ ] 完善远程 backend group discovery / management，把多机器上的 group 管理做成稳定入口。
-- [ ] 强化 Workspace Inspector：补齐更完整的 diff、搜索、文件操作和 agent 引用链路。
-- [ ] 打通 Notes / Script Manager / Automation，让常用脚本和经验沉淀可以被 agent 安全复用。
-- [ ] 继续收敛 Direct / 直连模式与 Collaboration / 协作模式两种 group mode 的信息架构和默认体验。
-- [ ] 完善安全与发布文档：访问令牌、远程暴露、源码安装、Docker 与升级路径。
+- [ ] **重构多Agent协作底层**: 在协作模式使用过程中，遇到了不少框架的bug，实际中我几乎都使用Solo模式。根本原因是通过MCP来实现协作通信可靠性较低，为了让协作框架更可靠，需要更具确定性的消息层，以及消息层和协作语义层的解耦。
+- [ ] **语音控制**: 引入类typeless的语音转文字能力，CCCC本身支持手机端，两者结合会更加便利。
+- [ ] **完善文件工作区**: 当文件工作区仅支持只读，会继续完善有意义的类IDE能力。
+- [ ] **打磨手机端和IM**: 下一阶段会尝试手机端和IM远程控制，会打磨这部分功能和体验。
+- [ ] **完善插件管理**: 当前对于MCP，skill缺少统一管理。会尝试做统一的MCP/Skill同步和管理，实现多模型的统一Harness。
+- [ ] **远程能力提升**: 远程开发几乎是开发者刚需，但目前各种产品在远程开发都会有些限制或不便：比如：CodeX/Claude Desktop不支持远程；远程命令行无法复制图片（CCCC可解决）；必须远程安装一个服务；本地和远程上下文及记忆不共享等等。CCCC已经解决了前两个问题，但还有一些可以做再优化。
+- [ ] **UI优化**：CCCC的细节前端布局和UI设计还待完善。
 
 ## 上游与许可
 

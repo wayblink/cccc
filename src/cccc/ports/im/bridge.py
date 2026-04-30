@@ -1141,7 +1141,7 @@ class IMBridge:
             chat_id,
             format_help(
                 platform=platform,
-                interactive=group_requires_explicit_actor_recipient(self.group.doc),
+                requires_direct_routing=group_requires_explicit_actor_recipient(self.group.doc),
             ),
             thread_id=thread_id,
         )

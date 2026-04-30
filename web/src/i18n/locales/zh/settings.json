@@ -416,7 +416,7 @@
     "failedToClearTranscript": "清除终端日志失败",
     "resetGuidanceConfirm": "重置 {{kind}}？这将删除 CCCC_HOME 下的 {{filename}} 覆盖文件。此操作无法撤销。",
     "removeRegistryConfirm": "从注册表中移除 {{count}} 个缺失的工作组条目？",
-    "interactiveRecipientHint": "当前为独立模式，只能选择显式 Actor 作为收件人或目标；这里不会提供团队选择器 token。"
+    "soloRecipientHint": "当前为独立模式，只能选择显式 Actor 作为收件人或目标；这里不会提供团队选择器 token。"
   },
   "policies": {
     "title": "协作跟进",
@@ -570,11 +570,11 @@
     "saveMessaging": "保存消息路由设置",
     "modeTitle": "工作组模式",
     "modeDescription": "消息路由能力由当前工作组模式决定，这里不再单独提供额外的消息联动开关。",
-    "modeInteractive": "独立模式",
-    "modeInteractiveHint": "多个 agent 可以并行存在，但默认彼此独立；发送消息时请显式选择目标。",
+    "modeSolo": "独立模式",
+    "modeSoloHint": "多个 agent 可以并行存在，但默认彼此独立；发送消息时请显式选择目标。",
     "modeCollaboration": "协作模式",
     "modeCollaborationHint": "沿用原协作路径，可使用默认团队路由与 @all / @foreman / @peers。",
-    "interactiveHint": "独立模式不会为缺省收件人自动路由。发送消息时请显式选择一个或多个 agent。"
+    "soloHint": "独立模式不会为缺省收件人自动路由。发送消息时请显式选择一个或多个 agent。"
   },
   "imBridge": {
     "title": "IM 桥接",

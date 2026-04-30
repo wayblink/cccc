@@ -13,10 +13,6 @@ export function isSoloGroupMode(mode: unknown): boolean {
   return normalizeGroupMode(mode) === "solo";
 }
 
-export function isInteractiveGroupMode(mode: unknown): boolean {
-  return isSoloGroupMode(mode);
-}
-
 export function getGroupMode(group: Pick<GroupDoc, "mode"> | Pick<GroupMeta, "mode"> | null | undefined): FrontendGroupMode {
   return normalizeGroupMode(group?.mode);
 }

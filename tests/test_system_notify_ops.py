@@ -186,7 +186,7 @@ class TestSystemNotifyOps(unittest.TestCase):
     def test_isolated_group_requires_explicit_notify_target(self) -> None:
         _, cleanup = self._with_home()
         try:
-            create, _ = self._call("group_create", {"title": "isolated-notify", "topic": "", "mode": "interactive", "by": "user"})
+            create, _ = self._call("group_create", {"title": "isolated-notify", "topic": "", "mode": "solo", "by": "user"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)

@@ -30,7 +30,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
 
         return handle_request(DaemonRequest.model_validate({"op": op, "args": args}))
 
-    def _create_group(self, *, title: str, mode: str = "interactive") -> str:
+    def _create_group(self, *, title: str, mode: str = "solo") -> str:
         resp, _ = self._call("group_create", {"title": title, "topic": "", "mode": mode, "by": "user"})
         self.assertTrue(resp.ok, getattr(resp, "error", None))
         group_id = str((resp.result or {}).get("group_id") or "").strip()
@@ -51,7 +51,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
         )
         self.assertTrue(resp.ok, getattr(resp, "error", None))
 
-    def _create_kernel_group(self, *, title: str, mode: str = "interactive"):
+    def _create_kernel_group(self, *, title: str, mode: str = "solo"):
         from cccc.kernel.group import create_group
         from cccc.kernel.registry import load_registry
 
@@ -103,7 +103,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
     def test_isolated_group_blocks_actor_to_actor_chat_and_notify(self) -> None:
         _, cleanup = self._with_home()
         try:
-            group_id = self._create_group(title="isolated-chat", mode="interactive")
+            group_id = self._create_group(title="isolated-chat", mode="solo")
             self._add_headless_actor(group_id=group_id, actor_id="peer1")
             self._add_headless_actor(group_id=group_id, actor_id="peer2")
 
@@ -138,7 +138,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
     def test_isolated_group_send_without_recipient_falls_back_to_single_enabled_actor(self) -> None:
         _, cleanup = self._with_home()
         try:
-            group = self._create_kernel_group(title="isolated-single-send", mode="interactive")
+            group = self._create_kernel_group(title="isolated-single-send", mode="solo")
             self._append_actor(group, actor_id="solo", runner="headless")
 
             send_resp, _ = self._call(
@@ -160,7 +160,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
     def test_isolated_group_send_without_recipient_still_requires_choice_with_multiple_enabled_actors(self) -> None:
         _, cleanup = self._with_home()
         try:
-            group = self._create_kernel_group(title="isolated-multi-send", mode="interactive")
+            group = self._create_kernel_group(title="isolated-multi-send", mode="solo")
             self._append_actor(group, actor_id="peer1", runner="headless")
             self._append_actor(group, actor_id="peer2", runner="headless")
 
@@ -254,7 +254,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            group = self._create_kernel_group(title="isolated-automation", mode="interactive")
+            group = self._create_kernel_group(title="isolated-automation", mode="solo")
             self._append_actor(group, actor_id="foreman1")
             self._append_actor(group, actor_id="peer1")
 
@@ -323,7 +323,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
     def test_isolated_replace_all_rules_rejects_selector_targets(self) -> None:
         _, cleanup = self._with_home()
         try:
-            group_id = self._create_group(title="isolated-rules", mode="interactive")
+            group_id = self._create_group(title="isolated-rules", mode="solo")
             self._add_headless_actor(group_id=group_id, actor_id="peer1")
 
             resp, _ = self._call(
@@ -454,7 +454,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            group = self._create_kernel_group(title="isolated-legacy-notify", mode="interactive")
+            group = self._create_kernel_group(title="isolated-legacy-notify", mode="solo")
             self._append_actor(group, actor_id="peer1")
             self._append_actor(group, actor_id="peer2")
 
@@ -485,7 +485,7 @@ class TestAgentLinkModeIsolation(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            group = self._create_kernel_group(title="isolated-cli-send", mode="interactive")
+            group = self._create_kernel_group(title="isolated-cli-send", mode="solo")
             self._append_actor(group, actor_id="peer1")
             self._append_actor(group, actor_id="peer2")
 

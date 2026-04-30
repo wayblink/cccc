@@ -565,7 +565,7 @@ export function AutomationTab(props: AutomationTabProps) {
           <span className="font-mono break-all">{configPath || t("automation.configPathFallback")}</span>.
         </p>
         {!coordinationEnabled ? (
-          <p className="text-xs mt-2 text-[var(--color-text-muted)]">{t("automation.interactiveRecipientHint")}</p>
+          <p className="text-xs mt-2 text-[var(--color-text-muted)]">{t("automation.soloRecipientHint")}</p>
         ) : null}
       </div>
 

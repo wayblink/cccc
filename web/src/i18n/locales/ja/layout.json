@@ -23,7 +23,7 @@
   "createNewGroup": "新しい作業グループを作成",
   "newGroup": "+ 新規",
   "workingGroups": "作業グループ",
-  "groupModeInteractive": "ソロモード",
+  "groupModeSolo": "ソロモード",
   "groupModeCollaboration": "協調モード",
   "archivedGroups": "アーカイブ",
   "groupActions": "グループ操作",

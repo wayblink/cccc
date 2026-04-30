@@ -36,9 +36,9 @@ def _enabled_actor_ids(group: Group) -> List[str]:
 
 
 def isolated_single_enabled_actor_recipient(group: Group) -> List[str]:
-    """Return the lone enabled actor for isolated/direct-send groups.
+    """Return the lone enabled actor for isolated solo-send groups.
 
-    Interactive/isolated groups require explicit direct recipients, but the UX
+    Solo/isolated groups require explicit recipients, but the UX
     can safely degrade to the only enabled actor when there is exactly one.
     """
     if not group_requires_explicit_actor_recipient(group.doc):

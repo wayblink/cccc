@@ -262,7 +262,7 @@ export function ChatTab({
   const selectedGroupMode = getGroupMode(selectedGroupMeta);
   const showCoordinationRoles = selectedGroupMode === "collaboration";
   const emptyStateDescription = selectedGroupMode === "solo"
-    ? t("interactiveEmptyHint", {
+    ? t("soloEmptyHint", {
         defaultValue: "Start with the current agent. Each agent stays separate until you message it directly.",
       })
     : t("collaborationEmptyHint", {

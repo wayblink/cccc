@@ -40,20 +40,20 @@ describe("group mode copy", () => {
       const layout = readLocale(locale, "layout");
       const settings = readLocale(locale, "settings");
 
-      expect(lookup(modals, "createGroup.interactiveMode")).toBe(expected[locale].option);
-      expect(lookup(layout, "groupModeInteractive")).toBe(expected[locale].mode);
-      expect(lookup(settings, "messaging.modeInteractive")).toBe(expected[locale].mode);
+      expect(lookup(modals, "createGroup.soloMode")).toBe(expected[locale].option);
+      expect(lookup(layout, "groupModeSolo")).toBe(expected[locale].mode);
+      expect(lookup(settings, "messaging.modeSolo")).toBe(expected[locale].mode);
     }
   });
 
   it("keeps solo-mode explanatory copy away from legacy Interactive/Direct labels", () => {
     const copyKeys: Array<[Namespace, string]> = [
       ["layout", "noGroupsDescription"],
-      ["modals", "createGroup.interactiveModeHint"],
+      ["modals", "createGroup.soloModeHint"],
       ["modals", "context.notifyAgentsUnsupported"],
-      ["settings", "automation.interactiveRecipientHint"],
-      ["settings", "messaging.modeInteractiveHint"],
-      ["settings", "messaging.interactiveHint"],
+      ["settings", "automation.soloRecipientHint"],
+      ["settings", "messaging.modeSoloHint"],
+      ["settings", "messaging.soloHint"],
     ];
 
     const legacyLabelPattern = /Interactive|interactive mode|Direct mode|Direct groups|Direct sessions|インタラクティブ|ダイレクトモード|対話モード|交互模式|直连模式/;

@@ -153,11 +153,11 @@ def _map_command(cmd_name: str) -> CommandType:
     return mapping.get(cmd_name, CommandType.MESSAGE)
 
 
-def format_help(platform: str = "telegram", *, interactive: bool = False) -> str:
+def format_help(platform: str = "telegram", *, requires_direct_routing: bool = False) -> str:
     """Generate help text for IM commands."""
     platform = (platform or "").strip().lower()
 
-    if interactive:
+    if requires_direct_routing:
         base = """CCCC Commands:
 
 📬 Subscription:
@@ -216,7 +216,7 @@ def format_help(platform: str = "telegram", *, interactive: bool = False) -> str
         suffix = (
             "  - In direct chat, choose recipients explicitly when this group requires direct routing.\n"
             "  - Use /send @<agent> ... for directed delivery."
-            if interactive
+            if requires_direct_routing
             else "  - In direct chat, plain text is sent to foreman by default.\n"
             "  - Use /send when you need explicit recipients (e.g. @all, @peers)."
         )
@@ -230,7 +230,7 @@ Telegram notes:
         suffix = (
             "  - After mention, choose recipients explicitly when this group requires direct routing.\n"
             "  - Use /send @<agent> ... for directed delivery."
-            if interactive
+            if requires_direct_routing
             else "  - After mention, plain text is sent to foreman by default.\n"
             "  - Use /send for explicit recipients (e.g. @all, @peers)."
         )

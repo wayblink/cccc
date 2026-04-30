@@ -323,6 +323,8 @@ def get_group_agent_link_mode(group_doc: Dict[str, Any]) -> GroupAgentLinkMode:
     if isinstance(messaging, dict):
         for key in ("agent_link_mode", "link_mode"):
             if key in messaging:
+                if not str(messaging.get(key) or "").strip():
+                    continue
                 return normalize_group_agent_link_mode(
                     messaging.get(key),
                     default=GROUP_AGENT_LINK_MODE_CONNECTED,
@@ -330,6 +332,8 @@ def get_group_agent_link_mode(group_doc: Dict[str, Any]) -> GroupAgentLinkMode:
 
     for key in ("agent_link_mode", "link_mode"):
         if key in group_doc:
+            if not str(group_doc.get(key) or "").strip():
+                continue
             return normalize_group_agent_link_mode(
                 group_doc.get(key),
                 default=GROUP_AGENT_LINK_MODE_CONNECTED,
@@ -364,10 +368,6 @@ def group_heavy_mcp_enabled(group_doc: Dict[str, Any]) -> bool:
 
 def is_solo_group_doc(group_doc: Dict[str, Any]) -> bool:
     return get_group_mode(group_doc) == GROUP_MODE_SOLO
-
-
-def is_interactive_group_doc(group_doc: Dict[str, Any]) -> bool:
-    return is_solo_group_doc(group_doc)
 
 
 def supports_group_default_send_to(group_doc: Dict[str, Any]) -> bool:

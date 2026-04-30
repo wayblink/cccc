@@ -212,9 +212,9 @@ def _read_groups_local() -> Dict[str, Any]:
         row["state"] = str(runtime_status.get("lifecycle_state") or row.get("state") or "active")
         row["running"] = bool(runtime_status.get("runtime_running"))
         row["runtime_status"] = runtime_status
-        row["mode"] = get_group_mode(group.doc) if group is not None else str(row.get("mode") or "collaboration")
-        row["agent_link_mode"] = get_group_agent_link_mode(group.doc) if group is not None else str(
-            row.get("agent_link_mode") or ""
+        row["mode"] = get_group_mode(group.doc) if group is not None else get_group_mode(row)
+        row["agent_link_mode"] = (
+            get_group_agent_link_mode(group.doc) if group is not None else get_group_agent_link_mode(row)
         )
         out.append(row)
     remote_runtime_status = {
@@ -257,13 +257,14 @@ def _read_groups_local() -> Dict[str, Any]:
             title = str(remote_item.get("title") or "").strip()
             topic = str(remote_item.get("topic") or "").strip()
             known_ids.add(gid)
+            remote_row = dict(remote_item)
             out.append(
                 {
                     "group_id": gid,
                     "title": title or remote_group_id,
                     "topic": topic or f"remote: {base_url} ({remote_group_id})",
-                    "mode": str(remote_item.get("mode") or "collaboration"),
-                    "agent_link_mode": str(remote_item.get("agent_link_mode") or ""),
+                    "mode": get_group_mode(remote_row),
+                    "agent_link_mode": get_group_agent_link_mode(remote_row),
                     "state": "active",
                     "running": False,
                     "runtime_status": dict(remote_runtime_status),
@@ -285,13 +286,14 @@ def _read_groups_local() -> Dict[str, Any]:
         title = str(item.get("title") or "").strip()
         topic = str(item.get("topic") or "").strip()
         known_ids.add(gid)
+        remote_row = dict(item)
         out.append(
             {
                 "group_id": gid,
                 "title": title or gid,
                 "topic": topic or f"remote: {base_url} ({remote_group_id})",
-                "mode": str(item.get("mode") or "collaboration"),
-                "agent_link_mode": str(item.get("agent_link_mode") or ""),
+                "mode": get_group_mode(remote_row),
+                "agent_link_mode": get_group_agent_link_mode(remote_row),
                 "state": "active",
                 "running": False,
                 "runtime_status": dict(remote_runtime_status),

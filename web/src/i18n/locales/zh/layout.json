@@ -23,7 +23,7 @@
   "createNewGroup": "创建新工作组",
   "newGroup": "+ 新建",
   "workingGroups": "工作组",
-  "groupModeInteractive": "独立模式",
+  "groupModeSolo": "独立模式",
   "groupModeCollaboration": "协作模式",
   "archivedGroups": "已归档",
   "groupActions": "工作组操作",
