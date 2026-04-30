@@ -53,7 +53,7 @@ class TestCapabilityOps(unittest.TestCase):
         return path
 
     def _create_group(self, title: str = "capability-test") -> str:
-        create_resp, _ = self._call("group_create", {"title": title, "topic": "", "by": "user"})
+        create_resp, _ = self._call("group_create", {"title": title, "topic": "", "by": "user", "mode": "collaboration"})
         self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
         gid = str((create_resp.result or {}).get("group_id") or "").strip()
         self.assertTrue(gid)

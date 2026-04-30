@@ -19,7 +19,7 @@ class TestGroupTemplateAutomationReplace(unittest.TestCase):
 
                 create_resp, _ = handle_request(
                     DaemonRequest.model_validate(
-                        {"op": "group_create", "args": {"title": "t", "topic": "", "by": "user"}}
+                        {"op": "group_create", "args": {"title": "t", "topic": "", "mode": "collaboration", "by": "user"}}
                     )
                 )
                 self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
@@ -111,7 +111,7 @@ prompts: {}
 
                 create_resp, _ = handle_request(
                     DaemonRequest.model_validate(
-                        {"op": "group_create", "args": {"title": "t", "topic": "", "by": "user"}}
+                        {"op": "group_create", "args": {"title": "t", "topic": "", "mode": "collaboration", "by": "user"}}
                     )
                 )
                 self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
@@ -164,7 +164,7 @@ prompts: {}
 
                 create_resp, _ = handle_request(
                     DaemonRequest.model_validate(
-                        {"op": "group_create", "args": {"title": "t", "topic": "", "by": "user"}}
+                        {"op": "group_create", "args": {"title": "t", "topic": "", "mode": "collaboration", "by": "user"}}
                     )
                 )
                 self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))

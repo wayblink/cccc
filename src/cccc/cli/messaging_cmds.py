@@ -55,11 +55,6 @@ def _to_tokens_from_args(args: argparse.Namespace) -> list[str]:
     return tokens
 
 
-def _return_daemon_rejection(resp: dict) -> int:
-    _print_json(resp)
-    return 2
-
-
 def _resolve_cli_message_sender(args: argparse.Namespace) -> str:
     explicit_by = str(getattr(args, "by", "") or "").strip()
     if explicit_by:
@@ -113,6 +108,8 @@ def cmd_send(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     # Fallback: local execution (dev convenience)
     to_explicitly_set = len(to_tokens) > 0
@@ -220,7 +217,7 @@ def cmd_tracked_send(args: argparse.Namespace) -> int:
     if resp.get("ok"):
         _print_json(resp)
         return 0
-    return _return_daemon_rejection(resp)
+    return _return_daemon_failure(resp)
 
 
 def cmd_reply(args: argparse.Namespace) -> int:
@@ -281,6 +278,8 @@ def cmd_reply(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     # Fallback: local execution
     to_explicitly_set = len(to_tokens) > 0
@@ -361,8 +360,11 @@ def cmd_ledger_snapshot(args: argparse.Namespace) -> int:
 
     if _ensure_daemon_running():
         resp = call_daemon({"op": "ledger_snapshot", "args": {"group_id": group_id, "by": by, "reason": reason}})
-        _print_json(resp)
-        return 0 if resp.get("ok") else 2
+        if resp.get("ok"):
+            _print_json(resp)
+            return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -390,8 +392,11 @@ def cmd_ledger_compact(args: argparse.Namespace) -> int:
         resp = call_daemon(
             {"op": "ledger_compact", "args": {"group_id": group_id, "by": by, "reason": reason, "force": force}}
         )
-        _print_json(resp)
-        return 0 if resp.get("ok") else 2
+        if resp.get("ok"):
+            _print_json(resp)
+            return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -424,10 +429,10 @@ def cmd_inbox(args: argparse.Namespace) -> int:
 
     if _ensure_daemon_running():
         resp = call_daemon({"op": "inbox_list", "args": {"group_id": group_id, "actor_id": actor_id, "by": by, "limit": limit, "kind_filter": kind_filter}})
-        if resp.get("ok") and not args.mark_read:
-            _print_json(resp)
-            return 0
-        if resp.get("ok") and args.mark_read:
+        if resp.get("ok"):
+            if not args.mark_read:
+                _print_json(resp)
+                return 0
             result = resp.get("result") if isinstance(resp.get("result"), dict) else {}
             messages = result.get("messages") if isinstance(result.get("messages"), list) else []
             if messages:
@@ -439,6 +444,8 @@ def cmd_inbox(args: argparse.Namespace) -> int:
                         return 0
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -490,8 +497,11 @@ def cmd_read(args: argparse.Namespace) -> int:
 
     if _ensure_daemon_running():
         resp = call_daemon({"op": "inbox_mark_read", "args": {"group_id": group_id, "actor_id": actor_id, "event_id": event_id, "by": by}})
-        _print_json(resp)
-        return 0 if resp.get("ok") else 2
+        if resp.get("ok"):
+            _print_json(resp)
+            return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:

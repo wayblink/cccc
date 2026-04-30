@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { MessageAttachment } from "../../types";
 import { withAuthToken } from "../../services/api";
 import { classNames } from "../../utils/classNames";
-import { deriveAttachmentTitle, isImageAttachment, isSvgAttachment } from "../../utils/messageAttachments";
+import { deriveAttachmentTitle, isImageAttachment, isSvgAttachment, isTextEditableAttachment } from "../../utils/messageAttachments";
 import { FileIcon } from "../Icons";
 import { ImagePreview } from "./ImagePreview";
 import { TextDocumentViewerModal } from "./TextDocumentViewerModal";
@@ -14,7 +14,7 @@ export function MessageAttachments({
   isUserMessage,
   isDark,
   attachmentKeyPrefix,
-  downloadTitle: _downloadTitle,
+  downloadTitle,
 }: {
   attachments: MessageAttachment[];
   blobGroupId: string;
@@ -57,19 +57,21 @@ export function MessageAttachments({
       {fileAttachments.length > 0 && (
         <div className="mt-3 flex max-w-full flex-wrap items-start gap-2">
           {fileAttachments.map((attachment, index) => {
-            const parts = String(attachment.path || "").split("/");
+            const attachmentPath = String(attachment.path || "");
+            const parts = attachmentPath.split("/");
             const blobName = parts[parts.length - 1] || "";
             const label = attachment.title || deriveAttachmentTitle(blobName) || "file";
-            return (
-              <div
-                key={`file:${attachmentKeyPrefix}:${index}`}
-                className={classNames(
-                  "inline-flex max-w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors",
-                  isUserMessage
-                    ? "bg-blue-700/50 text-white border border-blue-500"
-                    : "glass-btn border border-[var(--glass-border-subtle)] text-[var(--color-text-secondary)]",
-                )}
-              >
+            const href = attachment.local_preview_url || withAuthToken(
+              `/api/v1/groups/${encodeURIComponent(blobGroupId)}/blobs/${encodeURIComponent(blobName)}`
+            );
+            const chipClassName = classNames(
+              "inline-flex max-w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
+              isUserMessage
+                ? "bg-blue-700/50 text-white border border-blue-500"
+                : "glass-btn border border-[var(--glass-border-subtle)] text-[var(--color-text-secondary)]",
+            );
+            const chipContent = (
+              <>
                 <FileIcon size={13} className="opacity-60 flex-shrink-0" />
                 <span
                   className="truncate font-medium"
@@ -77,7 +79,35 @@ export function MessageAttachments({
                 >
                   {label}
                 </span>
-              </div>
+              </>
+            );
+
+            if (isTextEditableAttachment(attachment)) {
+              return (
+                <button
+                  key={`file:${attachmentKeyPrefix}:${index}`}
+                  type="button"
+                  className={chipClassName}
+                  onClick={() => setActiveDocumentPath(attachmentPath)}
+                  aria-label={`View ${label}`}
+                  title={`View ${label}`}
+                >
+                  {chipContent}
+                </button>
+              );
+            }
+
+            return (
+              <a
+                key={`file:${attachmentKeyPrefix}:${index}`}
+                href={href}
+                download={label}
+                className={chipClassName}
+                aria-label={downloadTitle(label)}
+                title={downloadTitle(label)}
+              >
+                {chipContent}
+              </a>
             );
           })}
         </div>

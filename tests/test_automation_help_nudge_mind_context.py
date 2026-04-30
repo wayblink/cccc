@@ -19,7 +19,7 @@ class TestAutomationHelpNudgeMindContext(unittest.TestCase):
         from cccc.kernel.registry import load_registry
 
         reg = load_registry()
-        group = create_group(reg, title="help-nudge")
+        group = create_group(reg, title="help-nudge", mode="collaboration")
         add_actor(group, actor_id="peer1", runtime="codex", runner=runner, enabled=True)
         automation = group.doc.get("automation") if isinstance(group.doc.get("automation"), dict) else {}
         automation.update(

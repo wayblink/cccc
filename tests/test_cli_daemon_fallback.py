@@ -28,7 +28,7 @@ class TestCliDaemonFallback(unittest.TestCase):
         from cccc.kernel.registry import load_registry
 
         reg = load_registry()
-        group = create_group(reg, title="cli-daemon-fallback", topic="")
+        group = create_group(reg, title="cli-daemon-fallback", topic="", mode="collaboration")
         return group.group_id
 
     def test_send_does_not_fallback_after_daemon_rejection(self) -> None:
@@ -246,6 +246,85 @@ class TestCliDaemonFallback(unittest.TestCase):
             self.assertEqual(code, 2)
             append_event.assert_not_called()
             print_json.assert_called_once_with(resp)
+        finally:
+            cleanup()
+
+    def test_actor_update_keeps_local_fallback_for_daemon_unavailable(self) -> None:
+        from cccc import cli
+        from cccc.kernel.actors import add_actor
+        from cccc.kernel.group import load_group
+
+        _, cleanup = self._with_home()
+        try:
+            group_id = self._create_group()
+            group = load_group(group_id)
+            self.assertIsNotNone(group)
+            assert group is not None
+            add_actor(group, actor_id="peer1", title="Peer 1", runtime="codex", runner="headless")
+
+            resp = {"ok": False, "error": {"code": "daemon_unavailable", "message": "daemon unavailable"}}
+            args = Namespace(
+                group=group_id,
+                actor_id="peer1",
+                title="Peer One",
+                role=None,
+                command=None,
+                env=[],
+                scope="",
+                submit=None,
+                runner=None,
+                runtime=None,
+                enabled=None,
+                by="user",
+            )
+
+            with patch.object(cli, "_ensure_daemon_running", return_value=True), \
+                 patch.object(cli, "call_daemon", return_value=resp), \
+                 patch.object(cli, "_print_json") as print_json:
+                code = cli.cmd_actor_update(args)
+
+            self.assertEqual(code, 0)
+            printed = print_json.call_args.args[0]
+            self.assertTrue(bool(printed.get("ok")))
+            actor = (printed.get("result") or {}).get("actor") or {}
+            self.assertEqual(actor.get("title"), "Peer One")
+        finally:
+            cleanup()
+
+    def test_read_keeps_local_fallback_for_daemon_unavailable(self) -> None:
+        from cccc import cli
+        from cccc.kernel.actors import add_actor
+        from cccc.kernel.group import load_group
+        from cccc.kernel.ledger import append_event
+
+        _, cleanup = self._with_home()
+        try:
+            group_id = self._create_group()
+            group = load_group(group_id)
+            self.assertIsNotNone(group)
+            assert group is not None
+            add_actor(group, actor_id="peer1", title="Peer 1", runtime="codex", runner="headless")
+            ev = append_event(
+                group.ledger_path,
+                kind="chat.message",
+                group_id=group_id,
+                scope_key="",
+                by="user",
+                data={"text": "please read", "to": ["peer1"]},
+            )
+
+            resp = {"ok": False, "error": {"code": "daemon_unavailable", "message": "daemon unavailable"}}
+            args = Namespace(group=group_id, actor_id="peer1", by="user", event_id=ev["id"])
+
+            with patch.object(cli, "_ensure_daemon_running", return_value=True), \
+                 patch.object(cli, "call_daemon", return_value=resp), \
+                 patch.object(cli, "_print_json") as print_json:
+                code = cli.cmd_read(args)
+
+            self.assertEqual(code, 0)
+            printed = print_json.call_args.args[0]
+            self.assertTrue(bool(printed.get("ok")))
+            self.assertEqual(((printed.get("result") or {}).get("cursor") or {}).get("event_id"), ev["id"])
         finally:
             cleanup()
 

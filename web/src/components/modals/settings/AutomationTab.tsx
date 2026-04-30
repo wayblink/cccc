@@ -32,7 +32,7 @@ import { cardClass, dangerButtonClass, primaryButtonClass, secondaryButtonClass 
 interface AutomationTabProps {
   isDark: boolean;
   groupId?: string;
-  groupMode?: "interactive" | "collaboration";
+  groupMode?: "solo" | "collaboration";
   groupAgentLinkMode?: GroupAgentLinkMode;
   devActors: Actor[];
   busy: boolean;
@@ -177,7 +177,7 @@ export function AutomationTab(props: AutomationTabProps) {
     () => normalizeGroupAgentLinkMode(props.groupAgentLinkMode, props.groupMode),
     [props.groupAgentLinkMode, props.groupMode],
   );
-  const coordinationEnabled = groupMode !== "interactive";
+  const coordinationEnabled = groupAgentLinkMode === "connected";
   const specialRecipientTokens = useMemo(() => getSpecialRecipientTokens(groupAgentLinkMode), [groupAgentLinkMode]);
 
   const actorTargetOptions = useMemo(() => {

@@ -43,7 +43,7 @@
 | 方向 | 差异化能力 |
 |------|------------|
 | **中文默认入口** | 根目录 `README.md` 改为中文优先，只保留本分支二开说明；原版 README 通过链接访问。 |
-| **Interactive 工作台** | 强化 Terminal Direct Mode、快速终端入口、interactive group 默认终端显示，减少“先建协作组再找终端”的摩擦。 |
+| **Direct / 直连工作台** | 强化 Terminal Direct Mode、快速终端入口、直连模式 group 默认终端显示，减少“先建协作组再找终端”的摩擦。 |
 | **工作区洞察** | 增加 Workspace Inspector、图片预览、文本文档查看等能力，让 agent 协作时能直接围绕仓库文件、diff 和素材沟通。 |
 | **本地生产力组件** | 增加 Notes / Script Manager / 通知音 / 全局字号等工作台功能，把临时经验、常用脚本和长任务提醒沉淀下来。 |
 | **运行时适配与稳定性** | 增强 Codex session-scoped MCP 上下文、GitHub Copilot CLI 支持、PTY composer-ready 检测、headless trace recovery 等细节。 |
@@ -52,14 +52,14 @@
 ## TODO Roadmap
 
 - [x] 中文默认 README 与多语言入口重排。
-- [x] Interactive group 默认终端视图、快速终端入口、Terminal Direct Mode。
+- [x] Direct / 直连模式 group 默认终端视图、快速终端入口、Terminal Direct Mode。
 - [x] Workspace Inspector、图片预览、文本文档预览。
 - [x] Notes、Script Manager、通知音、全局字号等本地工作台能力。
 - [x] Codex / Copilot 等运行时的 MCP 注入、投递链路和 PTY 可用性修复。
 - [ ] 完善远程 backend group discovery / management，把多机器上的 group 管理做成稳定入口。
 - [ ] 强化 Workspace Inspector：补齐更完整的 diff、搜索、文件操作和 agent 引用链路。
 - [ ] 打通 Notes / Script Manager / Automation，让常用脚本和经验沉淀可以被 agent 安全复用。
-- [ ] 继续收敛 interactive 与 collaboration 两种 group mode 的信息架构和默认体验。
+- [ ] 继续收敛 Direct / 直连模式与 Collaboration / 协作模式两种 group mode 的信息架构和默认体验。
 - [ ] 完善安全与发布文档：访问令牌、远程暴露、源码安装、Docker 与升级路径。
 
 ## 上游与许可

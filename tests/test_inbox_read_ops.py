@@ -171,7 +171,7 @@ class TestInboxReadOps(unittest.TestCase):
         _, cleanup = self._with_home()
         try:
             registry = load_registry()
-            group_id = create_group(registry, title="pet-routing", topic="").group_id
+            group_id = create_group(registry, title="pet-routing", topic="", mode="collaboration").group_id
             group = load_group(group_id)
             self.assertIsNotNone(group)
             assert group is not None

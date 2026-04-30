@@ -42,6 +42,35 @@ class TestWebGroupsLocalProjection(unittest.TestCase):
         finally:
             cleanup()
 
+    def test_groups_local_projection_normalizes_legacy_remote_group_mode(self) -> None:
+        cleanup = self._with_home()
+        try:
+            from cccc.ports.web.routes.groups import _read_groups_local
+
+            with patch("cccc.ports.web.routes.groups.get_groups_projection", return_value={"groups": []}), patch(
+                "cccc.ports.web.routes.groups.get_remote_backends_settings",
+                return_value=[],
+            ), patch(
+                "cccc.ports.web.routes.groups.get_remote_groups_settings",
+                return_value=[
+                    {
+                        "group_id": "remote-g1",
+                        "title": "Remote legacy",
+                        "base_url": "http://remote.example",
+                        "remote_group_id": "g1",
+                        "mode": "interactive",
+                        "agent_link_mode": "",
+                    }
+                ],
+            ):
+                data = _read_groups_local()
+
+            row = data["result"]["groups"][0]
+            self.assertEqual(row.get("mode"), "solo")
+            self.assertEqual(row.get("agent_link_mode"), "isolated")
+        finally:
+            cleanup()
+
     def test_groups_route_marks_headless_codex_group_running_from_local_supervisor(self) -> None:
         cleanup = self._with_home()
         try:

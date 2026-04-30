@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from typing import Any, Awaitable, Callable, Dict, Literal, Optional, Union
 
 from fastapi import Depends, HTTPException, Path as FastApiPath, Request, WebSocket
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ...contracts.v1.actor import ActorSubmit, AgentRuntime, RunnerKind
 from ...contracts.v1.automation import AutomationRule
@@ -22,8 +22,18 @@ def _default_runner_kind() -> str:
 class CreateGroupRequest(BaseModel):
     title: str = Field(default="working-group")
     topic: str = Field(default="")
-    mode: Optional[Literal["interactive", "collaboration"]] = Field(default="interactive")
+    mode: Optional[Literal["solo", "collaboration"]] = Field(default="solo")
     by: str = Field(default="user")
+
+    @field_validator("mode", mode="before")
+    @classmethod
+    def _normalize_legacy_mode(cls, value: Any) -> Any:
+        raw = str(value or "").strip().lower()
+        if not raw:
+            return "solo"
+        if raw == "interactive":
+            return "solo"
+        return raw
 
 
 class AttachRequest(BaseModel):

@@ -27,7 +27,7 @@ class TestUnreadIndex(unittest.TestCase):
         return handle_request(DaemonRequest.model_validate({"op": op, "args": args}))
 
     def _create_group(self) -> str:
-        create, _ = self._call("group_create", {"title": "unread-index", "topic": "", "by": "user"})
+        create, _ = self._call("group_create", {"title": "unread-index", "topic": "", "mode": "collaboration", "by": "user"})
         self.assertTrue(create.ok, getattr(create, "error", None))
         group_id = str((create.result or {}).get("group_id") or "").strip()
         self.assertTrue(group_id)

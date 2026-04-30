@@ -16,7 +16,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
 
                 create_resp, _ = handle_request(
                     DaemonRequest.model_validate(
-                        {"op": "group_create", "args": {"title": "baseline", "topic": "", "by": "user"}}
+                        {"op": "group_create", "args": {"title": "baseline", "topic": "", "mode": "collaboration", "by": "user"}}
                     )
                 )
                 self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
@@ -95,7 +95,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
     def test_legacy_flat_snippets_migrate_to_custom_and_builtin_override_layers(self) -> None:
         from cccc.contracts.v1 import DaemonRequest
         from cccc.daemon.server import handle_request
-        from cccc.kernel.group import _DEFAULT_AUTOMATION_STANDUP_SNIPPET, load_group
+        from cccc.kernel.group import default_automation_builtin_snippets, load_group
 
         old_home = os.environ.get("CCCC_HOME")
         try:
@@ -104,7 +104,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
 
                 create_resp, _ = handle_request(
                     DaemonRequest.model_validate(
-                        {"op": "group_create", "args": {"title": "baseline", "topic": "", "by": "user"}}
+                        {"op": "group_create", "args": {"title": "baseline", "topic": "", "mode": "collaboration", "by": "user"}}
                     )
                 )
                 self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
@@ -117,7 +117,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
                 automation["snippets"] = {
                     "standup": "custom standup override",
                     "custom_note": "hello",
-                    "legacy_default": _DEFAULT_AUTOMATION_STANDUP_SNIPPET,
+                    "legacy_default": default_automation_builtin_snippets(group_mode="collaboration")["standup"],
                 }
                 automation.pop("snippet_overrides", None)
                 group.doc["automation"] = automation
@@ -135,7 +135,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
                 automation = group.doc.get("automation") if isinstance(group.doc.get("automation"), dict) else {}
                 self.assertEqual(
                     automation.get("snippets"),
-                    {"custom_note": "hello", "legacy_default": _DEFAULT_AUTOMATION_STANDUP_SNIPPET},
+                    {"custom_note": "hello", "legacy_default": default_automation_builtin_snippets(group_mode="collaboration")["standup"]},
                 )
                 self.assertEqual(automation.get("snippet_overrides"), {"standup": "custom standup override"})
 
@@ -152,7 +152,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
     def test_explicit_snippet_override_wins_over_legacy_flat_builtin_copy(self) -> None:
         from cccc.contracts.v1 import DaemonRequest
         from cccc.daemon.server import handle_request
-        from cccc.kernel.group import _DEFAULT_AUTOMATION_STANDUP_SNIPPET, load_group
+        from cccc.kernel.group import default_automation_builtin_snippets, load_group
 
         old_home = os.environ.get("CCCC_HOME")
         try:
@@ -161,7 +161,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
 
                 create_resp, _ = handle_request(
                     DaemonRequest.model_validate(
-                        {"op": "group_create", "args": {"title": "baseline", "topic": "", "by": "user"}}
+                        {"op": "group_create", "args": {"title": "baseline", "topic": "", "mode": "collaboration", "by": "user"}}
                     )
                 )
                 self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
@@ -171,7 +171,7 @@ class TestGroupAutomationBaseline(unittest.TestCase):
                 group = load_group(group_id)
                 self.assertIsNotNone(group)
                 automation = group.doc.get("automation") if isinstance(group.doc.get("automation"), dict) else {}
-                automation["snippets"] = {"standup": _DEFAULT_AUTOMATION_STANDUP_SNIPPET}
+                automation["snippets"] = {"standup": default_automation_builtin_snippets(group_mode="collaboration")["standup"]}
                 automation["snippet_overrides"] = {"standup": "explicit override"}
                 group.doc["automation"] = automation
                 group.save()

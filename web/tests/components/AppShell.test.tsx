@@ -250,9 +250,9 @@ describe("AppShell workspace inspector layout", () => {
     expect(header?.getAttribute("data-subtitle")).toBe("Scratchpad and local notes");
   });
 
-  it("shows terminal direct view by default for interactive groups with PTY actors", () => {
+  it("shows terminal direct view by default for solo groups with PTY actors", () => {
     const props = buildAppShellProps();
-    props.groupDoc = { ...props.groupDoc!, mode: "interactive" };
+    props.groupDoc = { ...props.groupDoc!, mode: "solo" };
     props.runtimeActors = [{ id: "coder", title: "Coder", runner_effective: "pty" } as Actor];
 
     ({ container, root } = render(<AppShell {...props} />));
@@ -260,11 +260,11 @@ describe("AppShell workspace inspector layout", () => {
     expect(container?.querySelector('[data-testid="terminal-direct-view"]')).not.toBeNull();
   });
 
-  it("respects an explicit chat display choice for interactive groups", () => {
+  it("respects an explicit chat display choice for solo groups", () => {
     uiState.chatDisplayMode = "chat";
     uiState.chatDisplayModeExplicit = true;
     const props = buildAppShellProps();
-    props.groupDoc = { ...props.groupDoc!, mode: "interactive" };
+    props.groupDoc = { ...props.groupDoc!, mode: "solo" };
     props.runtimeActors = [{ id: "coder", title: "Coder", runner_effective: "pty" } as Actor];
 
     ({ container, root } = render(<AppShell {...props} />));

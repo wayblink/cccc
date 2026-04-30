@@ -1,16 +1,20 @@
 import type { Actor, GroupAgentLinkMode, GroupDoc, GroupMeta, GroupSettings } from "../types";
 
-export type FrontendGroupMode = "interactive" | "collaboration";
+export type FrontendGroupMode = "solo" | "collaboration";
 export type FrontendGroupAgentLinkMode = GroupAgentLinkMode;
 
 export const COLLABORATION_RECIPIENT_TOKENS = ["@all", "@foreman", "@peers"] as const;
 
 export function normalizeGroupMode(mode: unknown): FrontendGroupMode {
-  return mode === "interactive" ? "interactive" : "collaboration";
+  return mode === "solo" || mode === "interactive" ? "solo" : "collaboration";
+}
+
+export function isSoloGroupMode(mode: unknown): boolean {
+  return normalizeGroupMode(mode) === "solo";
 }
 
 export function isInteractiveGroupMode(mode: unknown): boolean {
-  return normalizeGroupMode(mode) === "interactive";
+  return isSoloGroupMode(mode);
 }
 
 export function getGroupMode(group: Pick<GroupDoc, "mode"> | Pick<GroupMeta, "mode"> | null | undefined): FrontendGroupMode {
@@ -18,7 +22,7 @@ export function getGroupMode(group: Pick<GroupDoc, "mode"> | Pick<GroupMeta, "mo
 }
 
 export function deriveGroupAgentLinkMode(groupMode: unknown): FrontendGroupAgentLinkMode {
-  return normalizeGroupMode(groupMode) === "interactive" ? "isolated" : "connected";
+  return normalizeGroupMode(groupMode) === "solo" ? "isolated" : "connected";
 }
 
 export function normalizeGroupAgentLinkMode(

@@ -16,7 +16,7 @@ class TestDaemonGroupSettingsDirtyTolerance(unittest.TestCase):
 
                 create_resp, _ = handle_request(
                     DaemonRequest.model_validate(
-                        {"op": "group_create", "args": {"title": "daemon-settings-dirty", "topic": "", "by": "user"}}
+                        {"op": "group_create", "args": {"title": "daemon-settings-dirty", "topic": "", "mode": "collaboration", "by": "user"}}
                     )
                 )
                 self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))

@@ -55,7 +55,7 @@ class TestMcpContextPermissionEnforcement(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            create_resp, _ = self._call("group_create", {"title": "mcp-context-perm", "topic": "", "by": "user"})
+            create_resp, _ = self._call("group_create", {"title": "mcp-context-perm", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
             group_id = str((create_resp.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -112,7 +112,7 @@ class TestMcpContextPermissionEnforcement(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            create_resp, _ = self._call("group_create", {"title": "mcp-role-notes", "topic": "", "by": "user"})
+            create_resp, _ = self._call("group_create", {"title": "mcp-role-notes", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
             group_id = str((create_resp.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -188,7 +188,7 @@ class TestMcpContextPermissionEnforcement(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            create_resp, _ = self._call("group_create", {"title": "mcp-role-notes-set", "topic": "", "by": "user"})
+            create_resp, _ = self._call("group_create", {"title": "mcp-role-notes-set", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
             group_id = str((create_resp.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -288,7 +288,7 @@ class TestMcpContextPermissionEnforcement(unittest.TestCase):
 
         _, cleanup = self._with_home()
         try:
-            create_resp, _ = self._call("group_create", {"title": "mcp-role-notes-peer-write", "topic": "", "by": "user"})
+            create_resp, _ = self._call("group_create", {"title": "mcp-role-notes-peer-write", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create_resp.ok, getattr(create_resp, "error", None))
             group_id = str((create_resp.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)

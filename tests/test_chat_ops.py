@@ -94,7 +94,7 @@ class TestChatOps(unittest.TestCase):
     def test_attention_reply_still_writes_chat_ack(self) -> None:
         _, cleanup = self._with_home()
         try:
-            create, _ = self._call("group_create", {"title": "chat-ops", "topic": "", "by": "user"})
+            create, _ = self._call("group_create", {"title": "chat-ops", "topic": "", "by": "user", "mode": "collaboration"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -521,7 +521,7 @@ class TestChatOps(unittest.TestCase):
     def _setup_group_with_actors(self):
         """Helper: create group with foreman + 2 peers for routing tests."""
         _, cleanup = self._with_home()
-        create, _ = self._call("group_create", {"title": "route-test", "topic": "", "by": "user"})
+        create, _ = self._call("group_create", {"title": "route-test", "topic": "", "by": "user", "mode": "collaboration"})
         assert create.ok, getattr(create, "error", None)
         group_id = str((create.result or {}).get("group_id") or "").strip()
 
@@ -833,7 +833,7 @@ class TestChatOps(unittest.TestCase):
         """N015: foreman empty `to` should error with actionable guidance."""
         _, cleanup = self._with_home()
         try:
-            create, _ = self._call("group_create", {"title": "n015-default", "topic": "", "by": "user"})
+            create, _ = self._call("group_create", {"title": "n015-default", "topic": "", "by": "user", "mode": "collaboration"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -868,7 +868,7 @@ class TestChatOps(unittest.TestCase):
         """N015: foreman explicit `@foreman` should error with actionable guidance."""
         _, cleanup = self._with_home()
         try:
-            create, _ = self._call("group_create", {"title": "n015-explicit", "topic": "", "by": "user"})
+            create, _ = self._call("group_create", {"title": "n015-explicit", "topic": "", "by": "user", "mode": "collaboration"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)

@@ -29,7 +29,7 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
     def test_actor_start_fails_when_mcp_install_reports_false_for_pty(self) -> None:
         _, cleanup = self._with_home()
         try:
-            create, _ = self._call("group_create", {"title": "actor-start-mcp-fail", "topic": "", "by": "user"})
+            create, _ = self._call("group_create", {"title": "actor-start-mcp-fail", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -43,8 +43,9 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
                     "group_id": group_id,
                     "actor_id": "peer1",
                     "title": "Peer 1",
-                    "runtime": "codex",
+                    "runtime": "custom",
                     "runner": "pty",
+                    "command": ["/bin/sh", "-i"],
                     "by": "user",
                 },
             )
@@ -63,7 +64,7 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
 
             self.assertFalse(start.ok)
             self.assertEqual(getattr(start.error, "code", ""), "actor_start_failed")
-            self.assertIn("failed to install MCP for runtime: codex", getattr(start.error, "message", ""))
+            self.assertIn("session-scoped MCP is not supported for runtime: custom", getattr(start.error, "message", ""))
         finally:
             cleanup()
 
@@ -72,7 +73,7 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
         try:
             from cccc.kernel.group import load_group
 
-            create, _ = self._call("group_create", {"title": "actor-restart-mcp-fail", "topic": "", "by": "user"})
+            create, _ = self._call("group_create", {"title": "actor-restart-mcp-fail", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -86,8 +87,9 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
                     "group_id": group_id,
                     "actor_id": "peer1",
                     "title": "Peer 1",
-                    "runtime": "codex",
+                    "runtime": "custom",
                     "runner": "pty",
+                    "command": ["/bin/sh", "-i"],
                     "by": "user",
                 },
             )
@@ -106,7 +108,7 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
 
             self.assertFalse(restart.ok)
             self.assertEqual(getattr(restart.error, "code", ""), "actor_restart_failed")
-            self.assertIn("failed to install MCP for runtime: codex", getattr(restart.error, "message", ""))
+            self.assertIn("session-scoped MCP is not supported for runtime: custom", getattr(restart.error, "message", ""))
         finally:
             cleanup()
 
@@ -115,7 +117,7 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
         try:
             from cccc.kernel.group import load_group
 
-            create, _ = self._call("group_create", {"title": "actor-update-mcp-fail", "topic": "", "by": "user"})
+            create, _ = self._call("group_create", {"title": "actor-update-mcp-fail", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -129,8 +131,9 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
                     "group_id": group_id,
                     "actor_id": "peer1",
                     "title": "Peer 1",
-                    "runtime": "codex",
+                    "runtime": "custom",
                     "runner": "pty",
+                    "command": ["/bin/sh", "-i"],
                     "by": "user",
                 },
             )
@@ -158,14 +161,14 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
 
             self.assertFalse(enable.ok)
             self.assertEqual(getattr(enable.error, "code", ""), "actor_update_failed")
-            self.assertIn("failed to install MCP for runtime: codex", getattr(enable.error, "message", ""))
+            self.assertIn("session-scoped MCP is not supported for runtime: custom", getattr(enable.error, "message", ""))
         finally:
             cleanup()
 
     def test_group_start_fails_when_mcp_install_reports_false_for_pty(self) -> None:
         _, cleanup = self._with_home()
         try:
-            create, _ = self._call("group_create", {"title": "group-start-mcp-fail", "topic": "", "by": "user"})
+            create, _ = self._call("group_create", {"title": "group-start-mcp-fail", "topic": "", "mode": "collaboration", "by": "user"})
             self.assertTrue(create.ok, getattr(create, "error", None))
             group_id = str((create.result or {}).get("group_id") or "").strip()
             self.assertTrue(group_id)
@@ -179,8 +182,9 @@ class TestRuntimeMcpFailFast(unittest.TestCase):
                     "group_id": group_id,
                     "actor_id": "peer1",
                     "title": "Peer 1",
-                    "runtime": "codex",
+                    "runtime": "custom",
                     "runner": "pty",
+                    "command": ["/bin/sh", "-i"],
                     "by": "user",
                 },
             )

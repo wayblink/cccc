@@ -21,13 +21,13 @@ interface IconProps {
 }
 
 interface GroupModeIconProps extends IconProps {
-  mode: "interactive" | "collaboration";
-  interactiveVariant?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  mode: "solo" | "collaboration";
+  soloVariant?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 }
 
-export function GroupModeIcon({ className, size = 16, mode, interactiveVariant = 7 }: GroupModeIconProps) {
-  if (mode === "interactive") {
-    if (interactiveVariant === 2) {
+export function GroupModeIcon({ className, size = 16, mode, soloVariant = 7 }: GroupModeIconProps) {
+  if (mode === "solo") {
+    if (soloVariant === 2) {
       return (
         <svg
           width={size}
@@ -47,7 +47,7 @@ export function GroupModeIcon({ className, size = 16, mode, interactiveVariant =
         </svg>
       );
     }
-    if (interactiveVariant === 1) {
+    if (soloVariant === 1) {
       return (
         <svg
           width={size}
@@ -67,7 +67,7 @@ export function GroupModeIcon({ className, size = 16, mode, interactiveVariant =
         </svg>
       );
     }
-    if (interactiveVariant === 3) {
+    if (soloVariant === 3) {
       return (
         <svg
           width={size}
@@ -89,7 +89,7 @@ export function GroupModeIcon({ className, size = 16, mode, interactiveVariant =
         </svg>
       );
     }
-    if (interactiveVariant === 4) {
+    if (soloVariant === 4) {
       return (
         <svg
           width={size}
@@ -108,7 +108,7 @@ export function GroupModeIcon({ className, size = 16, mode, interactiveVariant =
         </svg>
       );
     }
-    if (interactiveVariant === 5) {
+    if (soloVariant === 5) {
       return (
         <svg
           width={size}
@@ -128,7 +128,7 @@ export function GroupModeIcon({ className, size = 16, mode, interactiveVariant =
         </svg>
       );
     }
-    if (interactiveVariant === 6) {
+    if (soloVariant === 6) {
       return (
         <svg
           width={size}
@@ -147,7 +147,7 @@ export function GroupModeIcon({ className, size = 16, mode, interactiveVariant =
         </svg>
       );
     }
-    if (interactiveVariant === 7) {
+    if (soloVariant === 7) {
       return (
         <svg
           width={size}
@@ -167,7 +167,7 @@ export function GroupModeIcon({ className, size = 16, mode, interactiveVariant =
         </svg>
       );
     }
-    if (interactiveVariant === 8) {
+    if (soloVariant === 8) {
       return (
         <svg
           width={size}

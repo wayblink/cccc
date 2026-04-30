@@ -35,12 +35,13 @@ Only update shared state if the checkpoint changed shared truth.
 
 LOGGER = logging.getLogger(__name__)
 
-GroupMode = Literal["interactive", "collaboration"]
+GroupMode = Literal["solo", "collaboration"]
 GroupAgentLinkMode = Literal["connected", "isolated"]
-GROUP_MODE_INTERACTIVE: GroupMode = "interactive"
+GROUP_MODE_SOLO: GroupMode = "solo"
 GROUP_MODE_COLLABORATION: GroupMode = "collaboration"
 GROUP_AGENT_LINK_MODE_CONNECTED: GroupAgentLinkMode = "connected"
 GROUP_AGENT_LINK_MODE_ISOLATED: GroupAgentLinkMode = "isolated"
+_LEGACY_GROUP_MODE_INTERACTIVE = "interactive"
 
 _COLLABORATION_AUTOMATION_BUILTIN_SNIPPETS = {
     "standup": _COLLABORATION_AUTOMATION_STANDUP_SNIPPET,
@@ -288,8 +289,8 @@ def _random_group_id() -> str:
 
 def normalize_group_mode(raw: Any, *, default: GroupMode = GROUP_MODE_COLLABORATION) -> GroupMode:
     value = str(raw or "").strip().lower()
-    if value == GROUP_MODE_INTERACTIVE:
-        return GROUP_MODE_INTERACTIVE
+    if value in (GROUP_MODE_SOLO, _LEGACY_GROUP_MODE_INTERACTIVE):
+        return GROUP_MODE_SOLO
     if value == GROUP_MODE_COLLABORATION:
         return GROUP_MODE_COLLABORATION
     return default
@@ -336,7 +337,7 @@ def get_group_agent_link_mode(group_doc: Dict[str, Any]) -> GroupAgentLinkMode:
 
     return (
         GROUP_AGENT_LINK_MODE_ISOLATED
-        if get_group_mode(group_doc) == GROUP_MODE_INTERACTIVE
+        if get_group_mode(group_doc) == GROUP_MODE_SOLO
         else GROUP_AGENT_LINK_MODE_CONNECTED
     )
 
@@ -361,8 +362,12 @@ def group_heavy_mcp_enabled(group_doc: Dict[str, Any]) -> bool:
     return group_agent_coordination_enabled(group_doc)
 
 
+def is_solo_group_doc(group_doc: Dict[str, Any]) -> bool:
+    return get_group_mode(group_doc) == GROUP_MODE_SOLO
+
+
 def is_interactive_group_doc(group_doc: Dict[str, Any]) -> bool:
-    return get_group_mode(group_doc) == GROUP_MODE_INTERACTIVE
+    return is_solo_group_doc(group_doc)
 
 
 def supports_group_default_send_to(group_doc: Dict[str, Any]) -> bool:
@@ -409,7 +414,7 @@ def create_group(
     *,
     title: str,
     topic: str = "",
-    mode: GroupMode = GROUP_MODE_INTERACTIVE,
+    mode: Any = GROUP_MODE_SOLO,
 ) -> Group:
     home = ensure_home()
     groups_dir = home / "groups"
@@ -427,9 +432,9 @@ def create_group(
     group_doc: Dict[str, Any] = {
         "v": 1,
         "group_id": group_id,
-        "mode": normalize_group_mode(mode, default=GROUP_MODE_INTERACTIVE),
+        "mode": normalize_group_mode(mode, default=GROUP_MODE_SOLO),
         "agent_link_mode": normalize_group_agent_link_mode(
-            GROUP_AGENT_LINK_MODE_ISOLATED if normalize_group_mode(mode, default=GROUP_MODE_INTERACTIVE) == GROUP_MODE_INTERACTIVE else GROUP_AGENT_LINK_MODE_CONNECTED
+            GROUP_AGENT_LINK_MODE_ISOLATED if normalize_group_mode(mode, default=GROUP_MODE_SOLO) == GROUP_MODE_SOLO else GROUP_AGENT_LINK_MODE_CONNECTED
         ),
         "title": title.strip() if title.strip() else "working-group",
         "topic": topic.strip(),
@@ -445,7 +450,7 @@ def create_group(
             group_mode=mode,
             agent_link_mode=(
                 GROUP_AGENT_LINK_MODE_ISOLATED
-                if normalize_group_mode(mode, default=GROUP_MODE_INTERACTIVE) == GROUP_MODE_INTERACTIVE
+                if normalize_group_mode(mode, default=GROUP_MODE_SOLO) == GROUP_MODE_SOLO
                 else GROUP_AGENT_LINK_MODE_CONNECTED
             ),
         ),

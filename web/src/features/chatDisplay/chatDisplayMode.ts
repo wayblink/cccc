@@ -27,7 +27,7 @@ export function resolveChatDisplayMode({
 }: ResolveChatDisplayModeArgs): ChatDisplayMode {
   if (!hasTerminalActors) return "chat";
   if (isExplicit) return requestedMode;
-  return normalizeGroupMode(groupMode) === "interactive" ? "terminal" : "chat";
+  return normalizeGroupMode(groupMode) === "solo" ? "terminal" : "chat";
 }
 
 export function getTerminalDirectShellClassName(): string {

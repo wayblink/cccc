@@ -21,7 +21,7 @@ class TestEventsStreamResumeFiltering(unittest.TestCase):
                 os.environ["CCCC_HOME"] = td
 
                 reg = load_registry()
-                group = create_group(reg, title="test")
+                group = create_group(reg, title="test", mode="collaboration")
 
                 # First enabled actor is foreman; peer1 is a peer.
                 add_actor(group, actor_id="judge", enabled=True, runtime="codex", runner="pty")

@@ -40,6 +40,52 @@ class TestGroupBootstrapOps(unittest.TestCase):
         finally:
             cleanup()
 
+    def test_group_create_defaults_to_solo_mode(self) -> None:
+        _, cleanup = self._with_home()
+        try:
+            create, _ = self._call("group_create", {"title": "bootstrap", "topic": "", "by": "user"})
+            self.assertTrue(create.ok, getattr(create, "error", None))
+            group_id = str((create.result or {}).get("group_id") or "").strip()
+            self.assertTrue(group_id)
+            self.assertEqual((create.result or {}).get("mode"), "solo")
+
+            from cccc.kernel.group import load_group
+
+            group = load_group(group_id)
+            self.assertIsNotNone(group)
+            assert group is not None
+            self.assertEqual(group.doc.get("mode"), "solo")
+            self.assertEqual(group.doc.get("agent_link_mode"), "isolated")
+        finally:
+            cleanup()
+
+    def test_legacy_interactive_mode_normalizes_to_solo(self) -> None:
+        from cccc.kernel.group import get_group_agent_link_mode, normalize_group_mode
+
+        self.assertEqual(normalize_group_mode("interactive"), "solo")
+        self.assertEqual(get_group_agent_link_mode({"mode": "interactive", "agent_link_mode": ""}), "isolated")
+
+        _, cleanup = self._with_home()
+        try:
+            create, _ = self._call(
+                "group_create",
+                {"title": "legacy-bootstrap", "topic": "", "mode": "interactive", "by": "user"},
+            )
+            self.assertTrue(create.ok, getattr(create, "error", None))
+            group_id = str((create.result or {}).get("group_id") or "").strip()
+            self.assertTrue(group_id)
+            self.assertEqual((create.result or {}).get("mode"), "solo")
+
+            from cccc.kernel.group import load_group
+
+            group = load_group(group_id)
+            self.assertIsNotNone(group)
+            assert group is not None
+            self.assertEqual(group.doc.get("mode"), "solo")
+            self.assertEqual(group.doc.get("agent_link_mode"), "isolated")
+        finally:
+            cleanup()
+
     def test_missing_template_callbacks_returns_internal_error(self) -> None:
         from cccc.daemon.group.group_bootstrap_ops import try_handle_group_bootstrap_op
 

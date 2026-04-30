@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ...util.time import utc_now_iso
 from .actor import Actor, ActorRole, ActorSubmit, AgentRuntime, RunnerKind
@@ -46,7 +46,17 @@ EventKind = Literal[
 class GroupCreateData(BaseModel):
     title: str
     topic: str = ""
-    mode: Optional[Literal["interactive", "collaboration"]] = None
+    mode: Optional[Literal["solo", "collaboration"]] = None
+
+    @field_validator("mode", mode="before")
+    @classmethod
+    def _normalize_legacy_mode(cls, value: Any) -> Any:
+        raw = str(value or "").strip().lower()
+        if not raw:
+            return None
+        if raw == "interactive":
+            return "solo"
+        return raw
 
     model_config = ConfigDict(extra="forbid")
 

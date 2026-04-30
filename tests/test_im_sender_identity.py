@@ -178,7 +178,7 @@ class TestImSenderIdentity(unittest.TestCase):
     def _create_group_with_peer(self) -> tuple[Group, str]:
         resp, _ = handle_request(
             DaemonRequest.model_validate(
-                {"op": "group_create", "args": {"title": "t", "topic": "", "by": "user"}}
+                {"op": "group_create", "args": {"title": "t", "topic": "", "mode": "collaboration", "by": "user"}}
             )
         )
         self.assertTrue(resp.ok, getattr(resp, "error", None))

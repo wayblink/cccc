@@ -147,4 +147,35 @@ describe("GroupSidebar", () => {
     expect(text).toContain("Archive");
     expect(text.match(/Delete/g) || []).toHaveLength(1);
   });
+
+  it("uses Solo as the solo group mode tooltip", () => {
+    act(() => {
+      root?.render(
+        <GroupSidebar
+          orderedGroups={[
+            { group_id: "g-1", title: "Solo group", topic: "", state: "active", mode: "solo" },
+          ]}
+          archivedGroupIds={[]}
+          selectedGroupId="g-1"
+          activeTab="chat"
+          isOpen
+          isCollapsed={false}
+          sidebarWidth={280}
+          isDark={false}
+          readOnly
+          onSelectGroup={vi.fn()}
+          onClose={vi.fn()}
+          onToggleCollapse={vi.fn()}
+          onResizeWidth={vi.fn()}
+          onReorderSection={vi.fn()}
+          onArchiveGroup={vi.fn()}
+          onRestoreGroup={vi.fn()}
+          onDeleteGroup={vi.fn()}
+        />,
+      );
+    });
+
+    expect(container?.querySelector('[title="Solo"]')).toBeTruthy();
+    expect(container?.querySelector('[title="Interactive"]')).toBeNull();
+  });
 });

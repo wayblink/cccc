@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { LedgerEvent } from "../../src/types";
 import { buildReplyComposerState } from "../../src/utils/chatReply";
 
 describe("buildReplyComposerState", () => {
@@ -14,7 +15,7 @@ describe("buildReplyComposerState", () => {
           quote_text: "为什么activity 会出现再消失，当前抖动太严重了",
           to: ["reviewer"],
         },
-      } as any,
+      } satisfies LedgerEvent,
       "g-demo",
       [],
       null,

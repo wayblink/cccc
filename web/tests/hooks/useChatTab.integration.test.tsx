@@ -399,7 +399,7 @@ describe("useChatTab integration", () => {
       selectedGroupId: "g-1",
       groupDoc: {
         group_id: "g-1",
-        mode: "interactive",
+        mode: "solo",
         agent_link_mode: "isolated",
         active_scope_key: "scope-1",
         scopes: [{ scope_key: "scope-1", url: "/repo" }],
@@ -488,7 +488,7 @@ describe("useChatTab integration", () => {
       selectedGroupId: "g-1",
       groupDoc: {
         group_id: "g-1",
-        mode: "interactive",
+        mode: "solo",
         agent_link_mode: "isolated",
         active_scope_key: "scope-1",
         scopes: [{ scope_key: "scope-1", url: "/repo" }],
@@ -583,7 +583,7 @@ describe("useChatTab integration", () => {
       selectedGroupId: "g-1",
       groupDoc: {
         group_id: "g-1",
-        mode: "interactive",
+        mode: "solo",
         agent_link_mode: "isolated",
         active_scope_key: "scope-1",
         scopes: [{ scope_key: "scope-1", url: "/repo" }],

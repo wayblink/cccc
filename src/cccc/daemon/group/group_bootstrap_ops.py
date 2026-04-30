@@ -52,7 +52,7 @@ def handle_group_create(args: Dict[str, Any]) -> DaemonResponse:
     title = str(args.get("title") or "working-group")
     topic = str(args.get("topic") or "")
     mode = str(args.get("mode") or "").strip()
-    group = create_group(reg, title=title, topic=topic, mode=mode or "interactive")
+    group = create_group(reg, title=title, topic=topic, mode=mode or "solo")
     event = append_event(
         group.ledger_path,
         kind="group.create",

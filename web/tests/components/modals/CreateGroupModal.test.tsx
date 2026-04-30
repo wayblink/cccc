@@ -22,8 +22,8 @@ vi.mock("react-i18next", () => ({
       "createGroup.groupName": "Group name",
       "createGroup.groupNamePlaceholder": "Working group name",
       "createGroup.modeLabel": "Group mode",
-      "createGroup.interactiveMode": "Interactive",
-      "createGroup.interactiveModeHint": "Independent sessions without collaboration routing",
+      "createGroup.interactiveMode": "Solo",
+      "createGroup.interactiveModeHint": "Solo sessions without collaboration routing",
       "createGroup.collaborationMode": "Collaboration",
       "createGroup.collaborationModeHint": "Original multi-agent collaboration semantics",
       "createGroup.blueprintLabel": "Blueprint",
@@ -50,7 +50,7 @@ import { CreateGroupModal } from "../../../src/components/modals/CreateGroupModa
 function Harness() {
   const [createGroupPath, setCreateGroupPath] = useState("");
   const [createGroupName, setCreateGroupName] = useState("");
-  const [createGroupMode, setCreateGroupMode] = useState<"interactive" | "collaboration">("interactive");
+  const [createGroupMode, setCreateGroupMode] = useState<"solo" | "collaboration">("solo");
 
   return (
     <CreateGroupModal
@@ -84,7 +84,7 @@ function Harness() {
 function BrowserHarness() {
   const [createGroupPath, setCreateGroupPath] = useState("/tmp");
   const [createGroupName, setCreateGroupName] = useState("");
-  const [createGroupMode, setCreateGroupMode] = useState<"interactive" | "collaboration">("interactive");
+  const [createGroupMode, setCreateGroupMode] = useState<"solo" | "collaboration">("solo");
   const [currentDir, setCurrentDir] = useState("/tmp");
   const [parentDir, setParentDir] = useState("/");
   const [dirItems, setDirItems] = useState([{ name: "existing", path: "/tmp/existing", is_dir: true }]);
@@ -164,7 +164,7 @@ describe("CreateGroupModal", () => {
     const buttons = Array.from(container?.querySelectorAll('button[aria-pressed]') || []);
     expect(buttons).toHaveLength(2);
     return {
-      interactiveButton: buttons[0] as HTMLButtonElement,
+      soloButton: buttons[0] as HTMLButtonElement,
       collaborationButton: buttons[1] as HTMLButtonElement,
     };
   }
@@ -214,16 +214,16 @@ describe("CreateGroupModal", () => {
   });
 
   it("allows switching the group mode before creation", () => {
-    const { interactiveButton, collaborationButton } = getModeButtons();
+    const { soloButton, collaborationButton } = getModeButtons();
 
-    expect(interactiveButton.getAttribute("aria-pressed")).toBe("true");
+    expect(soloButton.getAttribute("aria-pressed")).toBe("true");
     expect(collaborationButton.getAttribute("aria-pressed")).toBe("false");
 
     act(() => {
       collaborationButton.click();
     });
 
-    expect(interactiveButton.getAttribute("aria-pressed")).toBe("false");
+    expect(soloButton.getAttribute("aria-pressed")).toBe("false");
     expect(collaborationButton.getAttribute("aria-pressed")).toBe("true");
   });
 

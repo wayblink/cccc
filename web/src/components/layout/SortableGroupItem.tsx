@@ -64,6 +64,7 @@ export function SortableGroupItem({
 
   const status = getGroupStatusFromSource(group);
   const groupMode = getGroupMode(group);
+  const groupModeTitle = groupMode === "solo" ? "Solo" : "Collaboration";
   const { refs, floatingStyles, context } = useFloating({
     open: menuOpen,
     onOpenChange: setMenuOpen,
@@ -116,7 +117,7 @@ export function SortableGroupItem({
               "absolute left-0 top-0 inline-flex h-4 w-4 -translate-x-1/4 -translate-y-1/4 items-center justify-center rounded-full",
               isActive ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300" : "bg-black/5 text-[var(--color-text-secondary)] dark:bg-white/10"
             )}
-            title={groupMode === "interactive" ? "Interactive" : "Collaboration"}
+            title={groupModeTitle}
           >
             <GroupModeIcon mode={groupMode} size={11} />
           </span>
@@ -186,11 +187,11 @@ export function SortableGroupItem({
             <span
               className={classNames(
                 "inline-flex h-5 w-5 items-center justify-center rounded-md border flex-shrink-0",
-                groupMode === "interactive"
+                groupMode === "solo"
                   ? "border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
                   : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
               )}
-              title={groupMode === "interactive" ? "Interactive" : "Collaboration"}
+              title={groupModeTitle}
             >
               <GroupModeIcon mode={groupMode} size={12} />
             </span>

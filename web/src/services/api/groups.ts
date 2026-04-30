@@ -353,7 +353,7 @@ export function getPresentationBrowserSurfaceWebSocketUrl(groupId: string, slotI
 export async function createGroup(
   title: string,
   topic: string = "",
-  mode: "interactive" | "collaboration" = "interactive",
+  mode: "solo" | "collaboration" = "solo",
 ) {
   clearGroupsReadRequest();
   return apiJson<{ group_id: string }>("/api/v1/groups", {
@@ -366,7 +366,7 @@ export async function createGroupFromTemplate(
   path: string,
   title: string,
   topic: string,
-  mode: "interactive" | "collaboration" = "interactive",
+  mode: "solo" | "collaboration" = "solo",
   file: File,
 ) {
   clearGroupsReadRequest();

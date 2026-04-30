@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Actor, LedgerEvent } from "../../src/types";
 import {
   buildToLabel,
   buildVisibleReadStatusEntries,
@@ -36,13 +37,13 @@ describe("messageBubble model", () => {
       senderId: "architect",
       senderActor: { id: "architect", title: "架构设计专家" },
       displayNameMap: new Map([["architect", "Architect"]]),
-    } as any)).toBe("架构设计专家");
+    })).toBe("架构设计专家");
   });
 
   it("keeps only actors present in read status", () => {
     expect(buildVisibleReadStatusEntries(
-      [{ id: "a-1" }, { id: "a-2" }, { id: "a-3" }] as any,
-      { "a-1": true, "a-3": false } as any,
+      [{ id: "a-1" }, { id: "a-2" }, { id: "a-3" }] satisfies Actor[],
+      { "a-1": true, "a-3": false },
     )).toEqual([["a-1", true], ["a-3", false]]);
   });
 
@@ -51,7 +52,7 @@ describe("messageBubble model", () => {
       hideDirectUserObligationSummary: false,
       isAttention: true,
       replyRequired: false,
-      ackStatus: { user: false, peer: true } as any,
+      ackStatus: { user: false, peer: true },
       isUserMessage: false,
     })).toEqual({ done: 1, total: 2, needsUserAck: true });
   });
@@ -62,7 +63,7 @@ describe("messageBubble model", () => {
       obligationStatus: {
         alice: { reply_required: true, replied: true },
         bob: { reply_required: false, replied: false },
-      } as any,
+      } as LedgerEvent["_obligation_status"],
     })).toEqual({ kind: "reply", done: 1, total: 2 });
   });
 
@@ -72,7 +73,7 @@ describe("messageBubble model", () => {
       obligationStatus: {
         alice: { acked: true },
         bob: { acked: false },
-      } as any,
+      } as LedgerEvent["_obligation_status"],
     })).toEqual({ kind: "ack", done: 1, total: 2 });
   });
 });

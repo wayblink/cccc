@@ -806,7 +806,7 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         path: str = Form(...),
         title: str = Form("working-group"),
         topic: str = Form(""),
-        mode: str = Form("interactive"),
+        mode: str = Form("solo"),
         by: str = Form("user"),
         file: UploadFile = File(...),
     ) -> Dict[str, Any]:

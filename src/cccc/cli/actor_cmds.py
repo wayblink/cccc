@@ -27,6 +27,8 @@ def cmd_actor_list(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -109,6 +111,8 @@ def cmd_actor_add(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     try:
         require_actor_permission(group, by=by, action="actor.add")
@@ -150,6 +154,8 @@ def cmd_actor_remove(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -178,6 +184,8 @@ def cmd_actor_start(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -206,6 +214,8 @@ def cmd_actor_stop(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -234,6 +244,8 @@ def cmd_actor_restart(args: argparse.Namespace) -> int:
         if resp.get("ok"):
             _print_json(resp)
             return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     group = load_group(group_id)
     if group is None:
@@ -311,8 +323,11 @@ def cmd_actor_update(args: argparse.Namespace) -> int:
 
     if _ensure_daemon_running():
         resp = call_daemon({"op": "actor_update", "args": {"group_id": group_id, "actor_id": actor_id, "patch": patch, "by": by}})
-        _print_json(resp)
-        return 0 if resp.get("ok") else 2
+        if resp.get("ok"):
+            _print_json(resp)
+            return 0
+        if not _allow_local_fallback_after_daemon_response(resp):
+            return _return_daemon_failure(resp)
 
     try:
         require_actor_permission(group, by=by, action="actor.update", target_actor_id=actor_id)

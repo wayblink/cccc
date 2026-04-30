@@ -707,7 +707,7 @@ def group_create_from_template(args: Dict[str, Any]) -> DaemonResponse:
                 details={"group_id": existing_id, "path": scope.url},
             )
 
-    group = create_group(reg, title=title, topic=topic, mode=mode or "interactive")
+    group = create_group(reg, title=title, topic=topic, mode=mode or "solo")
     group = attach_scope_to_group(reg, group, scope, set_active=True)
 
     # Ledger events: create + attach (match normal flows).

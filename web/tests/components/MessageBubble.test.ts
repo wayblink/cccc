@@ -159,7 +159,7 @@ describe("getEffectiveStreamingActivities", () => {
 
 describe("getMessageBubbleMotionClass", () => {
   it("animates commentary bubbles with the transient commentary class", () => {
-    expect(getMotionClass({
+    expect(getMessageBubbleMotionClass({
       isStreaming: true,
       isOptimistic: false,
       streamPhase: "commentary",
@@ -167,7 +167,7 @@ describe("getMessageBubbleMotionClass", () => {
   });
 
   it("animates optimistic bubbles with the base transient class", () => {
-    expect(getMotionClass({
+    expect(getMessageBubbleMotionClass({
       isStreaming: false,
       isOptimistic: true,
       streamPhase: "",
@@ -175,7 +175,7 @@ describe("getMessageBubbleMotionClass", () => {
   });
 
   it("keeps stable final bubbles animation-free", () => {
-    expect(getMotionClass({
+    expect(getMessageBubbleMotionClass({
       isStreaming: false,
       isOptimistic: false,
       streamPhase: "final_answer",
@@ -185,7 +185,7 @@ describe("getMessageBubbleMotionClass", () => {
 
 describe("mayContainMarkdown", () => {
   it("detects GitHub-style tables so completed chat bubbles render markdown tables", () => {
-    expect(mayRenderMarkdown([
+    expect(mayContainMarkdown([
       "本周天气如下：",
       "",
       "| 日期 | 天气 | 温度 |",
@@ -196,7 +196,7 @@ describe("mayContainMarkdown", () => {
   });
 
   it("keeps internal attachment manifests as plain text", () => {
-    expect(mayRenderMarkdown("[cccc] Attachments:\n- file.txt")).toBe(false);
+    expect(mayContainMarkdown("[cccc] Attachments:\n- file.txt")).toBe(false);
   });
 });
 

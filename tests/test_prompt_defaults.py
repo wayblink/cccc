@@ -78,9 +78,9 @@ class TestPromptDefaults(unittest.TestCase):
         self.assertNotIn("Help: cccc_help", MCP_REMINDER_LINE)
 
     def test_default_standup_stays_short_ritual(self) -> None:
-        from cccc.kernel.group import _DEFAULT_AUTOMATION_STANDUP_SNIPPET
+        from cccc.kernel.group import default_automation_builtin_snippets
 
-        body = str(_DEFAULT_AUTOMATION_STANDUP_SNIPPET or "")
+        body = str(default_automation_builtin_snippets(group_mode="collaboration").get("standup") or "")
         self.assertIn("Keep this short.", body)
         self.assertIn("current status, next step, blocker", body)
         self.assertIn("not a task switch", body)

@@ -28,7 +28,7 @@ class TestIdleStandupSuppression(unittest.TestCase):
 
         resp, _ = handle_request(
             DaemonRequest.model_validate(
-                {"op": "group_create", "args": {"title": "idle-test", "topic": "", "by": "user"}}
+                {"op": "group_create", "args": {"title": "idle-test", "topic": "", "by": "user", "mode": "collaboration"}}
             )
         )
         assert resp.ok

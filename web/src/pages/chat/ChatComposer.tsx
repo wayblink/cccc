@@ -194,7 +194,7 @@ export function ChatComposer({
   }, [showModeMenu]);
 
   const chipBaseClass =
-    "flex h-6 flex-shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2 text-[10px] font-medium leading-none transition-all sm:px-2.5 sm:text-[11px]";
+    "flex h-6 flex-shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2 text-[0.625rem] font-medium leading-none transition-all sm:px-2.5 sm:text-[0.6875rem]";
   const composerToolButtonClass =
     "glass-btn flex flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-[var(--glass-border-subtle)] text-[var(--color-text-secondary)] transition-[background-color,border-color,color,transform,box-shadow] duration-200 disabled:cursor-not-allowed disabled:text-[var(--color-text-tertiary)] disabled:opacity-70";
   const composerInlineToolButtonClass =
@@ -923,7 +923,7 @@ export function ChatComposer({
                       <div className="min-w-0">
                         <div className="truncate">{primaryLabel}</div>
                         {secondaryLabel ? (
-                          <div className={classNames("truncate text-[11px]", isDark ? "text-slate-400" : "text-gray-500")}>
+                          <div className={classNames("truncate text-[0.6875rem]", isDark ? "text-slate-400" : "text-gray-500")}>
                             @{secondaryLabel}
                           </div>
                         ) : null}

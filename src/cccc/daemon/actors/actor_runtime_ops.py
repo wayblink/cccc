@@ -61,7 +61,7 @@ def ensure_actor_mcp_ready(
     if session_scoped_mcp_supported(runtime):
         return True, None
 
-    # For non-session-scoped PTY runtimes (e.g. copilot), attempt persistent global MCP install.
+    # For non-session-scoped PTY runtimes, attempt persistent global MCP install.
     ok = ensure_mcp_installed(runtime, cwd)
     if ok:
         return True, None

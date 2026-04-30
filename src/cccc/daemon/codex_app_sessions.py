@@ -20,6 +20,8 @@ from .messaging.delivery import auto_mark_headless_delivery_started, render_head
 from .runner_state_ops import headless_state_path, remove_headless_state
 from ..util.fs import atomic_write_json
 from ..util.process import pid_is_alive
+from ..util.safe_logging import is_closed_stream_logging_error as _is_closed_stream_logging_error
+from ..util.safe_logging import safe_logger_call
 from ..util.time import utc_now_iso
 
 logger = logging.getLogger(__name__)
@@ -34,23 +36,8 @@ def _is_missing_codex_cli_error(exc: BaseException) -> bool:
     return "no such file or directory" in message and "codex" in message
 
 
-def _is_closed_stream_logging_error(exc: BaseException) -> bool:
-    if not isinstance(exc, ValueError):
-        return False
-    message = str(exc or "").strip().lower()
-    return "i/o operation on closed file" in message or "closed stream" in message
-
-
 def _safe_logger_call(method: str, message: str, *args: Any, **kwargs: Any) -> None:
-    log_method = getattr(logger, method, None)
-    if not callable(log_method):
-        return
-    try:
-        log_method(message, *args, **kwargs)
-    except Exception as exc:
-        if _is_closed_stream_logging_error(exc):
-            return
-        raise
+    safe_logger_call(logger, method, message, *args, **kwargs)
 
 
 def _jsonrpc_request(request_id: int, method: str, params: Dict[str, Any]) -> Dict[str, Any]:

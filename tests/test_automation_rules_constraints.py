@@ -27,7 +27,7 @@ class TestAutomationRulesConstraints(unittest.TestCase):
 
         resp, _ = handle_request(
             DaemonRequest.model_validate(
-                {"op": "group_create", "args": {"title": "automation-constraints", "topic": "", "by": "user"}}
+                {"op": "group_create", "args": {"title": "automation-constraints", "topic": "", "by": "user", "mode": "collaboration"}}
             )
         )
         self.assertTrue(resp.ok, getattr(resp, "error", None))

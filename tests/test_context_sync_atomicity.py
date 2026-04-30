@@ -26,7 +26,7 @@ class TestContextSyncAtomicity(unittest.TestCase):
         return handle_request(DaemonRequest.model_validate({"op": op, "args": args}))
 
     def _create_group(self) -> str:
-        resp, _ = self._call("group_create", {"title": "context-atomic", "topic": "", "by": "user"})
+        resp, _ = self._call("group_create", {"title": "context-atomic", "topic": "", "by": "user", "mode": "collaboration"})
         self.assertTrue(resp.ok, getattr(resp, "error", None))
         group_id = str((resp.result or {}).get("group_id") or "").strip()
         self.assertTrue(group_id)

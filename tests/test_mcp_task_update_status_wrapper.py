@@ -1,8 +1,12 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
 class TestMcpTaskUpdateStatusWrapper(unittest.TestCase):
+    def _connected_group(self) -> SimpleNamespace:
+        return SimpleNamespace(doc={"agent_link_mode": "connected"})
+
     def test_task_create_defaults_structural_type_when_type_is_omitted(self) -> None:
         from cccc.ports.mcp import server as mcp_server
         from cccc.ports.mcp.handlers import context as mcp_context
@@ -54,7 +58,7 @@ class TestMcpTaskUpdateStatusWrapper(unittest.TestCase):
 
         with patch.object(mcp_server, "_resolve_group_id", return_value="g_test"), patch.object(
             mcp_server, "_resolve_self_actor_id", return_value="peer1"
-        ), patch.object(mcp_context, "load_group", return_value=object()), patch.object(
+        ), patch.object(mcp_context, "load_group", return_value=self._connected_group()), patch.object(
             mcp_context, "get_effective_role", return_value="peer"
         ), patch.object(mcp_context, "context_sync", side_effect=_fake_context_sync):
             out = mcp_server.handle_tool_call(
@@ -83,7 +87,7 @@ class TestMcpTaskUpdateStatusWrapper(unittest.TestCase):
 
         with patch.object(mcp_server, "_resolve_group_id", return_value="g_test"), patch.object(
             mcp_server, "_resolve_self_actor_id", return_value="peer1"
-        ), patch.object(mcp_context, "load_group", return_value=object()), patch.object(
+        ), patch.object(mcp_context, "load_group", return_value=self._connected_group()), patch.object(
             mcp_context, "get_effective_role", return_value="peer"
         ), patch.object(mcp_context, "context_sync", side_effect=_fake_context_sync):
             out = mcp_server.handle_tool_call(
@@ -112,7 +116,7 @@ class TestMcpTaskUpdateStatusWrapper(unittest.TestCase):
 
         with patch.object(mcp_server, "_resolve_group_id", return_value="g_test"), patch.object(
             mcp_server, "_resolve_self_actor_id", return_value="lead1"
-        ), patch.object(mcp_context, "load_group", return_value=object()), patch.object(
+        ), patch.object(mcp_context, "load_group", return_value=self._connected_group()), patch.object(
             mcp_context, "get_effective_role", return_value="foreman"
         ), patch.object(mcp_context, "context_sync", side_effect=_fake_context_sync):
             out = mcp_server.handle_tool_call(

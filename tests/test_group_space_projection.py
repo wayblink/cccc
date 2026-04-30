@@ -29,7 +29,7 @@ class TestGroupSpaceProjection(unittest.TestCase):
         return handle_request(DaemonRequest.model_validate({"op": op, "args": args}))
 
     def _create_group(self, title: str = "space-projection") -> str:
-        resp, _ = self._call("group_create", {"title": title, "topic": "", "by": "user"})
+        resp, _ = self._call("group_create", {"title": title, "topic": "", "mode": "collaboration", "by": "user"})
         self.assertTrue(resp.ok, getattr(resp, "error", None))
         gid = str((resp.result or {}).get("group_id") or "").strip()
         self.assertTrue(gid)

@@ -21,7 +21,16 @@ describe("chat display mode helpers", () => {
     expect(hasPtyRuntimeActor([{ id: "legacy" }])).toBe(true);
   });
 
-  it("defaults interactive groups with terminal actors to terminal display", () => {
+  it("defaults solo groups with terminal actors to terminal display", () => {
+    expect(resolveChatDisplayMode({
+      requestedMode: "chat",
+      groupMode: "solo",
+      hasTerminalActors: true,
+      isExplicit: false,
+    })).toBe("terminal");
+  });
+
+  it("keeps legacy interactive groups on the solo terminal default", () => {
     expect(resolveChatDisplayMode({
       requestedMode: "chat",
       groupMode: "interactive",
@@ -49,14 +58,14 @@ describe("chat display mode helpers", () => {
   it("respects an explicit chat choice and falls back to chat without terminal actors", () => {
     expect(resolveChatDisplayMode({
       requestedMode: "chat",
-      groupMode: "interactive",
+      groupMode: "solo",
       hasTerminalActors: true,
       isExplicit: true,
     })).toBe("chat");
 
     expect(resolveChatDisplayMode({
       requestedMode: "terminal",
-      groupMode: "interactive",
+      groupMode: "solo",
       hasTerminalActors: false,
       isExplicit: true,
     })).toBe("chat");

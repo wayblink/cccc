@@ -280,6 +280,23 @@ def _stop_existing_daemon(home: Path) -> bool:
 def _print_json(obj: Any) -> None:
     print(json.dumps(obj, ensure_ascii=False, indent=2))
 
+
+def _daemon_error_code(resp: dict[str, Any]) -> str:
+    error = resp.get("error")
+    if isinstance(error, dict):
+        return str(error.get("code") or "").strip()
+    return ""
+
+
+def _allow_local_fallback_after_daemon_response(resp: dict[str, Any]) -> bool:
+    return _daemon_error_code(resp) == "daemon_unavailable"
+
+
+def _return_daemon_failure(resp: dict[str, Any]) -> int:
+    _print_json(resp)
+    return 2
+
+
 def _parse_json_object_arg(raw: Any, *, field: str) -> dict[str, Any]:
     text = str(raw or "").strip()
     if not text:

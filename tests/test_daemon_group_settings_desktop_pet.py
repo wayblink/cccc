@@ -23,7 +23,7 @@ class TestDaemonGroupSettingsDesktopPet(unittest.TestCase):
 
         resp, _ = handle_request(
             DaemonRequest.model_validate(
-                {"op": "group_create", "args": {"title": "pet-test", "topic": "", "by": "user"}}
+                {"op": "group_create", "args": {"title": "pet-test", "topic": "", "mode": "collaboration", "by": "user"}}
             )
         )
         self.assertTrue(resp.ok, getattr(resp, "error", None))

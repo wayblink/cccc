@@ -114,7 +114,7 @@ export function ProjectPanel({
               </label>
             ) : (
               <div className={classNames("mt-3 rounded-lg border px-3 py-2 text-sm", "glass-card text-[var(--color-text-muted)]")}>
-                {tr("context.notifyAgentsUnsupported", "Interactive groups do not broadcast PROJECT.md changes automatically.")}
+                {tr("context.notifyAgentsUnsupported", "Solo groups do not broadcast PROJECT.md changes automatically.")}
               </div>
             )}
             <div className="mt-3 flex items-center gap-2">

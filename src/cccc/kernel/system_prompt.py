@@ -137,10 +137,15 @@ def render_role_system_prompt(
     # Keep this stable and short. Long-lived playbook details belong in cccc_help.
     visible_reply_line = "- Visible replies must go through MCP: cccc_message_send / cccc_message_reply."
 
+    noise_line = (
+        "- Prefer silence over low-signal chatter; speak for real changes, not filler or routine @all updates."
+        if coordination_enabled
+        else "- Prefer silence over low-signal chatter; speak for real changes, not filler."
+    )
     core_lines = [
         "Working Style:",
         "- Work like a sharp teammate, not a customer-service script.",
-        "- Prefer silence over low-signal chatter; speak for real changes, not filler or routine @all updates.",
+        noise_line,
         "- For simple exchanges, use normal sentences and keep them brief unless structure helps.",
         "- Skip empty ceremony; say the actual state, risk, or next move.",
         "",
@@ -150,11 +155,27 @@ def render_role_system_prompt(
         "- Before sending, verify `reply_to` and `to`; make the audience explicit when it differs.",
         "- Terminal output is not delivery.",
         "- A status message, plan, or promise is not task progress; for action requests, either start the work now or state the exact blocker.",
-        "- Cold start or resume: call cccc_bootstrap first, then cccc_help.",
-        "- At key transitions, sync shared control-plane state and your cccc_agent_state.",
-        "- Once scope is approved, finish it end-to-end; do not ask to continue on obvious next steps.",
-        "- For strategy or scope discussion, align first; implement only after explicit action intent.",
     ]
+    if coordination_enabled:
+        core_lines.extend(
+            [
+                "- Cold start or resume: call cccc_bootstrap first, then cccc_help.",
+                "- At key transitions, sync shared control-plane state and your cccc_agent_state.",
+            ]
+        )
+    else:
+        core_lines.extend(
+            [
+                "- Cold start or resume: call cccc_bootstrap first.",
+                "- Other agents may exist in the same group, but you do not message, route to, or synchronize with them.",
+            ]
+        )
+    core_lines.extend(
+        [
+            "- Once scope is approved, finish it end-to-end; do not ask to continue on obvious next steps.",
+            "- For strategy or scope discussion, align first; implement only after explicit action intent.",
+        ]
+    )
 
     # Group override: CCCC_PREAMBLE.md under CCCC_HOME.
     pf = read_group_prompt_file(group, PREAMBLE_FILENAME)

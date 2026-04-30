@@ -45,8 +45,8 @@ export interface CreateGroupModalProps {
   setCreateGroupPath: (path: string) => void;
   createGroupName: string;
   setCreateGroupName: (name: string) => void;
-  createGroupMode: "interactive" | "collaboration";
-  setCreateGroupMode: (mode: "interactive" | "collaboration") => void;
+  createGroupMode: "solo" | "collaboration";
+  setCreateGroupMode: (mode: "solo" | "collaboration") => void;
   createGroupTemplateFile: File | null;
   templatePreview: TemplatePreviewDetailsProps["template"] | null;
   templateError: string;
@@ -95,12 +95,12 @@ export function CreateGroupModal({
   const [newFolderError, setNewFolderError] = useState("");
   const [newFolderBusy, setNewFolderBusy] = useState(false);
   const modeOptions: Array<{
-    value: "interactive" | "collaboration";
+    value: "solo" | "collaboration";
     title: string;
     description: string;
   }> = [
     {
-      value: "interactive",
+      value: "solo",
       title: t("createGroup.interactiveMode"),
       description: t("createGroup.interactiveModeHint"),
     },

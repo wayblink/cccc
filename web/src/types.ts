@@ -37,7 +37,7 @@ export type GroupAgentLinkMode = "connected" | "isolated";
 
 export type GroupMeta = {
   group_id: string;
-  mode?: "interactive" | "collaboration";
+  mode?: "solo" | "collaboration";
   agent_link_mode?: GroupAgentLinkMode;
   title?: string;
   topic?: string;
@@ -50,7 +50,7 @@ export type GroupMeta = {
 
 export type GroupDoc = {
   group_id: string;
-  mode?: "interactive" | "collaboration";
+  mode?: "solo" | "collaboration";
   agent_link_mode?: GroupAgentLinkMode;
   title?: string;
   topic?: string;

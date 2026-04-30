@@ -28,7 +28,7 @@ vi.mock("react-i18next", () => ({
       newActorRoleNotesHint: "Hint",
       sectionBasics: "Basics",
       addSectionBasicsHint: "Basics hint",
-      addSectionBasicsHintInteractive: "Interactive basics hint",
+      addSectionBasicsHintInteractive: "Solo basics hint",
       "common:cancel": "Cancel",
       sectionRuntime: "Runtime",
       sectionRuntimeHint: "Runtime hint",
@@ -197,7 +197,7 @@ describe("AddActorModal entry mode", () => {
     expect(panel?.className).toContain("sm:h-[min(88dvh,820px)]");
   });
 
-  it("hides coordination roles when the group is interactive", async () => {
+  it("hides coordination roles when the group is solo", async () => {
     await act(async () => {
       root?.render(
         <AddActorModal
@@ -210,7 +210,7 @@ describe("AddActorModal entry mode", () => {
     });
 
     expect(container?.textContent).toContain("Agent name");
-    expect(container?.textContent).toContain("Interactive basics hint");
+    expect(container?.textContent).toContain("Solo basics hint");
     expect(container?.textContent).not.toContain("Foreman");
     expect(container?.textContent).not.toContain("Peer");
     expect(container?.textContent).not.toContain("First agent is foreman");

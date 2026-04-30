@@ -6,7 +6,7 @@ import { cardClass, inputClass, labelClass, primaryButtonClass } from "./types";
 interface MessagingTabProps {
   isDark: boolean;
   busy: boolean;
-  groupMode: "interactive" | "collaboration";
+  groupMode: "solo" | "collaboration";
   supportsDefaultSendTo?: boolean;
   defaultSendTo: "foreman" | "broadcast";
   setDefaultSendTo: (v: "foreman" | "broadcast") => void;
@@ -64,10 +64,10 @@ export function MessagingTab(props: MessagingTabProps) {
 
         <div className="ml-1 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] px-4 py-3">
           <div className="text-sm font-medium text-[var(--color-text-primary)]">
-            {groupMode === "interactive" ? t("messaging.modeInteractive") : t("messaging.modeCollaboration")}
+            {groupMode === "solo" ? t("messaging.modeInteractive") : t("messaging.modeCollaboration")}
           </div>
           <div className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
-            {groupMode === "interactive"
+            {groupMode === "solo"
               ? t("messaging.modeInteractiveHint")
               : t("messaging.modeCollaborationHint")}
           </div>
@@ -105,7 +105,7 @@ export function MessagingTab(props: MessagingTabProps) {
         ) : (
           <div className="ml-9 rounded-xl border border-[var(--glass-border-subtle)] bg-[var(--glass-panel-bg)] px-3 py-3 text-xs leading-5 text-[var(--color-text-muted)]">
             {t("messaging.interactiveHint", {
-              defaultValue: "Interactive mode does not auto-route empty recipients. Choose one or more agents explicitly when sending messages.",
+              defaultValue: "Solo mode does not auto-route empty recipients. Choose one or more agents explicitly when sending messages.",
             })}
           </div>
         )}

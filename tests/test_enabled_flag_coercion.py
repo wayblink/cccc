@@ -12,7 +12,7 @@ class TestEnabledFlagCoercion(unittest.TestCase):
 
         resp, _ = handle_request(
             DaemonRequest.model_validate(
-                {"op": "group_create", "args": {"title": "coercion", "topic": "", "by": "user"}}
+                {"op": "group_create", "args": {"title": "coercion", "topic": "", "mode": "collaboration", "by": "user"}}
             )
         )
         self.assertTrue(resp.ok, getattr(resp, "error", None))

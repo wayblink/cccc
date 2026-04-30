@@ -53,7 +53,7 @@ class TestGroupSpaceOps(unittest.TestCase):
         return handle_request(DaemonRequest.model_validate({"op": op, "args": args}))
 
     def _create_group(self, title: str = "space-test") -> str:
-        create, _ = self._call("group_create", {"title": title, "topic": "", "by": "user"})
+        create, _ = self._call("group_create", {"title": title, "topic": "", "mode": "collaboration", "by": "user"})
         self.assertTrue(create.ok, getattr(create, "error", None))
         gid = str((create.result or {}).get("group_id") or "").strip()
         self.assertTrue(gid)

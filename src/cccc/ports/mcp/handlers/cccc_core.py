@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -72,6 +73,13 @@ _ISOLATED_HELP_INTERRUPT_NEW = (
     "- If a runtime interrupt arrives, handle it directly, then resume your local task unless priority changed. "
     "Do not overwrite `active_task_id`, `focus`, or `next_action` just because an interrupt appeared."
 )
+
+
+def _replace_markdown_section(text: str, heading: str, replacement: str) -> str:
+    pattern = rf"(?ms)^{re.escape(heading)}\n.*?(?=^### |^## |\Z)"
+    repl = str(replacement or "").rstrip() + "\n"
+    return re.sub(pattern, repl, text, count=1)
+
 
 def _trim_text(value: Any, *, max_chars: int) -> str:
     text = str(value or "").strip()
@@ -156,12 +164,20 @@ def _adapt_help_markdown_for_group(markdown: str, *, group_id: str) -> str:
     replacements = (
         (_ISOLATED_HELP_INTRO_OLD, _ISOLATED_HELP_INTRO_NEW),
         (_ISOLATED_HELP_CORE_ROUTES_OLD, _ISOLATED_HELP_CORE_ROUTES_NEW),
-        (_ISOLATED_HELP_CHAT_OLD, _ISOLATED_HELP_CHAT_NEW),
-        (_ISOLATED_HELP_COORDINATION_OLD, _ISOLATED_HELP_COORDINATION_NEW),
         (_ISOLATED_HELP_INTERRUPT_OLD, _ISOLATED_HELP_INTERRUPT_NEW),
     )
     for old, new in replacements:
         text = text.replace(old, new)
+    text = (
+        text.replace(_ISOLATED_HELP_CHAT_OLD, _ISOLATED_HELP_CHAT_NEW)
+        if _ISOLATED_HELP_CHAT_OLD in text
+        else _replace_markdown_section(text, "### Chat", _ISOLATED_HELP_CHAT_NEW)
+    )
+    text = (
+        text.replace(_ISOLATED_HELP_COORDINATION_OLD, _ISOLATED_HELP_COORDINATION_NEW)
+        if _ISOLATED_HELP_COORDINATION_OLD in text
+        else _replace_markdown_section(text, "### Coordination", _ISOLATED_HELP_COORDINATION_NEW)
+    )
     return text
 
 
