@@ -2,449 +2,123 @@
 
 <img src="screenshots/logo.png" width="160" />
 
-# CCCC
+# CCCC+ · CCCC Personal Fork
 
-### 本地优先多智能体协作内核
+### 基于 CCCC 的个人实验工作台
 
-**一个轻量级、却具备基础设施级可靠性的多智能体框架。**
+**CCCC是一个开源轻量级、本地优先、支持聊天式交互的多智能体协作框架。**
 
-原生聊天式协作，提示词驱动，平台与 agent 双向调度。
+**为了满足个人需求进行了二次开发，做着做着就进去了......**
 
-让多个 coding agent 作为一套**持久化、可协调的系统**运行 — 而不是一堆各自为政的终端窗口。
+英文默认 README、原版项目介绍、安装方式、架构说明和完整上游文档请看：
 
-三条命令即可开始。零基础设施，生产级能力。
+[English](README.md) | [原版 README（ChesterRa/cccc）](https://github.com/ChesterRa/cccc#readme)
 
-[![PyPI](https://img.shields.io/pypi/v/cccc-pair?label=PyPI&color=blue)](https://pypi.org/project/cccc-pair/)
-[![Python](https://img.shields.io/pypi/pyversions/cccc-pair)](https://pypi.org/project/cccc-pair/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-online-blue)](https://chesterra.github.io/cccc/)
-
-[个人分支说明](README.md) | [Original English](https://github.com/ChesterRa/cccc#readme) | **中文完整版镜像** | [日本語](README.ja.md)
+**当前 README 仅记录本分支的二次开发说明。**
 
 </div>
 
 ---
 
-## 为什么选择 CCCC
+## 为什么基于 CCCC 二次开发
 
-- **协作可持久**：工作状态进入 append-only ledger，而不是埋在终端滚动缓冲区里。
-- **触达可验证**：消息具备路由、已读、ACK、reply-required 追踪，而不是“发过去了应该看到了”。
-- **控制面统一**：Web UI、CLI、MCP、IM 桥接全部围绕同一 daemon 运作，不会出现多套状态。
-- **多运行时是默认能力**：Claude Code、Codex CLI、Gemini CLI 以及其它一线 runtime 可以在同一协作组内协同工作。
-- **本地优先但可远程值守**：单条 `pip install` 即可启动，运行时状态放在 `CCCC_HOME`，需要时再通过 Web / IM 远程运维。
+我一直希望建立自己的工作台，相比从零重新造一个，站在一个已有内核上修改，把产品打磨成更贴近日常使用的样子显然更靠谱。接触 CCCC 是来自公司同事分享，是我在众多类似产品中用得最顺手一个：入门门槛低，前端 UI 友好，功能丰富。不是最好的，但刚好适合我。
 
-## 痛点
+### 原本 CCCC 的核心能力
 
-多智能体开发的现实困境：
+- **聊天式交互**：以聊天室方式进行人-agent 和 agent-agent 交互。
 
-- **上下文丢失** — 协作记录散落在终端滚动缓冲区，重启即消失
-- **触达无保障** — agent 到底有没有*读到*你的消息？无从得知
-- **运维碎片化** — 启停、恢复、催办、提醒分散在多个工具里
-- **无法远程值守** — 长时间运行的协作组，出门就失控
+- **角色化分工**：支持创建多个可设置角色的 agent 在同一协作组内协同工作。
 
-这些不是小问题。它们是绝大多数多智能体方案停留在"脆弱 demo"阶段的根本原因。
+- **持久化协作**：构建了完整的消息路由、消息队列和状态追踪，实现可靠的消息语义。
 
-## CCCC 能做什么
+- **多模型支持**：支持包括 Claude Code、Codex CLI、Gemini CLI 等一线 LLM Provider。底层使用 terminal，能享受模型完整原生能力。
 
-CCCC 只需一条 `pip install`，零外部依赖 — 不需要数据库、不需要消息队列、不强制 Docker。但它补上了脆弱多智能体方案最缺的那几块能力：
+- **统一控制面**：Web UI、CLI、MCP、IM 桥接全部围绕同一 daemon 运作，不会出现多套状态。
 
-| 能力 | 实现方式 |
-|---|---|
-| **唯一事实源** | append-only ledger（`ledger.jsonl`）记录所有消息和事件 — 可回放、可审计、永不丢失 |
-| **可靠的消息语义** | 已读游标、attention ACK、reply-required 义务追踪 — 谁看到了什么一清二楚 |
-| **统一控制面** | Web UI、CLI、MCP 工具、IM 桥接全部对接同一 daemon — 不存在状态分裂 |
-| **多运行时编排** | Claude Code、Codex CLI、Gemini CLI 等 9 种一线运行时可混用，此外还支持 `custom` 运行时兜底 |
-| **角色化协调** | Foreman + Peer 角色模型，权限边界清晰，收件人路由精确（`@all`、`@peers`、`@foreman`） |
-| **本地优先的运行时状态** | 运行时数据保存在 `CCCC_HOME` 而不是代码仓库里，同时仍可通过 Web Access 与 IM 做远程运维 |
+- **多样使用方式**：支持 Web UI、CLI、MCP 等多种控制方式，支持 Telegram、Slack、Discord、微信、飞书等主流 IM 桥接。
 
-## CCCC 长什么样
+## 本分支的差异化功能
 
-<div align="center">
+- **Solo 模式**：相比于多 agent 协作，更多开发者喜欢开多窗口/终端并行，况且 Claude Code、Codex 等已经内嵌了协作能力，Vibe coding 的多 agent 需求在被大厂快速覆盖，没必要重复造轮子。因此提供一种类似于多终端/多 session 会话的交互模式，称为 Solo 模式。
 
-<video src="https://github.com/user-attachments/assets/8f9c3986-f1ba-4e59-a114-bcb383ff49a7" controls="controls" muted="muted" autoplay="autoplay" loop="loop" style="max-width: 100%;">
-</video>
+- **临时终端**：提供临时终端入口，当你需要临时使用命令行，不用再切出呼唤终端。
 
-</div>
+- **工具箱-笔记**：工具箱提供笔记功能，方便随时记录想法或备忘，不用再切出打开笔记软件。
 
-## 快速上手
+- **工具箱-脚本**：工具箱提供脚本管理功能，可视化、持久化地管理常用脚本，比如开启远程隧穿，启动本地服务，编译发版项目。一次编写，长期提效。
 
-### 安装
+- **文件工作区**：支持文件树，文件预览，Diff 等 IDE 能力。
 
-```bash
-# 稳定通道（PyPI）
-pip install -U cccc-pair
+- **通知音**：借鉴 Vibe-kanban 项目，Agent 回复时可以发通知音，提醒你给 Agent 发送下一步指令，榨干人的调度能力。内置多种音效：牛叫、马叫、鸡叫等，提供趣味。
 
-# RC 通道（TestPyPI）
-pip install -U --pre \
-  --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ \
-  cccc-pair
-```
+- **MCP 侵入去除**：原版会将 CCCC 的 MCP 永久插入本地的 Agent 配置，导致在其他地方使用 Agent 也会加载 CCCC MCP。将其修改为 session 级注入，避免污染。
 
-> **环境要求**: Python 3.9+，macOS / Linux / Windows
+- **LLM Provider**：新增支持 GitHub Copilot Agent（实验中）。
 
-### 升级
+- **UI 与操作流优化**：重组 Settings、统一 Modal、优化搜索 / mention / reply quote / group mode 等交互，让日常高频操作更少打断。
+
+## 从源码编译和使用
+
+本分支沿用原版 CCCC 的打包方式：后端是 Python 包，前端是随包分发的 Vite/React Web UI。日常本地开发可以使用 editable install；前端改动后需要重新构建 Web UI；发版或验证包产物时，先构建前端，再构建 Python 包。
+
+### 克隆本 fork
 
 ```bash
-cccc update
+git clone https://github.com/wayblink/cccc.git
+cd cccc
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+pip install -e .
 ```
 
-如需先查看检测到的安装类型和将要执行的命令，可使用 `cccc update --check`。
+> 环境要求：CCCC 本身需要 Python 3.9+；如果要构建随包分发的 Web UI，还需要 Node.js/npm。
 
-### 启动
+### 构建随包分发的 Web UI
+
+```bash
+bash scripts/build_web.sh
+```
+
+构建结果会写入 `src/cccc/ports/web/dist`，Python 包会把这个目录作为内置 Web UI 一起分发。
+
+### 本地启动
 
 ```bash
 cccc
 ```
 
-打开 **http://127.0.0.1:8848** — 默认会一起拉起 daemon 和本地 Web UI。
+启动后打开 http://127.0.0.1:8848/ui/。运行时状态会放在 `CCCC_HOME`，不会写进源码目录。
 
-### 建立多智能体协作组
-
-```bash
-cd /path/to/your/repo
-cccc attach .                              # 绑定当前目录为 scope
-cccc actor add foreman --runtime claude    # 第一个 actor 自动成为 foreman
-cccc actor add reviewer --runtime codex    # 添加 peer
-cccc group start                           # 启动所有 actor
-cccc send "请拆分任务并开始实现。" --to @all
-```
-
-此刻你已拥有两个 agent 在一个持久化协作组中协同工作，具备完整的消息历史、触达追踪和 Web 看板。Actor 会通过 session-scoped runtime config 接收 CCCC MCP，普通本地 agent 会话不会被全局改写。投递与协调由 daemon 统一负责，运行时状态则保存在 `CCCC_HOME`，不会污染代码仓库。
-
-## 程序化接入（SDK）
-
-如果你要从外部应用或服务编程接入 CCCC，请使用官方 SDK：
+### 构建可分发包
 
 ```bash
-pip install -U cccc-sdk
-npm install cccc-sdk
+python -m pip install -U build twine
+bash scripts/build_web.sh
+python -m compileall -q src/cccc
+python -m build .
+python -m twine check dist/*
 ```
 
-SDK 不包含 daemon，需要连接已运行的 `cccc` 本体实例。
+构建出的 wheel 和源码包会放在 `dist/`。如果 checkout 后 shell 脚本没有执行权限，按上面的方式用 `bash` 调用即可。
 
-## 架构
+## TODO Roadmap
 
-```mermaid
-graph TB
-    subgraph Agents["Agent 运行时"]
-        direction LR
-        A1["Claude Code"]
-        A2["Codex CLI"]
-        A3["Gemini CLI"]
-        A4["+ 6 种 + custom"]
-    end
+我希望用一个工作台解决大部分开发需求，不再疲于在各种工具、命令行、IDE 间切换，可以端着茶，偶尔看下屏幕就解决大部分问题......
 
-    subgraph Daemon["CCCC Daemon · 单写者"]
-        direction LR
-        Ledger[("Ledger<br/>append-only JSONL")]
-        ActorMgr["Actor<br/>管理器"]
-        Auto["自动化<br/>规则 · 催办 · Cron"]
-        Ledger ~~~ ActorMgr ~~~ Auto
-    end
+- [ ] **重构多 Agent 协作底层**：在协作模式使用过程中，遇到了不少框架的 bug，实际中我几乎都使用 Solo 模式。根本原因是通过 MCP 来实现协作通信可靠性较低，为了让协作框架更可靠，需要更具确定性的消息层，以及消息层和协作语义层的解耦。
+- [ ] **语音控制**：引入类 Typeless 的语音转文字能力，CCCC 本身支持手机端，两者结合会更加便利。
+- [ ] **完善文件工作区**：当前文件工作区仅支持只读，会继续完善有意义的类 IDE 能力。
+- [ ] **打磨手机端和 IM**：下一阶段会尝试手机端和 IM 远程控制，会打磨这部分功能和体验。
+- [ ] **完善插件管理**：当前对于 MCP、skill 缺少统一管理。会尝试做统一的 MCP/Skill 同步和管理，实现多模型的统一 Harness。
+- [ ] **远程能力提升**：远程开发几乎是开发者刚需，但目前各种产品在远程开发都会有些限制或不便：比如 Codex/Claude Desktop 不支持远程；远程命令行无法复制图片（CCCC 可解决）；必须远程安装一个服务；本地和远程上下文及记忆不共享等等。CCCC 已经解决了前两个问题，但还有一些可以做再优化。
+- [ ] **UI 优化**：CCCC 的细节前端布局和 UI 设计还待完善。
 
-    subgraph Ports["控制面"]
-        direction LR
-        Web["Web UI<br/>:8848"]
-        CLI["CLI"]
-        MCP["MCP<br/>(stdio)"]
-    end
+我会将一些有通用价值的改动回馈给 CCCC，并且选择性同步 CCCC 的 bugfix 和功能更新。
 
-    subgraph IM["IM 桥接"]
-        direction LR
-        TG["Telegram"]
-        SL["Slack"]
-        DC["Discord"]
-        FS["飞书"]
-        DT["钉钉"]
-    end
+## 上游与许可
 
-    Agents <-->|MCP 工具| Daemon
-    Daemon <--> Ports
-    Web <--> IM
+本项目基于 [ChesterRa/cccc](https://github.com/ChesterRa/cccc) 二次开发，遵循原项目的 [Apache-2.0](LICENSE) 许可证。
 
-```
-
-**关键设计决策：**
-
-- **Daemon 单写者** — 所有状态变更经由同一进程，杜绝竞态条件
-- **Ledger append-only** — 事件不可篡改，历史可靠且可调试
-- **入口薄层化** — Web、CLI、MCP、IM 桥接均为无状态前端；daemon 拥有全部真相
-- **运行时目录 `CCCC_HOME`**（默认 `~/.cccc/`）— 运行时状态与代码仓库严格分离
-
-## 支持的运行时
-
-CCCC 跨 9 种一线运行时编排 agent，除此之外还支持 `custom` 运行时兜底。同一协作组内，每个 actor 可使用不同的运行时。
-
-| 运行时 | Actor MCP 注入 | 命令 |
-|---------|:-------------:|------|
-| Claude Code | session-scoped | `claude` |
-| Codex CLI | session-scoped | `codex` |
-| GitHub Copilot CLI | global setup only | `copilot` |
-| Gemini CLI | global setup only | `gemini` |
-| Droid | global setup only | `droid` |
-| Amp | global setup only | `amp` |
-| Auggie | global setup only | `auggie` |
-| Kimi CLI | global setup only | `kimi` |
-| Neovate | global setup only | `neovate` |
-| Custom | — | 任意命令 |
-
-```bash
-cccc setup --runtime claude    # 可选：为普通本地会话做全局 / 用户级 MCP 配置；actor 使用 session-scoped MCP
-cccc runtime list --all        # 列出所有可用运行时
-cccc doctor                    # 检查环境和运行时可用性
-```
-
-## 消息与协调
-
-CCCC 实现的是 IM 级消息语义，而不是"往终端里粘贴一段文字"：
-
-- **收件人路由** — `@all`、`@peers`、`@foreman`，或指定 actor ID
-- **已读游标** — 每个 agent 通过 MCP 显式标记已读
-- **回复与引用** — 结构化的 `reply_to` + 引用上下文
-- **Attention ACK** — 高优先级消息要求显式确认
-- **Reply-required 义务** — 持续追踪直到收件人回复
-- **自动唤醒** — 收到消息时，已停用的 actor 自动启动
-
-消息会通过 daemon 管理的投递链路送达到各 actor 运行时，daemon 对每条消息的触达状态持续追踪。
-
-## 自动化与策略
-
-内置规则引擎处理运维关切，免去人工盯盘：
-
-| 策略 | 功能 |
-|------|------|
-| **催办（Nudge）** | 可配置超时后提醒 agent 处理未读消息 |
-| **Reply-required 跟进** | 必回消息逾期时升级提醒 |
-| **Actor 空闲检测** | agent 沉默时通知 foreman |
-| **Keepalive** | 周期性向 foreman 发送签到提醒 |
-| **静默检测** | 整个协作组无活动时告警 |
-
-除内置策略外，还可创建自定义自动化规则：
-
-- **间隔触发** — "每 N 分钟发送一次站会提醒"
-- **Cron 排程** — "工作日每天 9 点发布状态检查"
-- **一次性触发** — "今天下午 5 点暂停协作组"
-- **运维动作** — 设置组状态或控制 actor 生命周期（仅管理员，仅一次性）
-
-## Web UI
-
-内置 Web UI `http://127.0.0.1:8848` 提供：
-
-- **聊天界面** — `@mention` 自动补全、回复串联
-- **逐 actor 嵌入式终端**（xterm.js）— 实时查看每个 agent 的工作状态
-- **协作组与 actor 管理** — 创建、配置、启停、重启
-- **自动化规则编辑器** — 可视化配置触发器、排程和动作
-- **Context 面板** — 共享 vision、sketch、里程碑和任务
-- **IM 桥接配置** — 连接 Telegram/Slack/Discord/飞书/钉钉
-- **设置** — 消息策略、触达调优、终端日志控制
-- **亮色 / 暗色 / 跟随系统 主题**
-
-| 聊天 | 终端 |
-|:----:|:----:|
-| ![Chat](screenshots/chat.png) | ![Terminal](screenshots/terminal.png) |
-
-### 远程访问
-
-从外部访问 Web UI：
-
-- **LAN / 私有网络** — 将 Web 绑定到所有本地网卡：`CCCC_WEB_HOST=0.0.0.0 cccc`
-- **Cloudflare Tunnel**（推荐）— `cloudflared tunnel --url http://127.0.0.1:8848`
-- **Tailscale** — 绑定 tailnet IP：`CCCC_WEB_HOST=$TAILSCALE_IP cccc`
-- 在任何非本地暴露之前，先在 **Settings > Web Access** 中创建一个 **Admin Access Token**，并在令牌创建完成前保持网络边界保护。
-- 在 **Settings > Web Access** 中，`127.0.0.1` 表示仅本机访问，`0.0.0.0` 表示普通本地主机上的 localhost + LAN IP。如果 CCCC 运行在 WSL2 默认 NAT 网络内，`0.0.0.0` 只会暴露到 WSL 内部；如需 LAN 设备访问，请使用 WSL mirrored networking，或配置 Windows portproxy / firewall。
-- `Save` 只保存目标绑定。如果 Web 由 `cccc` 或 `cccc web` 启动，可点击 `Apply now` 做一次短暂的受管重启；如果由 Docker、systemd 或其它 supervisor 管理，请重启对应服务。
-- `Start` / `Stop` 仅用于 Tailscale remote access，不会重新绑定已经运行中的 Web socket。
-- Token 策略按暴露范围分层：localhost-only 可以保持简单，LAN / private exposure 默认要求 Access Token，任何 public URL / tunnel exposure 都必须启用 Access Token。
-
-## IM 桥接
-
-将协作组桥接到团队 IM 平台：
-
-```bash
-cccc im set telegram --token-env TELEGRAM_BOT_TOKEN
-cccc im start
-```
-
-| 平台 | 状态 |
-|------|------|
-| Telegram | ✅ 已支持 |
-| Slack | ✅ 已支持 |
-| Discord | ✅ 已支持 |
-| 飞书 / Lark | ✅ 已支持 |
-| 钉钉 | ✅ 已支持 |
-
-在任一已支持平台上，使用 `/send @all <消息>` 与 agent 对话、`/status` 查看组状态、`/pause` / `/resume` 控制运维 — 全部在手机上完成。
-
-## CLI 速查
-
-```bash
-# 生命周期
-cccc                           # 启动 daemon + Web UI
-cccc daemon start|status|stop  # daemon 管理
-
-# 协作组
-cccc attach .                  # 绑定当前目录
-cccc groups                    # 列出所有组
-cccc use <group_id>            # 切换活跃组
-cccc group start|stop          # 启停所有 actor
-
-# Actor
-cccc actor add <id> --runtime <runtime>
-cccc actor start|stop|restart <id>
-
-# 消息
-cccc send "消息" --to @all
-cccc reply <event_id> "回复"
-cccc tail -n 50 -f             # 实时追踪 ledger
-
-# 收件箱
-cccc inbox                     # 查看未读消息
-cccc inbox --mark-read         # 全部标为已读
-
-# 运维
-cccc doctor                    # 环境检查
-cccc setup --runtime <name>    # 可选全局 / 用户级 MCP 配置
-cccc runtime list --all        # 可用运行时
-
-# IM
-cccc im set <platform> --token-env <ENV_VAR>
-cccc im start|stop|status
-```
-
-## MCP 工具
-
-Agent 通过一套紧凑的 action-oriented MCP surface 与 CCCC 交互。核心工具始终存在，额外能力则通过 capability pack 按需暴露。
-
-| 能力面 | 示例 |
-|--------|------|
-| **会话与指引** | `cccc_bootstrap`、`cccc_help`、`cccc_project_info` |
-| **消息与文件** | `cccc_inbox_list`、`cccc_inbox_mark_read`、`cccc_message_send`、`cccc_message_reply`、`cccc_file` |
-| **协作组与 actor 控制** | `cccc_group`、`cccc_actor` |
-| **协调与状态** | `cccc_context_get`、`cccc_coordination`、`cccc_task`、`cccc_agent_state`、`cccc_context_sync` |
-| **自动化与记忆** | `cccc_automation`、`cccc_memory`、`cccc_memory_admin` |
-| **按需扩展能力** | `cccc_capability_*`、`cccc_space`、`cccc_terminal`、`cccc_debug`、`cccc_im_bind` |
-
-拥有 MCP 权限的 agent 可以在权限边界内自组织：读取收件箱、可见回复、围绕任务协调、刷新自身状态，并在当前工作真正需要时再启用额外能力。
-
-## CCCC 的定位
-
-| 场景 | 适配度 |
-|------|--------|
-| 多个 coding agent 在同一代码库中协作 | ✅ 核心场景 |
-| 人类 + 智能体协调，具备完整审计轨迹 | ✅ 核心场景 |
-| 长时间运行的协作组，通过手机/IM 远程管理 | ✅ 强适配 |
-| 混合运行时团队（如 Claude + Codex + Gemini） | ✅ 强适配 |
-| 单 agent 本地编码辅助 | ⚠️ 可用，但 CCCC 的价值在多参与者时才充分体现 |
-| 纯 DAG 工作流编排 | ❌ 建议使用专用编排器，CCCC 可作为协作层补充 |
-
-CCCC 是**协作内核** — 它拥有协调层，与外部 CI/CD、编排器、部署工具保持可组合性。
-
-## 安全
-
-- **Web UI 属高权限入口。** 对外暴露之前，务必先在 **Settings > Web Access** 中创建 **管理员访问令牌**。
-- **Daemon IPC 无认证。** 默认仅绑定 localhost。
-- **IM bot token** 从环境变量读取，不存储在配置文件中。
-- **运行时状态** 存放在 `CCCC_HOME`（`~/.cccc/`），不在代码仓库内。
-
-详细安全指南见 [SECURITY.md](SECURITY.md)。
-
-## 文档
-
-📚 **[完整文档](https://chesterra.github.io/cccc/)**
-
-| 章节 | 说明 |
-|------|------|
-| [快速上手](https://chesterra.github.io/cccc/guide/getting-started/) | 安装、启动、创建第一个协作组 |
-| [场景示例](https://chesterra.github.io/cccc/guide/use-cases) | 实际多智能体场景 |
-| [Web UI 指南](https://chesterra.github.io/cccc/guide/web-ui) | 看板导航 |
-| [IM 桥接配置](https://chesterra.github.io/cccc/guide/im-bridge/) | 连接 Telegram、Slack、Discord、飞书、钉钉、企业微信 |
-| [运维手册](https://chesterra.github.io/cccc/guide/operations) | 恢复、排障、维护 |
-| [CLI 参考](https://chesterra.github.io/cccc/reference/cli) | 完整命令参考 |
-| [SDK（Python/TypeScript）](https://github.com/ChesterRa/cccc-sdk) | 用官方客户端将 CCCC 接入应用与服务 |
-| [架构](https://chesterra.github.io/cccc/reference/architecture) | 设计决策与系统模型 |
-| [功能详解](https://chesterra.github.io/cccc/reference/features) | 消息、自动化、运行时深度解读 |
-| [CCCS 标准](docs/standards/CCCS_V1.md) | 协作协议规范 |
-| [Daemon IPC 标准](docs/standards/CCCC_DAEMON_IPC_V1.md) | IPC 协议规范 |
-
-## 安装选项
-
-### pip（稳定版，推荐）
-
-```bash
-pip install -U cccc-pair
-```
-
-### pip（RC 版，TestPyPI）
-
-```bash
-pip install -U --pre \
-  --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ \
-  cccc-pair
-```
-
-### 从源码安装
-
-```bash
-git clone https://github.com/ChesterRa/cccc
-cd cccc
-pip install -e .
-```
-
-### uv（快速，Windows 推荐）
-
-```bash
-uv venv -p 3.11 .venv
-uv pip install -e .
-uv run cccc --help
-```
-
-### Windows 原生运行
-
-- 推荐直接使用仓库根目录的 `start.ps1` 启动开发环境。
-- 如果 `cccc doctor` 显示 `Windows PTY: NOT READY`，先执行 `python -m pip install pywinpty`，或重新执行 `uv pip install -e .`。
-- Web 打包可用 `scripts/build_web.ps1`，完整打包可用 `scripts/build_package.ps1`。
-
-### Docker
-
-```bash
-cd docker
-docker compose up -d  # 然后先在 Settings > Web Access 中创建管理员访问令牌，再对外暴露
-```
-
-Docker 镜像内置 Claude Code、Codex CLI、Gemini CLI 和 Factory CLI。完整配置见 [`docker/`](docker/)。
-
-### 从 0.3.x 升级
-
-0.4.x 是从零重写的新架构线。请先彻底卸载：
-
-```bash
-pipx uninstall cccc-pair || true
-pip uninstall cccc-pair || true
-rm -f ~/.local/bin/cccc ~/.local/bin/ccccd
-```
-
-然后重新安装并执行 `cccc doctor` 检查环境。
-
-> tmux-first 的 0.3.x 版本已归档至 [cccc-tmux](https://github.com/ChesterRa/cccc-tmux)。
-
-## 社区与支持
-
-Telegram 社区: [t.me/ccccpair](https://t.me/ccccpair)
-微信: `dodd85`（添加时请备注“CCCC”，人多后会建群）
-
-欢迎在社区中分享工作流、反馈问题，并与其他 CCCC 用户交流实践。
-
-## 贡献
-
-欢迎贡献。请注意：
-
-1. 提交前先检查已有 [Issues](https://github.com/ChesterRa/cccc/issues)
-2. Bug 报告：附上 `cccc version`、操作系统、完整命令和复现步骤
-3. 功能建议：描述问题、期望行为和运维影响
-4. 运行时状态放在 `CCCC_HOME` — 不要提交到仓库
-
-## License
-
-[Apache-2.0](LICENSE)
+如果你想了解 CCCC 原版能力，请优先阅读 [原版 README](https://github.com/ChesterRa/cccc#readme) 和 [官方文档](https://chesterra.github.io/cccc/)。

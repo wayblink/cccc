@@ -4,77 +4,121 @@
 
 # CCCC+ · CCCC Personal Fork
 
-### 基于 CCCC 的个人实验工作台
+### A personal experimental workspace built on CCCC
 
-**CCCC是一个开源轻量级、本地优先、支持聊天式交互的多智能体协作框架。**
+**CCCC is an open-source, lightweight, local-first, chat-native multi-agent collaboration framework.**
 
-**为了满足个人需求进行了二次开发,做着做着还挺上头......**
+**I started this fork to fit my own workflow, and the more I worked on it, the more it pulled me in...**
 
-原版项目介绍、安装方式、架构说明和完整文档请看：
+For the Chinese version of this fork README, the original project intro, installation guide, architecture notes, and full upstream documentation, see:
 
-[English](README.en.md) | [原版 README（ChesterRa/cccc）](https://github.com/ChesterRa/cccc#readme)
+[中文](README.zh-CN.md) | [Original README (ChesterRa/cccc)](https://github.com/ChesterRa/cccc#readme)
 
-**当前 README 仅记录本分支的二次开发说明。**
+**This README only covers the secondary development work in this fork.**
 
 </div>
 
 ---
 
-## 为什么基于 CCCC 二次开发
+## Why I Built on CCCC
 
-我一直希望建立自己的工作台，相比从零重新造一个，站在一个已有内核上修改，把产品打磨成更贴近日常使用的样子显然更靠谱。接触CCCC是来自公司同事分享，是我在众多类似产品中用得最顺手一个：入门门槛低，前端UI友好，功能丰富。不是最好的，但刚好适合我。
+I have wanted to build my own workbench for a while. Instead of starting from scratch, it felt much more practical to build on an existing core and shape the product into something closer to how I actually work every day. I first heard about CCCC from a colleague. Among the similar tools I tried, it was the one that felt easiest to use: low entry cost, friendly frontend UI, and a rich feature set. It may not be the absolute best, but it fits me.
 
-### 原本CCCC的核心能力
+### Core Capabilities of the Original CCCC
 
-- **聊天式交互**：以聊天室方式进行人-agent和agent-agent交互。
+- **Chat-native interaction**: human-agent and agent-agent interaction through a chatroom-style interface.
 
-- **角色化份工**：支持创建多个可设置角色的agent在同一协作组内协同工作。
+- **Role-based work splitting**: create multiple role-configurable agents and let them collaborate in the same group.
 
-- **持久化协作**：构建了完整的消息路由、消息队列，状态追踪，实现可靠的消息语义。
+- **Persistent collaboration**: builds reliable message semantics through message routing, queues, and state tracking.
 
-- **多模型支持**：支持包括Claude Code、Codex CLI、Gemini CLI 等一线LLM Provider。底层使用terminal，能享受模型完整原生能力。
+- **Multi-model support**: supports first-class LLM providers and runtimes such as Claude Code, Codex CLI, Gemini CLI, and others. Because it runs them through terminals underneath, you still get the full native capabilities of each model/runtime.
 
-- **统一控制面**：Web UI、CLI、MCP、IM 桥接全部围绕同一 daemon 运作，不会出现多套状态。
+- **Unified control plane**: Web UI, CLI, MCP, and IM bridges all operate through the same daemon, avoiding split-brain state.
 
-- **多样使用方式**：支持Web UI、CLI、MCP等多种控制方式，支持多种主流 IM 桥接：Telegram，slack，discord，微信，飞书等。
+- **Multiple ways to use it**: supports Web UI, CLI, MCP, and mainstream IM bridges such as Telegram, Slack, Discord, WeChat, Feishu, and more.
 
+## What This Fork Adds
 
-## 本分支的差异化功能
+- **Solo mode**: compared with full multi-agent collaboration, many developers prefer to open multiple windows or terminals in parallel. Claude Code, Codex, and similar tools already have built-in collaboration capabilities, and the multi-agent needs around vibe coding are being covered quickly by major vendors. There is no need to rebuild the same wheel. This fork adds a mode closer to multiple terminals or multiple sessions, and calls it Solo mode.
 
-- **Solo模式**：相比于多agent协作，更多开发者喜欢开多窗口/终端并行，况且Claude code，CodeX等已经内嵌了协作能力，Vibe coding的多agent需求在被大厂快速覆盖，没必要重复造轮子。因此提供一种类似于多终端/多session会话的交互模式，称为Solo模式。
+- **Temporary terminal**: adds a quick terminal entry so you do not need to switch away just to run a command.
 
-- **临时终端**：提供临时终端入口，当你需要临时使用命令行，不用再切出呼唤终端。
+- **Toolbox - Notes**: adds notes to the toolbox, making it easy to jot down ideas and reminders without opening a separate notes app.
 
-- **工具箱-笔记**：工具箱提供笔记功能，方便随时记录想法或备忘，不用再切出打开笔记软件。
+- **Toolbox - Scripts**: adds script management to the toolbox, so common scripts can be managed visually and persistently, such as starting remote tunnels, launching local services, or building and releasing projects. Write once, reuse forever.
 
-- **工具箱-脚本**：工具箱提供脚本管理功能，可视化、持久化地管理常用脚本，比如开启远程隧穿，启动本地服务，编译发版项目。一次编写，长期提效。
+- **File workspace**: adds IDE-like capabilities including a file tree, file preview, and diffs.
 
-- **文件工作区**：支持文件树，文件预览，Diff等IDE能力。
+- **Notification sounds**: inspired by Vibe-kanban, agent replies can play notification sounds so you know when to send the next instruction. This keeps human "token" fully used. It includes several built-in sound effects, such as cow, horse, and chicken sounds, mostly for fun.
 
-- **通知音**：借鉴Vibe-kanban项目，Agent回复时可以发通知音，提醒你给Agent发送下一步指令，榨干人的调度能力。内置多种音效：牛叫，马叫，鸡叫等，提供趣味。
+- **No permanent MCP injection**: the original CCCC permanently inserts its MCP config into local agent settings, which means agents launched elsewhere also load the CCCC MCP. This fork changes that to session-scoped injection to avoid polluting global local configuration.
 
-- **MCP侵入去除**：原版会将CCCC的MCP永久插入本地的Agent配置，导致在其他地方使用Agent也会加载CCCC MCP。将其修改为Session级注入，避免污染。
+- **LLM Provider**: adds experimental support for GitHub Copilot Agent.
 
-- **LLM Provider**：新增支持Github Copilot Agent（实验中）。
+- **UI and workflow improvements**: reorganized Settings, unified modals, and improved search, mention, reply quote, group mode, and other high-frequency interactions so daily use has fewer interruptions.
 
-- **UI 与操作流优化**： 重组 Settings、统一 Modal、优化搜索 / mention / reply quote / group mode 等交互，让日常高频操作更少打断。 
+## Build and Run From Source
+
+This fork keeps the original CCCC packaging model: a Python package with a bundled Vite/React Web UI. For normal local development, install it in editable mode and rebuild the Web UI when frontend code changes. For release testing, build the bundled UI first, then build the Python package.
+
+### Clone This Fork
+
+```bash
+git clone https://github.com/wayblink/cccc.git
+cd cccc
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+pip install -e .
+```
+
+> Requirements: Python 3.9+ for CCCC itself, and Node.js/npm for building the bundled Web UI.
+
+### Build the Bundled Web UI
+
+```bash
+bash scripts/build_web.sh
+```
+
+The built UI is written to `src/cccc/ports/web/dist`, which is the directory included in the Python package.
+
+### Start Locally
+
+```bash
+cccc
+```
+
+Open http://127.0.0.1:8848/ui/. Runtime state lives in `CCCC_HOME`, not in the source tree.
+
+### Build Distributable Packages
+
+```bash
+python -m pip install -U build twine
+bash scripts/build_web.sh
+python -m compileall -q src/cccc
+python -m build .
+python -m twine check dist/*
+```
+
+The wheel and source archive are generated under `dist/`. If the shell scripts are not executable in your checkout, call them through `bash` as shown above.
 
 ## TODO Roadmap
 
-我希望用一个工作台解决大部分开发需求，不在疲于在各种工具，命令行，IDE间切换，可以端着茶，偶尔看下屏幕就解决大部分问题......
+I want a single workbench that covers most of my day-to-day development work, so I don't have to burn mental energy constantly switching between tools, terminals, and IDEs. Ideally, I can sit there with a cup of tea, check the screen once in a while, and still get most things done.
 
-- [ ] **重构多Agent协作底层**: 在协作模式使用过程中，遇到了不少框架的bug，实际中我几乎都使用Solo模式。根本原因是通过MCP来实现协作通信可靠性较低，为了让协作框架更可靠，需要更具确定性的消息层，以及消息层和协作语义层的解耦。
-- [ ] **语音控制**: 引入类typeless的语音转文字能力，CCCC本身支持手机端，两者结合会更加便利。
-- [ ] **完善文件工作区**: 当文件工作区仅支持只读，会继续完善有意义的类IDE能力。
-- [ ] **打磨手机端和IM**: 下一阶段会尝试手机端和IM远程控制，会打磨这部分功能和体验。
-- [ ] **完善插件管理**: 当前对于MCP，skill缺少统一管理。会尝试做统一的MCP/Skill同步和管理，实现多模型的统一Harness。
-- [ ] **远程能力提升**: 远程开发几乎是开发者刚需，但目前各种产品在远程开发都会有些限制或不便：比如：CodeX/Claude Desktop不支持远程；远程命令行无法复制图片（CCCC可解决）；必须远程安装一个服务；本地和远程上下文及记忆不共享等等。CCCC已经解决了前两个问题，但还有一些可以做再优化。
-- [ ] **UI优化**：CCCC的细节前端布局和UI设计还待完善。
+- [ ] **Refactor the multi-agent collaboration core**: I hit quite a few framework bugs while using "collaboration" mode, and in practice I mostly use Solo mode. The root issue is that collaboration communication through MCP is not reliable enough. A more deterministic message layer is needed, with clearer separation between the message layer and the collaboration semantics layer.
+- [ ] **Voice control**: add Typeless-like speech-to-text capabilities. Since CCCC already supports mobile use, combining the two should make it much more convenient.
+- [ ] **Improve the file workspace**: the file workspace is currently read-only. I will continue adding meaningful IDE-like capabilities.
+- [ ] **Polish mobile and IM usage**: the next stage will explore mobile and IM-based remote control, then improve the related UX.
+- [ ] **Improve plugin management**: MCP and skills currently lack unified management. I will try to build unified MCP/Skill sync and management so multiple models can share a common harness.
+- [ ] **Improve remote capabilities**: remote development is almost a must-have for developers, but current tools still have limitations: Codex/Claude Desktop do not support remote use; remote command lines cannot copy images; many solutions require installing a service remotely; local and remote context/memory are not shared; and so on. CCCC has already solved the first two problems, but there is still room to improve.
+- [ ] **Improve the UI**: many frontend layout and UI details in CCCC still need more polish.
 
-我会将一些有通用价值的改动回馈给CCCC，并且选择性同步CCCC的bugfix和功能更新。
+I will upstream changes that have general value back to CCCC, and selectively sync CCCC bug fixes and feature updates into this fork.
 
-## 上游与许可
+## Upstream and License
 
-本项目基于 [ChesterRa/cccc](https://github.com/ChesterRa/cccc) 二次开发，遵循原项目的 [Apache-2.0](LICENSE) 许可证。
+This project is a fork of [ChesterRa/cccc](https://github.com/ChesterRa/cccc) and follows the original project's [Apache-2.0](LICENSE) license.
 
-如果你想了解 CCCC 原版能力，请优先阅读 [原版 README](https://github.com/ChesterRa/cccc#readme) 和 [官方文档](https://chesterra.github.io/cccc/)。
+If you want to understand the original CCCC capabilities, start with the [original README](https://github.com/ChesterRa/cccc#readme) and [official documentation](https://chesterra.github.io/cccc/).

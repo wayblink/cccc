@@ -10,9 +10,9 @@
 
 **I started this fork to fit my own workflow, and the more I worked on it, the more it pulled me in...**
 
-For the original project intro, installation guide, architecture notes, and full documentation, see:
+For the Chinese version of this fork README, the original project intro, installation guide, architecture notes, and full upstream documentation, see:
 
-[中文](README.md) | [Original README (ChesterRa/cccc)](https://github.com/ChesterRa/cccc#readme)
+[中文](README.zh-CN.md) | [Original README (ChesterRa/cccc)](https://github.com/ChesterRa/cccc#readme)
 
 **This README only covers the secondary development work in this fork.**
 
@@ -50,7 +50,7 @@ I have wanted to build my own workbench for a while. Instead of starting from sc
 
 - **File workspace**: adds IDE-like capabilities including a file tree, file preview, and diffs.
 
-- **Notification sounds**: inspired by Vibe-kanban, agent replies can play notification sounds so you know when to send the next instruction. This keep human 'token' fully used. It includes several built-in sound effects, such as cow, horse, and chicken sounds, mostly for fun.
+- **Notification sounds**: inspired by Vibe-kanban, agent replies can play notification sounds so you know when to send the next instruction. This keeps human "token" fully used. It includes several built-in sound effects, such as cow, horse, and chicken sounds, mostly for fun.
 
 - **No permanent MCP injection**: the original CCCC permanently inserts its MCP config into local agent settings, which means agents launched elsewhere also load the CCCC MCP. This fork changes that to session-scoped injection to avoid polluting global local configuration.
 
@@ -58,11 +58,56 @@ I have wanted to build my own workbench for a while. Instead of starting from sc
 
 - **UI and workflow improvements**: reorganized Settings, unified modals, and improved search, mention, reply quote, group mode, and other high-frequency interactions so daily use has fewer interruptions.
 
+## Build and Run From Source
+
+This fork keeps the original CCCC packaging model: a Python package with a bundled Vite/React Web UI. For normal local development, install it in editable mode and rebuild the Web UI when frontend code changes. For release testing, build the bundled UI first, then build the Python package.
+
+### Clone This Fork
+
+```bash
+git clone https://github.com/wayblink/cccc.git
+cd cccc
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+pip install -e .
+```
+
+> Requirements: Python 3.9+ for CCCC itself, and Node.js/npm for building the bundled Web UI.
+
+### Build the Bundled Web UI
+
+```bash
+bash scripts/build_web.sh
+```
+
+The built UI is written to `src/cccc/ports/web/dist`, which is the directory included in the Python package.
+
+### Start Locally
+
+```bash
+cccc
+```
+
+Open http://127.0.0.1:8848/ui/. Runtime state lives in `CCCC_HOME`, not in the source tree.
+
+### Build Distributable Packages
+
+```bash
+python -m pip install -U build twine
+bash scripts/build_web.sh
+python -m compileall -q src/cccc
+python -m build .
+python -m twine check dist/*
+```
+
+The wheel and source archive are generated under `dist/`. If the shell scripts are not executable in your checkout, call them through `bash` as shown above.
+
 ## TODO Roadmap
 
 I want a single workbench that covers most of my day-to-day development work, so I don't have to burn mental energy constantly switching between tools, terminals, and IDEs. Ideally, I can sit there with a cup of tea, check the screen once in a while, and still get most things done.
 
-- [ ] **Refactor the multi-agent collaboration core**: I hit quite a few framework bugs while using 'collaboration' mode, and in practice I mostly use Solo mode. The root issue is that collaboration communication through MCP is not reliable enough. A more deterministic message layer is needed, with clearer separation between the message layer and the collaboration semantics layer.
+- [ ] **Refactor the multi-agent collaboration core**: I hit quite a few framework bugs while using "collaboration" mode, and in practice I mostly use Solo mode. The root issue is that collaboration communication through MCP is not reliable enough. A more deterministic message layer is needed, with clearer separation between the message layer and the collaboration semantics layer.
 - [ ] **Voice control**: add Typeless-like speech-to-text capabilities. Since CCCC already supports mobile use, combining the two should make it much more convenient.
 - [ ] **Improve the file workspace**: the file workspace is currently read-only. I will continue adding meaningful IDE-like capabilities.
 - [ ] **Polish mobile and IM usage**: the next stage will explore mobile and IM-based remote control, then improve the related UX.
