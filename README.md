@@ -10,7 +10,7 @@
 
 原版项目介绍、安装方式、架构说明和完整文档请看：
 
-[原版 README（ChesterRa/cccc）](https://github.com/ChesterRa/cccc#readme) · [本仓库保留的英文 README](README.en.md) · [中文完整版镜像](README.zh-CN.md) · [日本語](README.ja.md)
+[原版 README（ChesterRa/cccc）](https://github.com/ChesterRa/cccc#readme) · [English](README.en.md) · [中文完整版镜像](README.zh-CN.md) · [日本語](README.ja.md)
 
 **当前 README 仅记录本分支的二次开发说明。**
 
@@ -58,6 +58,8 @@
 - **UI 与操作流优化**： 重组 Settings、统一 Modal、优化搜索 / mention / reply quote / group mode 等交互，让日常高频操作更少打断。 
 
 ## TODO Roadmap
+
+我希望用一个工作台解决大部分开发需求，不在疲于应付各种工具，命令行，IDE，可以端着茶，偶尔看下屏幕就解决大部分问题......
 
 - [ ] **重构多Agent协作底层**: 在协作模式使用过程中，遇到了不少框架的bug，实际中我几乎都使用Solo模式。根本原因是通过MCP来实现协作通信可靠性较低，为了让协作框架更可靠，需要更具确定性的消息层，以及消息层和协作语义层的解耦。
 - [ ] **语音控制**: 引入类typeless的语音转文字能力，CCCC本身支持手机端，两者结合会更加便利。

@@ -19,7 +19,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-online-blue)](https://chesterra.github.io/cccc/)
 
-[English](README.en.md) | [中文](README.md) | **日本語**
+[Personal Fork](README.en.md) | [Original English](https://github.com/ChesterRa/cccc#readme) | [中文完整版](README.zh-CN.md) | **日本語**
 
 </div>
 
