@@ -22,6 +22,7 @@ vi.stubGlobal("window", { localStorage: localStorageMock });
 
 import {
   CHAT_NOTIFICATION_SOUND_IDS,
+  CHAT_NOTIFICATION_SOUND_OPTIONS,
   DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE,
   getChatNotificationSoundUrl,
   normalizeChatNotificationSoundPreference,
@@ -50,19 +51,24 @@ describe("chatNotificationSound", () => {
     });
   });
 
-  it("accepts the kept, renamed, and split horse sounds while dropping removed ids", () => {
-    expect(
-      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh" }),
-    ).toEqual({
-      enabled: true,
-      soundId: "horse-neigh",
-    });
-    expect(
-      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh-2" }),
-    ).toEqual({
-      enabled: true,
-      soundId: "horse-neigh-2",
-    });
+  it("orders the built-in sound list for the settings picker", () => {
+    expect(CHAT_NOTIFICATION_SOUND_IDS).toEqual([
+      "cow-mooing",
+      "horse-neigh-3",
+      "rooster",
+      "phone-vibration",
+      "drum-hit",
+      "abstract-sound1",
+      "duck-quack",
+      "abstract-sound3",
+      "abstract-sound4",
+    ]);
+    expect(CHAT_NOTIFICATION_SOUND_OPTIONS.map((option) => option.id)).toEqual(
+      CHAT_NOTIFICATION_SOUND_IDS,
+    );
+  });
+
+  it("keeps the renamed horse sound while dropping removed ids", () => {
     expect(
       normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh-3" }),
     ).toEqual({
@@ -81,6 +87,12 @@ describe("chatNotificationSound", () => {
       enabled: true,
       soundId: "drum-hit",
     });
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh" }),
+    ).toEqual(DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE);
+    expect(
+      normalizeChatNotificationSoundPreference({ enabled: true, soundId: "horse-neigh-2" }),
+    ).toEqual(DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE);
     expect(
       normalizeChatNotificationSoundPreference({ enabled: true, soundId: "cicada-buzz" }),
     ).toEqual(DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE);

@@ -7,31 +7,27 @@ import type {
 export const CHAT_NOTIFICATION_SOUND_STORAGE_KEY = "cccc-chat-notification-sound";
 
 export const CHAT_NOTIFICATION_SOUND_IDS: readonly ChatNotificationSoundId[] = [
+  "cow-mooing",
+  "horse-neigh-3",
+  "rooster",
+  "phone-vibration",
+  "drum-hit",
   "abstract-sound1",
   "duck-quack",
   "abstract-sound3",
   "abstract-sound4",
-  "cow-mooing",
-  "phone-vibration",
-  "rooster",
-  "horse-neigh",
-  "horse-neigh-2",
-  "horse-neigh-3",
-  "drum-hit",
 ];
 
 export const CHAT_NOTIFICATION_SOUND_OPTIONS: readonly ChatNotificationSoundOption[] = [
+  { id: "cow-mooing", labelKey: "chatNotificationSoundOptionCowMooing" },
+  { id: "horse-neigh-3", labelKey: "chatNotificationSoundOptionHorseNeigh" },
+  { id: "rooster", labelKey: "chatNotificationSoundOptionRooster" },
+  { id: "phone-vibration", labelKey: "chatNotificationSoundOptionPhoneVibration" },
+  { id: "drum-hit", labelKey: "chatNotificationSoundOptionDrumHit" },
   { id: "abstract-sound1", labelKey: "chatNotificationSoundOptionAbstractSound1" },
   { id: "duck-quack", labelKey: "chatNotificationSoundOptionAbstractSound2" },
   { id: "abstract-sound3", labelKey: "chatNotificationSoundOptionAbstractSound3" },
   { id: "abstract-sound4", labelKey: "chatNotificationSoundOptionAbstractSound4" },
-  { id: "cow-mooing", labelKey: "chatNotificationSoundOptionCowMooing" },
-  { id: "phone-vibration", labelKey: "chatNotificationSoundOptionPhoneVibration" },
-  { id: "rooster", labelKey: "chatNotificationSoundOptionRooster" },
-  { id: "horse-neigh", labelKey: "chatNotificationSoundOptionHorseNeigh" },
-  { id: "horse-neigh-2", labelKey: "chatNotificationSoundOptionHorseNeigh2" },
-  { id: "horse-neigh-3", labelKey: "chatNotificationSoundOptionHorseNeigh3" },
-  { id: "drum-hit", labelKey: "chatNotificationSoundOptionDrumHit" },
 ];
 
 export const DEFAULT_CHAT_NOTIFICATION_SOUND_PREFERENCE: ChatNotificationSoundPreference = {

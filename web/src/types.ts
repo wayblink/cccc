@@ -4,17 +4,15 @@
 export type Theme = "light" | "dark" | "system";
 export type TextScale = 90 | 100 | 125;
 export type ChatNotificationSoundId =
-  | "abstract-sound1"
-  | "abstract-sound3"
-  | "abstract-sound4"
   | "cow-mooing"
-  | "phone-vibration"
-  | "rooster"
-  | "horse-neigh"
-  | "horse-neigh-2"
   | "horse-neigh-3"
+  | "rooster"
+  | "phone-vibration"
+  | "drum-hit"
+  | "abstract-sound1"
   | "duck-quack"
-  | "drum-hit";
+  | "abstract-sound3"
+  | "abstract-sound4";
 
 export type ChatNotificationSoundPreference = {
   enabled: boolean;

@@ -25,8 +25,6 @@ const CHAT_NOTIFICATION_SOUND_CUE_POINTS: Record<ChatNotificationSoundId, number
   "cow-mooing": 0.316,
   "phone-vibration": 0.073,
   rooster: 0.037,
-  "horse-neigh": 0.0,
-  "horse-neigh-2": 0.0,
   "horse-neigh-3": 0.0,
   "duck-quack": 0.0,
   "drum-hit": 0.0,
