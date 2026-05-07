@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { CopyIcon, FileIcon, SaveIcon, XIcon, EditIcon } from "../../components/Icons";
+import { CopyIcon, FileIcon, SaveIcon, CloseIcon, EditIcon } from "../../components/Icons";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import { classNames } from "../../utils/classNames";
 import { workspaceImagePreviewUrl } from "./workspaceApi";
@@ -119,7 +119,7 @@ export function WorkspaceFilePreview({ groupId, preview, loading, selectedPath }
                   disabled={savingFile}
                   className="rounded-lg border border-[var(--glass-border-subtle)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)] disabled:opacity-50"
                 >
-                  <XIcon size={13} className="mr-1 inline" />
+                  <CloseIcon size={13} className="mr-1 inline" />
                   Cancel
                 </button>
                 <button
