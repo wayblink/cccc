@@ -202,6 +202,59 @@ class TestScriptManagerOps(unittest.TestCase):
         finally:
             cleanup()
 
+    def test_script_list_includes_runtime_by_id(self) -> None:
+        home, cleanup = self._with_home()
+        try:
+            workspace = Path(home) / "workspace"
+            workspace.mkdir(parents=True, exist_ok=True)
+
+            # Create two scripts
+            idle_script_id = self._create_script(
+                name="idle-script",
+                command="printf 'idle\\n'",
+                cwd=str(workspace),
+            )
+            running_script_id = self._create_script(
+                name="running-script",
+                command="printf 'started\\n'; sleep 30; printf 'done\\n'",
+                cwd=str(workspace),
+            )
+
+            # Start one script
+            run_resp, _ = self._call("script_run", {"script_id": running_script_id, "by": "user"})
+            self.assertTrue(run_resp.ok, getattr(run_resp, "error", None))
+            self._wait_for_runtime_status(running_script_id, expected={"running"}, timeout_s=2.0)
+
+            # List scripts and verify runtime_by_id is present
+            listed, _ = self._call("script_list", {"by": "user"})
+            self.assertTrue(listed.ok, getattr(listed, "error", None))
+
+            result = listed.result or {}
+            scripts = result.get("scripts") or []
+            runtime_by_id = result.get("runtime_by_id") or {}
+
+            # Verify both scripts are in the list
+            self.assertEqual(len(scripts), 2)
+
+            # Verify runtime_by_id exists and has entries for both scripts
+            self.assertIn(idle_script_id, runtime_by_id)
+            self.assertIn(running_script_id, runtime_by_id)
+
+            # Verify the idle script shows idle status
+            idle_runtime = runtime_by_id.get(idle_script_id) or {}
+            self.assertEqual(idle_runtime.get("status"), "idle")
+
+            # Verify the running script shows running status
+            running_runtime = runtime_by_id.get(running_script_id) or {}
+            self.assertEqual(running_runtime.get("status"), "running")
+            self.assertIsNotNone(running_runtime.get("pid"))
+
+            # Clean up
+            self._call("script_stop", {"script_id": running_script_id, "by": "user"})
+            self._wait_for_runtime_status(running_script_id, expected={"idle"}, timeout_s=5.0)
+        finally:
+            cleanup()
+
 
 if __name__ == "__main__":
     unittest.main()

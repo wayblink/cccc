@@ -37,7 +37,9 @@ def _require_script_id(args: Dict[str, Any]) -> str:
 def handle_script_list(args: Dict[str, Any]) -> DaemonResponse:
     base = ensure_home()
     items = list_scripts(home=base)
-    return DaemonResponse(ok=True, result={"scripts": items})
+    script_ids = [str(script.get("id") or "").strip() for script in items if script.get("id")]
+    runtime_by_id = SCRIPT_RUNTIME.get_all_runtimes(script_ids, home=base)
+    return DaemonResponse(ok=True, result={"scripts": items, "runtime_by_id": runtime_by_id})
 
 
 def handle_script_get(args: Dict[str, Any]) -> DaemonResponse:

@@ -67,6 +67,15 @@ class ScriptRuntimeManager:
         entry = self._entry(home=base, script_id=script_id)
         return self._build_runtime(entry)
 
+    def get_all_runtimes(self, script_ids: list[str], *, home: Optional[Path] = None) -> Dict[str, Dict[str, Any]]:
+        base = home or ensure_home()
+        result: Dict[str, Dict[str, Any]] = {}
+        for script_id in script_ids:
+            sid = str(script_id or "").strip()
+            if sid:
+                result[sid] = self.get_runtime(sid, home=base)
+        return result
+
     def run(self, script: Dict[str, Any], *, home: Optional[Path] = None) -> Dict[str, Any]:
         base = home or ensure_home()
         script_id = str(script.get("id") or "").strip()
