@@ -897,6 +897,16 @@ def unread_count(group: Group, *, actor_id: str, kind_filter: MessageKindFilter 
             continue
         if ev_kind == "chat.message" and str(ev.get("by") or "") == actor_id:
             continue
+
+        # Exclude automation system.notify messages (nudge, keepalive, etc.)
+        # These are internal notifications that should not count as unread messages
+        if ev_kind == "system.notify":
+            data = ev.get("data")
+            if isinstance(data, dict):
+                notify_kind = str(data.get("kind") or "").strip()
+                if notify_kind in ("nudge", "keepalive", "help_nudge", "actor_idle", "silence_check", "auto_idle", "automation"):
+                    continue
+
         if not is_message_for_actor(group, actor_id=actor_id, event=ev):
             continue
         if cursor_dt is not None:

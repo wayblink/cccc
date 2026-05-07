@@ -1144,6 +1144,16 @@ class AutomationManager:
             )
             _queue_notify_to_pty(group, actor_id=aid, runner_kind=runner_kind, ev=ev, notify=notify_data)
 
+            # Auto-mark nudge as read to prevent it from becoming an unread message itself
+            try:
+                from ...kernel.inbox import set_cursor
+                event_id = str(ev.get("id") or "").strip()
+                event_ts = str(ev.get("ts") or "").strip()
+                if event_id and event_ts:
+                    set_cursor(group, aid, event_id=event_id, ts=event_ts)
+            except Exception:
+                pass  # Non-critical: nudge delivery continues even if auto-mark fails
+
             if escalate:
                 foreman = find_foreman(group)
                 foreman_id = str((foreman or {}).get("id") or "").strip() if isinstance(foreman, dict) else ""
@@ -1165,6 +1175,16 @@ class AutomationManager:
                         data=escalate_notify.model_dump(),
                     )
                     _queue_notify_to_pty(group, actor_id=foreman_id, runner_kind=str((foreman or {}).get("runner") or "pty"), ev=ev2, notify=escalate_notify)
+
+                    # Auto-mark escalation nudge as read for foreman
+                    try:
+                        from ...kernel.inbox import set_cursor
+                        event_id = str(ev2.get("id") or "").strip()
+                        event_ts = str(ev2.get("ts") or "").strip()
+                        if event_id and event_ts:
+                            set_cursor(group, foreman_id, event_id=event_id, ts=event_ts)
+                    except Exception:
+                        pass
 
     def _check_actor_idle(
         self,
