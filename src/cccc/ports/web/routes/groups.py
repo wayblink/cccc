@@ -1088,6 +1088,35 @@ def create_routers(ctx: RouteContext) -> list[APIRouter]:
         response.headers["Cache-Control"] = "no-store"
         return response
 
+    @group_router.post("/workspace/file")
+    async def group_workspace_file_save(group_id: str, path: str, content: str = Form(...)) -> Dict[str, Any]:
+        root, target = _resolve_workspace_path(group_id, path, must_exist=False)
+
+        # Ensure parent directory exists
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Write content to file
+            target.write_text(content, encoding="utf-8")
+
+            # Get updated file info
+            size = int(target.stat().st_size)
+            mime_type = _workspace_mime_type(target)
+
+            return {
+                "ok": True,
+                "result": {
+                    "path": _workspace_relpath(root, target),
+                    "name": target.name,
+                    "size": size,
+                    "mime_type": mime_type,
+                },
+            }
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail={"code": "workspace_permission_denied", "message": str(exc)}) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail={"code": "workspace_save_failed", "message": str(exc)}) from exc
+
     @group_router.get("/workspace/git/status")
     async def group_workspace_git_status(group_id: str) -> Dict[str, Any]:
         root = _workspace_root(group_id)

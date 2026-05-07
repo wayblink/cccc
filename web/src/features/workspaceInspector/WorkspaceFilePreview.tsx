@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { CopyIcon, FileIcon } from "../../components/Icons";
+import { CopyIcon, FileIcon, SaveIcon, XIcon, EditIcon } from "../../components/Icons";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import { classNames } from "../../utils/classNames";
 import { workspaceImagePreviewUrl } from "./workspaceApi";
+import { useWorkspaceInspectorStore } from "./workspaceInspectorStore";
 import type { WorkspaceFilePreview as WorkspaceFilePreviewData } from "./workspaceTypes";
 
 type WorkspaceFilePreviewProps = {
@@ -28,11 +29,23 @@ function isImagePreview(preview: WorkspaceFilePreviewData): boolean {
 export function WorkspaceFilePreview({ groupId, preview, loading, selectedPath }: WorkspaceFilePreviewProps) {
   const { t } = useTranslation("layout");
   const copyWithFeedback = useCopyFeedback();
+  const saveFile = useWorkspaceInspectorStore((state) => state.saveFile);
+  const savingFile = useWorkspaceInspectorStore((state) => state.savingFile);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState("");
+
   const lines = useMemo(() => (preview?.content || "").split(/\r?\n/), [preview?.content]);
   const imageUrl = useMemo(
     () => (preview && groupId && isImagePreview(preview) ? workspaceImagePreviewUrl(groupId, preview.path) : ""),
     [groupId, preview],
   );
+
+  // Reset editing state when file changes
+  useEffect(() => {
+    setIsEditing(false);
+    setEditedContent(preview?.content || "");
+  }, [preview?.path, preview?.content]);
 
   if (loading) {
     return <div className="p-4 text-sm text-[var(--color-text-tertiary)]">{t("workspaceInspectorLoading")}</div>;
@@ -54,6 +67,25 @@ export function WorkspaceFilePreview({ groupId, preview, loading, selectedPath }
     void copyWithFeedback(preview.content, { successMessage: t("workspaceInspectorCopied") });
   };
 
+  const handleEdit = () => {
+    setEditedContent(preview.content);
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setEditedContent(preview.content);
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    const success = await saveFile(groupId, preview.path, editedContent);
+    if (success) {
+      setIsEditing(false);
+    }
+  };
+
+  const canEdit = !preview.is_binary && !preview.truncated;
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-[var(--glass-border-subtle)] px-3 py-3">
@@ -71,27 +103,67 @@ export function WorkspaceFilePreview({ groupId, preview, loading, selectedPath }
                   {t("workspaceInspectorTruncatedPreview")}
                 </span>
               ) : null}
+              {isEditing ? (
+                <span className="rounded-full border border-blue-400/40 bg-blue-400/10 px-2 py-0.5 text-blue-500">
+                  Editing
+                </span>
+              ) : null}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={copyPath}
-              className="rounded-lg border border-[var(--glass-border-subtle)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
-            >
-              <CopyIcon size={13} className="mr-1 inline" />
-              {t("workspaceInspectorCopyPath")}
-            </button>
-            {!preview.is_binary ? (
-              <button
-                type="button"
-                onClick={copyContent}
-                className="rounded-lg border border-[var(--glass-border-subtle)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
-              >
-                <CopyIcon size={13} className="mr-1 inline" />
-                {t("workspaceInspectorCopyContent")}
-              </button>
-            ) : null}
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={savingFile}
+                  className="rounded-lg border border-[var(--glass-border-subtle)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)] disabled:opacity-50"
+                >
+                  <XIcon size={13} className="mr-1 inline" />
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={savingFile}
+                  className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-2 py-1 text-xs text-blue-500 hover:bg-blue-500/20 disabled:opacity-50"
+                >
+                  <SaveIcon size={13} className="mr-1 inline" />
+                  {savingFile ? "Saving..." : "Save"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={copyPath}
+                  className="rounded-lg border border-[var(--glass-border-subtle)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
+                >
+                  <CopyIcon size={13} className="mr-1 inline" />
+                  {t("workspaceInspectorCopyPath")}
+                </button>
+                {!preview.is_binary ? (
+                  <button
+                    type="button"
+                    onClick={copyContent}
+                    className="rounded-lg border border-[var(--glass-border-subtle)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
+                  >
+                    <CopyIcon size={13} className="mr-1 inline" />
+                    {t("workspaceInspectorCopyContent")}
+                  </button>
+                ) : null}
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    className="rounded-lg border border-[var(--glass-border-subtle)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--glass-tab-bg-hover)]"
+                  >
+                    <EditIcon size={13} className="mr-1 inline" />
+                    Edit
+                  </button>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -107,6 +179,15 @@ export function WorkspaceFilePreview({ groupId, preview, loading, selectedPath }
       ) : preview.is_binary ? (
         <div className="flex min-h-0 flex-1 items-center justify-center p-6 text-sm text-[var(--color-text-tertiary)]">
           {t("workspaceInspectorBinaryFile")}
+        </div>
+      ) : isEditing ? (
+        <div className="min-h-0 flex-1 overflow-auto bg-black/[0.025] p-3">
+          <textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            className="h-full w-full resize-none border-none bg-transparent font-mono text-[12px] leading-5 text-[var(--color-text-primary)] outline-none"
+            spellCheck={false}
+          />
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-auto bg-black/[0.025]">

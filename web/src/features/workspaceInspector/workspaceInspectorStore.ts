@@ -4,6 +4,7 @@ import {
   fetchWorkspaceGitDiff,
   fetchWorkspaceGitStatus,
   fetchWorkspaceTree,
+  saveWorkspaceFile,
 } from "./workspaceApi";
 import { normalizeWorkspacePath } from "./pathUtils";
 import type {
@@ -27,6 +28,7 @@ export type WorkspaceInspectorState = {
   loadingFile: boolean;
   loadingStatus: boolean;
   loadingDiff: boolean;
+  savingFile: boolean;
   error: string;
   resetForGroup: (groupId: string) => void;
   loadDir: (groupId: string, path?: string) => Promise<void>;
@@ -35,6 +37,7 @@ export type WorkspaceInspectorState = {
   loadGitStatus: (groupId: string) => Promise<void>;
   loadDiff: (groupId: string, path?: string) => Promise<void>;
   refresh: (groupId: string) => Promise<void>;
+  saveFile: (groupId: string, path: string, content: string) => Promise<boolean>;
 };
 
 function emptyGroupState(groupId: string): Pick<
@@ -51,6 +54,7 @@ function emptyGroupState(groupId: string): Pick<
   | "loadingFile"
   | "loadingStatus"
   | "loadingDiff"
+  | "savingFile"
   | "error"
 > {
   return {
@@ -66,6 +70,7 @@ function emptyGroupState(groupId: string): Pick<
     loadingFile: false,
     loadingStatus: false,
     loadingDiff: false,
+    savingFile: false,
     error: "",
   };
 }
@@ -196,5 +201,35 @@ export const useWorkspaceInspectorStore = create<WorkspaceInspectorState>((set, 
     if (selectedPath) {
       await Promise.all([get().selectFile(gid, selectedPath), get().loadDiff(gid, selectedPath)]);
     }
+  },
+
+  saveFile: async (groupId, path, content) => {
+    const gid = ensureCurrentGroup(set, get, groupId);
+    if (!gid) return false;
+    const normalizedPath = normalizeWorkspacePath(path);
+    set({ error: "", savingFile: true });
+    const response = await saveWorkspaceFile(gid, normalizedPath, content);
+    if (get().currentGroupId !== gid) return false;
+    if (response.ok) {
+      // Update the selected file with new content and size
+      const currentFile = get().selectedFile;
+      if (currentFile && currentFile.path === normalizedPath) {
+        set({
+          selectedFile: {
+            ...currentFile,
+            content,
+            size: response.result.size,
+          },
+          savingFile: false,
+        });
+      } else {
+        set({ savingFile: false });
+      }
+      // Refresh git status to show changes
+      await get().loadGitStatus(gid);
+      return true;
+    }
+    set({ error: apiErrorMessage(response), savingFile: false });
+    return false;
   },
 }));

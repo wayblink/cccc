@@ -10,7 +10,7 @@ import {
   ChevronDown, Send, Paperclip, Mic, Camera, Reply, Power,
   CircleAlert, Info, Image, File, MessageSquare, MessageSquareText,
   Bell, Sparkles, ArrowDown, ChevronLeft, ChevronRight, Globe,
-  GripVertical, PawPrint,
+  GripVertical, PawPrint, Save,
 } from "lucide-react";
 
 interface IconProps {
@@ -336,3 +336,4 @@ export const ChevronRightIcon = createIcon(ChevronRight);
 export const GlobeIcon = createIcon(Globe);
 export const GripIcon = createIcon(GripVertical);
 export const PetIcon = createIcon(PawPrint);
+export const SaveIcon = createIcon(Save);

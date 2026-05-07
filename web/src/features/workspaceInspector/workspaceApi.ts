@@ -144,3 +144,43 @@ export async function fetchWorkspaceGitDiff(groupId: string, path = ""): Promise
     },
   };
 }
+
+export async function saveWorkspaceFile(
+  groupId: string,
+  path: string,
+  content: string,
+): Promise<ApiResponse<{ path: string; name: string; size: number; mime_type: string }>> {
+  const params = new URLSearchParams();
+  const normalized = normalizeWorkspacePath(path);
+  if (normalized) params.set("path", normalized);
+
+  const formData = new FormData();
+  formData.append("content", content);
+
+  const resp = await fetch(`/api/v1/groups/${encodeURIComponent(groupId)}/workspace/file?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("authToken") || ""}`,
+    },
+    body: formData,
+  });
+
+  const data = await resp.json();
+
+  if (!resp.ok || !data.ok) {
+    return {
+      ok: false,
+      error: data.error || { code: "save_failed", message: "Failed to save file" },
+    };
+  }
+
+  return {
+    ok: true,
+    result: {
+      path: normalizeWorkspacePath(asString(data.result.path)),
+      name: asString(data.result.name).trim(),
+      size: Number.isFinite(Number(data.result.size)) ? Number(data.result.size) : 0,
+      mime_type: asString(data.result.mime_type).trim(),
+    },
+  };
+}
