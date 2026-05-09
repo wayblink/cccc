@@ -16,6 +16,7 @@ from ...kernel.runtime_session_mcp import inject_session_scoped_mcp, session_sco
 from ...paths import ensure_home
 from ..claude_app_sessions import SUPERVISOR as claude_app_supervisor
 from ..codex_app_sessions import SUPERVISOR as codex_app_supervisor
+from ..terminal_message_runtime import create_pty_output_recorder
 from ...runners import headless as headless_runner
 from ...runners import pty as pty_runner
 from ...runners.platform_support import pty_support_error_message
@@ -329,6 +330,15 @@ def start_actor_process(
                 command=effective_cmd,
                 env=prepare_pty_env(inject_actor_context_env(effective_env, group.group_id, actor_id)),
                 runtime=runtime,
+                on_output=create_pty_output_recorder(
+                    group_id=group.group_id,
+                    actor_id=actor_id,
+                    runtime=runtime,
+                    runner=runner,
+                    runner_effective=effective_runner,
+                    cwd=str(cwd),
+                    command=effective_cmd,
+                ),
                 max_backlog_bytes=pty_backlog_bytes(),
             )
             try:

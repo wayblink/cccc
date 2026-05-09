@@ -18,6 +18,7 @@ from ...runners import pty as pty_runner
 from ...runners.platform_support import pty_support_error_message
 from ...util.conv import coerce_bool
 from .actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
+from ..terminal_message_runtime import create_pty_output_recorder
 from .actor_profile_runtime import (
     PROFILE_CONTROLLED_FIELDS,
     actor_profile_id,
@@ -333,6 +334,15 @@ def handle_actor_update(
                         command=launch_spec["effective_command"],
                         env=prepare_pty_env(inject_actor_context_env(effective_env, group_id=group.group_id, actor_id=actor_id)),
                         runtime=runtime,
+                        on_output=create_pty_output_recorder(
+                            group_id=group.group_id,
+                            actor_id=actor_id,
+                            runtime=runtime,
+                            runner=runner_kind,
+                            runner_effective=runner_effective,
+                            cwd=str(cwd),
+                            command=launch_spec["effective_command"],
+                        ),
                         max_backlog_bytes=pty_backlog_bytes(),
                     )
                     try:

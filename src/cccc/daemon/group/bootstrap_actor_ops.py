@@ -16,6 +16,7 @@ from ...util.conv import coerce_bool
 from ...runners import headless as headless_runner
 from ...runners import pty as pty_runner
 from ..actors.actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
+from ..terminal_message_runtime import create_pty_output_recorder
 from ..pet.pet_runtime_ops import capture_pet_actor_state, restore_pet_actor_state, sync_pet_actor_from_foreman
 
 logger = logging.getLogger("cccc.daemon.server")
@@ -192,6 +193,15 @@ def autostart_running_groups(
                         command=effective_cmd,
                         env=prepare_pty_env(inject_actor_context_env(effective_env, group.group_id, actor_id)),
                         runtime=runtime,
+                        on_output=create_pty_output_recorder(
+                            group_id=group.group_id,
+                            actor_id=actor_id,
+                            runtime=runtime,
+                            runner=str(launch_spec["runner"]),
+                            runner_effective=effective_runner,
+                            cwd=str(cwd),
+                            command=effective_cmd,
+                        ),
                         max_backlog_bytes=pty_backlog_bytes(),
                     )
                 logger.info(

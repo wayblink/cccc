@@ -78,7 +78,8 @@ export default defineConfig({
             { text: 'Positioning', link: '/reference/positioning' },
             { text: 'Architecture', link: '/reference/architecture' },
             { text: 'Features', link: '/reference/features' },
-            { text: 'CLI', link: '/reference/cli' }
+            { text: 'CLI', link: '/reference/cli' },
+            { text: 'Terminal Message Runtime', link: '/standards/CCCC_TERMINAL_MESSAGE_RUNTIME_V1' }
           ]
         }
       ],

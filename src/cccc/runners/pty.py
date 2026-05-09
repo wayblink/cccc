@@ -69,6 +69,7 @@ class PtySession:
         command: Iterable[str],
         env: Dict[str, str],
         on_exit: Optional[Callable[["PtySession"], None]] = None,
+        on_output: Optional[Callable[["PtySession", bytes], None]] = None,
         runtime: str = "",
         max_backlog_bytes: int = 2_000_000,
         max_client_buffer_bytes: int = 8_000_000,
@@ -79,6 +80,7 @@ class PtySession:
         self.actor_id = actor_id
         self._runtime = str(runtime or "")
         self._on_exit = on_exit
+        self._on_output = on_output
         self._started_at = time.monotonic()
         self._first_output_at: Optional[float] = None
         self._last_output_at: Optional[float] = None
@@ -329,6 +331,7 @@ class PtySession:
             return
         now = time.monotonic()
         text = chunk.decode("utf-8", errors="replace")
+        on_output = getattr(self, "_on_output", None)
         with self._lock:
             if self._first_output_at is None:
                 self._first_output_at = now
@@ -348,6 +351,11 @@ class PtySession:
                 {str(k): str(v) for k, v in override.items() if isinstance(k, str) and isinstance(v, str)}
                 if isinstance(override, dict) and override else None
             )
+        if on_output is not None:
+            try:
+                on_output(self, bytes(chunk))
+            except Exception:
+                pass
 
     def _close_all(self) -> None:
         try:
@@ -684,6 +692,7 @@ class PtySupervisor:
         command: Iterable[str],
         env: Dict[str, str],
         runtime: str = "",
+        on_output: Optional[Callable[[PtySession, bytes], None]] = None,
         max_backlog_bytes: int = 2_000_000,
     ) -> PtySession:
         key = (str(group_id or "").strip(), str(actor_id or "").strip())
@@ -701,6 +710,7 @@ class PtySupervisor:
             env=env,
             runtime=runtime,
             on_exit=self._on_session_exit,
+            on_output=on_output,
             max_backlog_bytes=int(max_backlog_bytes or 0),
         )
         with self._lock:

@@ -20,6 +20,7 @@ from ...runners import pty as pty_runner
 from ...util.conv import coerce_bool
 from ..actors.actor_profile_runtime import resolve_linked_actor_before_start
 from ..actors.actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
+from ..terminal_message_runtime import create_pty_output_recorder
 from ..pet.pet_runtime_ops import capture_pet_actor_state, restore_pet_actor_state, sync_pet_actor_from_foreman
 from ..pet.review_scheduler import cancel_pet_review, request_pet_review
 from ..pet.profile_refresh import maybe_request_pet_profile_refresh
@@ -245,6 +246,15 @@ def handle_group_start(
                     command=launch_spec["effective_command"],
                     env=prepare_pty_env(inject_actor_context_env(effective_env, group_id=group.group_id, actor_id=aid)),
                     runtime=runtime,
+                    on_output=create_pty_output_recorder(
+                        group_id=group.group_id,
+                        actor_id=aid,
+                        runtime=runtime,
+                        runner=runner_kind,
+                        runner_effective=runner_effective,
+                        cwd=str(cwd),
+                        command=launch_spec["effective_command"],
+                    ),
                     max_backlog_bytes=pty_backlog_bytes(),
                 )
                 try:

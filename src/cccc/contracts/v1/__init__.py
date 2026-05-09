@@ -38,6 +38,7 @@ from .presentation import (
     PresentationSourceMode,
     PresentationTableData,
 )
+from .terminal_runtime import AgentRun, FinalMessage, ResumeState, RunEvent, TerminalPort
 
 __all__ = [
     "Actor",
@@ -94,4 +95,9 @@ __all__ = [
     "Reference",
     "RunnerKind",
     "SystemNotifyData",
+    "AgentRun",
+    "FinalMessage",
+    "ResumeState",
+    "RunEvent",
+    "TerminalPort",
 ]

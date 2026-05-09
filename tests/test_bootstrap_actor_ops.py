@@ -544,7 +544,9 @@ class TestBootstrapActorOps(unittest.TestCase):
                 env: dict[str, str],
                 runtime: str,
                 max_backlog_bytes: int,
+                on_output=None,
             ):
+                self.assertTrue(callable(on_output))
                 captured.append(
                     {
                         "group_id": group_id,
@@ -568,6 +570,9 @@ class TestBootstrapActorOps(unittest.TestCase):
             ), patch(
                 "cccc.daemon.group.bootstrap_actor_ops.runtime_start_preflight_error",
                 return_value="",
+            ), patch(
+                "cccc.daemon.group.bootstrap_actor_ops.create_pty_output_recorder",
+                return_value=lambda _session, _chunk: None,
             ):
                 autostart_running_groups(
                     home,

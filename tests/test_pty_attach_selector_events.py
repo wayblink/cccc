@@ -26,6 +26,28 @@ class _FakeSelector:
 
 
 class TestPtyAttachSelectorEvents(unittest.TestCase):
+    def test_append_backlog_notifies_output_callback(self) -> None:
+        from cccc.runners import pty as pty_runner
+
+        chunks = []
+
+        session = pty_runner.PtySession.__new__(pty_runner.PtySession)
+        session._lock = threading.Lock()
+        session._first_output_at = None
+        session._last_output_at = None
+        session._backlog = deque()
+        session._backlog_bytes = 0
+        session._max_backlog_bytes = 2_000_000
+        session._terminal_signal_buffer = ""
+        session._terminal_override = None
+        session._runtime = "codex"
+        session._on_output = lambda _session, chunk: chunks.append(chunk)
+
+        session._append_backlog(b"working\n")
+
+        self.assertEqual(chunks, [b"working\n"])
+        self.assertEqual(session.tail_output(max_bytes=100), b"working\n")
+
     def test_non_writer_client_registers_with_read_event_even_without_backlog(self) -> None:
         from cccc.runners import pty as pty_runner
 

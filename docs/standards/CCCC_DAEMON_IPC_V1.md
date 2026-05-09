@@ -3346,6 +3346,115 @@ Streaming mode:
 - If no active projected auth browser exists, attach SHOULD fail with `browser_surface_not_found`.
 - If the underlying browser runtime is no longer active, attach SHOULD fail with `browser_surface_not_active`.
 
+#### `terminal_runtime_port_upsert`
+
+Create or update a terminal runtime port for an agent-backed terminal.
+
+Args:
+```ts
+{
+  group_id: string
+  actor_id: string
+  runtime?: string
+  transport?: "pty" | "headless" | "external"
+  provider?: string
+  native_session_id?: string
+  cwd?: string
+  command?: string[]
+  port_id?: string
+  metadata?: Record<string, unknown>
+}
+```
+
+Result:
+```ts
+{ port: TerminalPort }
+```
+
+#### `terminal_runtime_run_start`
+
+Start a durable terminal runtime run under an existing port.
+
+Args:
+```ts
+{
+  group_id: string
+  actor_id: string
+  port_id: string
+  input_text?: string
+  metadata?: Record<string, unknown>
+}
+```
+
+Result:
+```ts
+{ run: AgentRun }
+```
+
+#### `terminal_runtime_event_append`
+
+Append an ordered event to a terminal runtime run.
+
+Args:
+```ts
+{
+  group_id: string
+  actor_id: string
+  port_id: string
+  run_id: string
+  type: "input" | "raw_output" | "progress" | "tool" | "status" | "error" | "final"
+  text?: string
+  data?: Record<string, unknown>
+}
+```
+
+Result:
+```ts
+{ event: RunEvent }
+```
+
+#### `terminal_runtime_run_complete`
+
+Append a final event and mark a terminal runtime run complete, failed, or canceled.
+
+Args:
+```ts
+{
+  group_id: string
+  actor_id: string
+  port_id: string
+  run_id: string
+  final_text?: string
+  final_message_event_id?: string
+  status?: "completed" | "failed" | "canceled"
+  data?: Record<string, unknown>
+}
+```
+
+Result:
+```ts
+{ event: RunEvent }
+```
+
+#### `terminal_runtime_run_tail`
+
+Read ordered terminal runtime events after a sequence number.
+
+Args:
+```ts
+{
+  group_id: string
+  run_id: string
+  after_seq?: number
+  limit?: number
+}
+```
+
+Result:
+```ts
+{ events: RunEvent[] }
+```
+
 ## 9. Appendix: Example Lines
 
 ### 9.1 Ping

@@ -19,6 +19,7 @@ from ...runners import pty as pty_runner
 from ...util.conv import coerce_bool
 from .actor_runtime_ops import ensure_actor_mcp_ready, resolve_actor_launch_spec
 from .actor_profile_runtime import ActorProfileAccessDeniedError, resolve_linked_actor_before_start
+from ..terminal_message_runtime import create_pty_output_recorder
 from ..pet.review_scheduler import request_pet_review
 
 
@@ -379,6 +380,15 @@ def handle_actor_restart(
                 command=launch_spec["effective_command"],
                 env=prepare_pty_env(inject_actor_context_env(effective_env, group_id=group.group_id, actor_id=actor_id)),
                 runtime=runtime,
+                on_output=create_pty_output_recorder(
+                    group_id=group.group_id,
+                    actor_id=actor_id,
+                    runtime=runtime,
+                    runner=runner_kind,
+                    runner_effective=runner_effective,
+                    cwd=str(cwd),
+                    command=launch_spec["effective_command"],
+                ),
                 max_backlog_bytes=pty_backlog_bytes(),
             )
             try:
